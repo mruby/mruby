@@ -2783,10 +2783,18 @@ add_pending_call(re_compiler *c, uint8_t kind, const char *at, uint32_t len,
    group written later may still satisfy, `-n` counts back over the groups
    already open, and a nest level is refused. A number that names no group
    is caught by mrb_re_compile() once the whole pattern is read; see
-   `max_backref`. */
+   `max_backref`.
+
+   A name the pattern has given to several groups answers the first of them,
+   which is the group a conditional tests, and `set` collects all of them,
+   one bit per group number, for the backreference that reads them all (see
+   emit_multi_backref()). A caller with no use for the set passes NULL, and
+   the numeric spellings leave it empty: those name one group, which the
+   answer carries, and the group a forward `\k<n>` names is not open yet. */
 static int
-parse_group_ref(re_compiler *c)
+parse_group_ref(re_compiler *c, uint32_t *set)
 {
+  if (set) *set = 0;
   int close = (peek(c) == '<') ? '>' : '\'';
   next_char(c);  /* skip < or ' */
   const char *name = c->p;
@@ -2917,8 +2925,9 @@ parse_group_ref(re_compiler *c)
     for (uint16_t i = 0; i < c->num_named; i++) {
       if (c->pat->named_captures[i].name_len == name_len &&
           memcmp(c->pat->named_captures[i].name, name, name_len) == 0) {
-        group = c->pat->named_captures[i].group;
-        break;
+        uint16_t g = c->pat->named_captures[i].group;
+        if (group < 0) group = g;
+        if (set) *set |= (uint32_t)1 << g;
       }
     }
     if (group < 1) {
@@ -3185,7 +3194,12 @@ open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
         compile_error(c, "undefined group option");
       }
       if (cond == '<' || cond == '\'') {
-        group = parse_group_ref(c);
+        /* A name given to several groups tests the first of them, as in
+           CRuby: `(?<x>a)?(?<x>b)(?(<x>)y|z)` reads `z` against "b", the
+           group that matched not being the one the condition names. That
+           is where the condition parts from the backreference, which
+           reads every group of the name. */
+        group = parse_group_ref(c, NULL);
         /* A name closed by its delimiter and then something other than
            the ')': CRuby's answer is the prefix's, as above. */
         if (peek(c) != ')') compile_error(c, "undefined group option");
@@ -3293,6 +3307,55 @@ open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
   re_level *lv = open_level(c, RE_LEVEL_GROUP, begin, outer_atom_start);
   lv->state = capturing;
   lv->num = group;
+}
+
+/* Emit the backreference to a name the pattern has given to several groups:
+   `set` holds them, one bit per group number, and the reference matches
+   where any of them does. CRuby reads such a name that way and this engine
+   used to read one group of it, so a subject only another group could vouch
+   for did not match.
+
+   The groups are tried from the last defined to the first, which is the
+   order CRuby takes them in: `(?<x>ab)(?<x>a)\k<x>` matches "abaa" rather
+   than the "abaab" the first group would reach. A group that took no part
+   in the match holds no text and matches nothing, so it falls through to
+   the next like a group whose text is not there; where none of them
+   matches, the whole reference fails, as `(?:(?<x>a))?\k<x>` does against
+   "".
+
+   The first group that matches is the one the reference takes, and a
+   failure after it does not come back for another: CRuby refuses
+   `\A(?<x>a)(?<x>ab)\k<x>b\z` against "aabab", where taking "a" instead of
+   "ab" would have matched. That is what the atomic group around the
+   alternatives says, and it is why this is not the plain alternation the
+   same groups would spell. */
+static void
+emit_multi_backref(re_compiler *c, uint32_t set, uint8_t fold)
+{
+  uint32_t taken[RE_MAX_CAPTURES];  /* the arms' jumps to the join point */
+  uint32_t num_taken = 0;
+  uint16_t cut = (uint16_t)++c->num_cuts;
+
+  emit(c, RE_ATOMIC, 0, cut);
+  for (int g = RE_MAX_CAPTURES - 1; g > 0; g--) {
+    if (!((set >> g) & 1)) continue;
+    set &= ~((uint32_t)1 << g);
+    if (set == 0) {
+      /* The last arm: nothing follows it to fall through to, so it fails
+         the reference itself rather than forking first. */
+      emit(c, RE_BACKREF, (uint8_t)g, fold);
+      break;
+    }
+    uint32_t fork = emit(c, RE_SPLIT, 0, 0);
+    emit(c, RE_BACKREF, (uint8_t)g, fold);
+    taken[num_taken++] = emit(c, RE_JMP, 0, 0);
+    patch(c, fork, (uint16_t)c->code_len);
+  }
+  for (uint32_t i = 0; i < num_taken; i++) {
+    patch(c, taken[i], (uint16_t)c->code_len);
+  }
+  emit(c, RE_ATOMIC_END, 0, cut);
+  c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
 }
 
 /* Compile a single atom (character, class, anchor, escape). Returns whether
@@ -3406,10 +3469,19 @@ compile_atom(re_compiler *c)
              (c->p[1] == '<' || c->p[1] == '\'')) {
       /* \k<name> / \k'name': backreference to a named group. Numeric forms
          \k<2> (absolute) and \k<-1> (relative to the groups seen so far) are
-         also accepted, like the \g/\k family in Onigmo. */
+         also accepted, like the \g/\k family in Onigmo. A name the pattern
+         has given to several groups reaches every one of them, which takes
+         more than the one instruction; see emit_multi_backref(). */
       next_char(c);  /* skip k */
-      int group = parse_group_ref(c);
-      emit(c, RE_BACKREF, (uint8_t)group, (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0);
+      uint32_t set;
+      int group = parse_group_ref(c, &set);
+      uint8_t fold = (c->flags & RE_FLAG_IGNORECASE) ? 1 : 0;
+      if (set & (set - 1)) {
+        emit_multi_backref(c, set, fold);
+      }
+      else {
+        emit(c, RE_BACKREF, (uint8_t)group, fold);
+      }
       c->has_backref = TRUE;
     }
     else if (ch == 'g' && c->p + 1 < c->src_end &&

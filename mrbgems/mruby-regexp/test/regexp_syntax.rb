@@ -2362,6 +2362,62 @@ assert("Regexp - named backreference \\k") do
   assert_nil "ab".match(/(?<n>a)\k<n>/i)
 end
 
+assert("Regexp - \\k on a name given to several groups") do
+  need_backtracking_stack
+  # a name the pattern gives to several groups is a reference to all of
+  # them: the reference matches where any one of them does, and the group
+  # that vouches for the text need not be the first the name was given to
+  assert_equal "abb", /(?<x>a)(?<x>b)\k<x>/.match("abb")[0]
+  assert_equal "aba", /(?<x>a)(?<x>b)\k<x>/.match("aba")[0]
+  assert_nil /(?<x>a)(?<x>b)\k<x>/.match("ab")
+  # a group that took no part in the match vouches for nothing, so the
+  # reference falls through to the ones that did
+  assert_equal "bb", /(?<x>a)|(?<x>b)\k<x>/.match("bb")[0]
+  assert_equal "bb", Regexp.new("(?<x>a)?(?<x>b)\\k<x>").match("bb")[0]
+  assert_equal "aa", Regexp.new("(?<x>a)(?:(?<x>b))?\\k<x>").match("aa")[0]
+  # and where none of them did the reference matches nothing
+  assert_nil Regexp.new("(?:(?<x>a))?\\k<x>").match("")
+  # a name given to more than two groups reads the ones between the last and
+  # the first as well, and passes over one of them that took no part
+  assert_equal "abcc", /(?<x>a)(?<x>b)(?<x>c)\k<x>/.match("abcc")[0]
+  assert_equal "abcb", /(?<x>a)(?<x>b)(?<x>c)\k<x>/.match("abcb")[0]
+  assert_equal "abca", /(?<x>a)(?<x>b)(?<x>c)\k<x>/.match("abca")[0]
+  assert_equal "aca", /(?<x>a)(?:(?<x>b))?(?<x>c)\k<x>/.match("aca")[0]
+  # both spellings of the reference reach the same groups
+  assert_equal "abb", /(?<x>a)(?<x>b)\k'x'/.match("abb")[0]
+
+  # the groups are tried from the last defined to the first, so where two of
+  # them match at the position the later one is the reference's
+  assert_equal "abaa", /(?<x>ab)(?<x>a)\k<x>/.match("abaab")[0]
+  assert_equal "aabab", /(?<x>a)(?<x>ab)\k<x>/.match("aabab")[0]
+  # the first that matches is the reference's for good: a failure after it
+  # never comes back for another, so this refuses "aabab" although the
+  # shorter group would have carried it
+  assert_nil /\A(?<x>a)(?<x>ab)\k<x>b\z/.match("aabab")
+
+  # the reference reaches the groups the name has been given where it
+  # stands, not the ones written after it
+  assert_equal "aab", /(?<x>a)\k<x>(?<x>b)/.match("aab")[0]
+  # the group the reference stands inside is one of them, and holds no text
+  # where the reference reads it, so the reference passes over it
+  assert_equal "aba", /(?<x>a)(?<x>b\k<x>)/.match("aba")[0]
+  # each group is compared as the reference's own case reading asks
+  assert_equal "abB", /(?<x>a)(?<x>b)\k<x>/i.match("abB")[0]
+  assert_nil Regexp.new("(?i:(?<x>A)(?<x>b))\\k<x>").match("AbB")
+  # a quantifier repeats the whole reference
+  assert_equal "abbb", /\A(?<x>a)(?<x>b)\k<x>{2}\z/.match("abbb")[0]
+  # a look-behind refuses a body that reads a capture, this reference among
+  # them, and says so the way it does of the one that reads a single group
+  src = "(?<=(?<x>a)(?<x>b)\\k<x>)"
+  assert_raise_with_message(RegexpError, "invalid pattern in look-behind: /#{src}/") do
+    Regexp.new(src)
+  end
+  # a conditional on the same name is not this: it tests the first group of
+  # the name and no other
+  assert_nil Regexp.new("(?<x>a)?(?<x>b)(?(<x>)y|z)").match("by")
+  assert_equal "bz", Regexp.new("(?<x>a)?(?<x>b)(?(<x>)y|z)").match("bz")[0]
+end
+
 assert("Regexp - a \\k reference names a group the pattern has") do
   # an unknown name is an error
   assert_raise(RegexpError) { Regexp.new("\\k<missing>") }
