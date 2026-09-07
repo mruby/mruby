@@ -44,8 +44,16 @@ jobs:
           # a minute together while the seven builds take ten of the job's
           # fifteen, so this runner is asked for its ABI and not for what
           # reads the same everywhere.  See build_config/ci/gcc-clang.rb.
-          - {os: windows-2025, cc: gcc, cxx: g++, altname: "mingw-gcc", abi_only: "1"}
-          - {os: windows-2022, cc: gcc, cxx: g++, altname: "mingw-gcc", abi_only: "1"}
+          - os: windows-2025
+            cc: gcc
+            cxx: g++
+            altname: "mingw-gcc"
+            abi_only: "1"
+          - os: windows-2022
+            cc: gcc
+            cxx: g++
+            altname: "mingw-gcc"
+            abi_only: "1"
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: ${{ matrix.cc }}
