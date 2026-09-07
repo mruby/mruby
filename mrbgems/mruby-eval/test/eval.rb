@@ -370,3 +370,30 @@ assert('a string given to eval is named for the method that called eval') do
   assert_nil binding.eval("__method__")
   assert_raise(NoMethodError) { eval("super") }
 end
+
+assert('`super` and `yield` in a string given to eval belong to the caller') do
+  # The string's own scope chain holds no method scope, so the argument
+  # layout that a bare `super` forwards and that `yield` finds the block by
+  # comes from the method on the proc chain the compile context carries.
+  base = Class.new do
+    def m(x); [:base, x]; end
+    def blk; block_given? ? yield(:b) : :noblk; end
+  end
+  sub = Class.new(base) do
+    def m(x); eval("super"); end
+    def blk; eval("super"); end
+    def y; eval("yield 21"); end
+    def y_nested; eval("[1].map { yield 2 }"); end
+    def y_args(a, b = 1, *r, c, d: 4, &e); eval("yield a"); end
+  end
+  o = sub.new
+
+  assert_equal [:base, 1], o.m(1)
+  assert_equal [:blk, :b], o.blk { |v| [:blk, v] }
+  assert_equal 42, o.y { |v| v * 2 }
+  assert_equal [4], o.y_nested { |v| v * 2 }
+  assert_equal 35, o.y_args(7, 8) { |v| v * 5 }
+
+  # Outside a method there is still no block to reach.
+  assert_raise(SyntaxError) { eval("yield") }
+end
