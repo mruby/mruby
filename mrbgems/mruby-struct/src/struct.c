@@ -528,23 +528,31 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   return copy;
 }
 
-static mrb_value
-struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
+/* Returns the position `id` holds among the members of `obj`, or -1 when it
+   names no member. */
+static mrb_int
+struct_member_pos(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
   mrb_value members = struct_members(mrb, obj);
   const mrb_value *ptr_members = RARRAY_PTR(members);
   mrb_int len = RARRAY_LEN(members);
-  mrb_value *ptr = RSTRUCT_PTR(obj);
-  mrb_int plen = RARRAY_LEN(obj);
   for (mrb_int i=0; i<len; i++) {
     mrb_value slot = ptr_members[i];
-    if (mrb_symbol_p(slot) && mrb_symbol(slot) == id) {
-      if (i < plen) return ptr[i];
-      return mrb_nil_value();
-    }
+    if (mrb_symbol_p(slot) && mrb_symbol(slot) == id) return i;
   }
-  mrb_name_error(mrb, id, "no member '%n' in struct", id);
-  return mrb_nil_value();       /* not reached */
+  return -1;
+}
+
+static mrb_value
+struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
+{
+  mrb_int i = struct_member_pos(mrb, obj, id);
+
+  if (i < 0) {
+    mrb_name_error(mrb, id, "no member '%n' in struct", id);
+  }
+  if (i >= RSTRUCT_LEN(obj)) return mrb_nil_value();
+  return RSTRUCT_PTR(obj)[i];
 }
 
 static mrb_int
@@ -606,17 +614,13 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
 static mrb_value
 mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
-  mrb_value members = struct_members(mrb, s);
-  mrb_int len = RARRAY_LEN(members);
-  const mrb_value *ptr_members = RARRAY_PTR(members);
-  for (mrb_int i=0; i<len; i++) {
-    if (mrb_symbol(ptr_members[i]) == id) {
-      mrb_ary_set(mrb, s, i, val);
-      return val;
-    }
+  mrb_int i = struct_member_pos(mrb, s, id);
+
+  if (i < 0) {
+    mrb_name_error(mrb, id, "no member '%n' in struct", id);
   }
-  mrb_name_error(mrb, id, "no member '%n' in struct", id);
-  return val;                   /* not reach */
+  mrb_ary_set(mrb, s, i, val);
+  return val;
 }
 
 /* 15.2.18.4.3  */
