@@ -656,6 +656,7 @@ mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym);
 mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym);
 mrb_value mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym);
 mrb_bool mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym);
+struct RClass *mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci);
 mrb_bool mrb_gv_defined(mrb_state *mrb, mrb_sym sym);
 #ifdef MRUBY_VARIABLE_H
 void mrb_gv_foreach(mrb_state *mrb, mrb_iv_foreach_func *func, void *p);

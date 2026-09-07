@@ -41,6 +41,29 @@ static const struct RProc call_proc = {
   { &call_irep }, NULL, { NULL }
 };
 
+/* The class a constant written in the frame's scope is looked up from, and
+   the one a `def` written there adds to.  That is the scope's cref: NULL
+   where the chain holds no scope at all, a method body written in C among
+   them, and the caller says what stands in.
+
+   A scope keeps its cref on its proc, so a method written `def self.name`
+   keeps the class around it rather than the singleton class it was
+   installed in.  A block is not a scope of its own and the walk passes over
+   it, up to the one it was written in.  A proc installed as a method is on
+   the chain and is read that way, which is what keeps a method found in a
+   subclass from answering with the subclass.
+
+   The walk stops at a proc written in C, which carries no scope: what its
+   flags hold is a compressed argument spec (see mruby/proc.h). */
+struct RClass*
+mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci)
+{
+  const struct RProc *p = ci->proc;
+
+  while (p && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_CREF_P(p)) p = p->upper;
+  return (p && !MRB_PROC_CFUNC_P(p)) ? MRB_PROC_TARGET_CLASS(p) : NULL;
+}
+
 struct RProc*
 mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -49,11 +72,8 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 
   p = (struct RProc*)mrb_obj_alloc_core(mrb, MRB_TT_PROC, mrb->proc_class);
   if (ci) {
-    struct RClass *tc = NULL;
+    struct RClass *tc = mrb_vm_cref_class(mrb, ci);
 
-    if (ci->proc) {
-      tc = MRB_PROC_TARGET_CLASS(ci->proc);
-    }
     if (tc == NULL) {
       tc = mrb_vm_ci_target_class(ci);
     }

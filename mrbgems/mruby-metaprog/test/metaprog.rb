@@ -535,3 +535,18 @@ assert('Module#remove_method on a module prepended to Integer restores the built
   a = 7
   assert_equal 5, a - 2
 end
+
+assert('Module.nesting from a method with a receiver', '15.2.2.2.2') do
+  # `def self.name` does not open a scope of its own: the nesting it answers
+  # with is the one around it, without the singleton class it was installed
+  # in. `class << self` does open one.
+  class Test4NestingInSdef
+    def self.plain; Module.nesting; end
+    class << self
+      def in_sclass; Module.nesting; end
+    end
+  end
+  assert_equal([Test4NestingInSdef], Test4NestingInSdef.plain)
+  assert_equal([Test4NestingInSdef.singleton_class, Test4NestingInSdef],
+               Test4NestingInSdef.in_sclass)
+end

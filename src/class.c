@@ -1126,7 +1126,10 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
         p->flags |= MRB_PROC_SCOPE;
         p->c = NULL;
         mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
-        if (!MRB_PROC_ENV_P(p)) {
+        /* A proc made in a scope carries that scope's cref, which is what
+           a `def` in its body adds to.  Only one made outside any scope,
+           from C, has none to keep. */
+        if (!MRB_PROC_ENV_P(p) && p->e.target_class == NULL) {
           MRB_PROC_SET_TARGET_CLASS(p, c);
         }
       }
