@@ -4097,10 +4097,25 @@ close_level(re_compiler *c)
        measure_deferred_lookbehinds() fills that in once the calls are
        wired. The landing bit is not set on the end here either: whether it
        is needed is known only once the body is measured, and
-       add_lookbehind_widths() sets it. */
+       add_lookbehind_widths() sets it.
+
+       The same walk answers what a negative lookbehind may hold. One of
+       those holds only where its body did not match, so a capture written
+       inside it claims a slot that can never be set and shifts the
+       numbering of every group after it. CRuby refuses such a pattern,
+       wherever in the body the capture stands and however deep, with the
+       message this gem already refuses a lookbehind body with. A group the
+       body reaches by \g is another matter: the capture is written outside
+       the assertion, and CRuby takes it. */
     mrb_bool deferred = FALSE;
     for (uint32_t i = sub_start; i < body_end; i++) {
-      if (c->pat->code[i].op == RE_CALL) { deferred = TRUE; break; }
+      uint8_t op = c->pat->code[i].op;
+      if (op == RE_CALL) {
+        deferred = TRUE;
+      }
+      else if (op == RE_SAVE && lv->state) {
+        compile_error(c, "invalid pattern in look-behind");
+      }
     }
     if (deferred) {
       insert_inst(c, sub_start, RE_LB_WIDTH, 0, 0);
