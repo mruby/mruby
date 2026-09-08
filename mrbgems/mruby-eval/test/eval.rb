@@ -675,3 +675,65 @@ assert('eval string in a method starts at the visibility of the scope the method
   o.make
   assert_true o.respond_to?(:written)
 end
+
+module EvalFrameClassMaker
+  # A `Class.new` block written in a method: the methods it defines have
+  # this module for their cref, the way a script's have `Object`.
+  def self.subclass(base)
+    Class.new(base) do
+      def m(x); eval("super"); end
+      def m_args(x); eval("super(x + 1)"); end
+      def nested(x); [1].map { eval("super") }[0]; end
+      def has_super; eval("defined?(super)"); end
+      def own_super_after(x); eval("1"); super; end
+      def bound(x); binding.eval("super"); end
+    end
+  end
+end
+
+assert('a string given to eval runs under the class the calling frame runs under') do
+  # The string's frame, and the env the string leaves on the caller's frame,
+  # took their class from the caller's proc, which holds the cref: for a
+  # method written in a `Class.new` block that is the scope around the
+  # block, and for a block given a class to run under it is the scope the
+  # block was written in. A `super` in the string looked above that class,
+  # and once the env was there the caller's own `super`, and a `def` written
+  # after the call in a block given a class, went to it as well. The class a
+  # frame runs under is the one the method was found in, or the one the
+  # block was given.
+  base = Class.new do
+    def m(x); [:base, x]; end
+    def m_args(x); [:base, x]; end
+    def nested(x); [:base, x]; end
+    def has_super; end
+    def own_super_after(x); [:base, x]; end
+    def bound(x); [:base, x]; end
+  end
+  o = EvalFrameClassMaker.subclass(base).new
+  assert_equal [:base, 1], o.m(1)
+  assert_equal [:base, 2], o.m_args(1)
+  assert_equal [:base, 3], o.nested(3)
+  assert_equal 'super', o.has_super
+  assert_equal [:base, 4], o.own_super_after(4)
+  assert_equal [:base, 5], o.bound(5)
+
+  # a block given a class: a `def` after the call, one in a string, and one
+  # in a block made after the call all go to the given class
+  c = Class.new
+  c.class_eval { eval("1"); def after_call; end }
+  c.class_eval { eval("def in_string; end") }
+  c.class_eval { eval("1"); [1].each { def in_block; end } }
+  assert_equal [:after_call, :in_block, :in_string], c.instance_methods(false).sort
+  assert_false Object.new.respond_to?(:after_call, true)
+  assert_false Object.new.respond_to?(:in_string, true)
+  assert_false Object.new.respond_to?(:in_block, true)
+  o = Object.new
+  o.instance_eval { eval("1"); def on_self; end }
+  assert_equal [:on_self], o.singleton_methods
+
+  # a constant the string defines still belongs to the scope the block was
+  # written in, not to the class the block was given
+  k = Class.new { eval("EvalFrameClassConst = 1") }
+  assert_true Object.const_defined?(:EvalFrameClassConst, false)
+  assert_false k.const_defined?(:EvalFrameClassConst, false)
+end
