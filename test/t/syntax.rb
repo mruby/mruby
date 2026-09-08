@@ -266,6 +266,23 @@ assert('safe navigation operator-assignment short-circuits on nil') do
   assert_equal 7, d.x
 end
 
+class SelfSafeCall
+  def y(*); :called; end
+  # `[nil].first` leaves nil in the first temporary register, which is
+  # the one the nil check of the call below reads when the receiver is
+  # not loaded; a receiver written as `self` is never nil
+  def bare;  [nil].first; self&.y;     end
+  def args;  [nil].first; self&.y(1);  end
+  def value; [nil].first; x = self&.y; x; end
+end
+
+assert('a safe navigation call on a written self is made') do
+  o = SelfSafeCall.new
+  assert_equal :called, o.bare
+  assert_equal :called, o.args
+  assert_equal :called, o.value
+end
+
 assert('local variable or/and-assignment yields its value') do
   # gen_assignment_lvar() only moves, so the local-variable branch has to push
   # the result the way the other branches do. Without it the expression yields
@@ -2656,4 +2673,52 @@ assert('pattern matching - a deconstruction hook has to answer a Hash') do
     def deconstruct_keys(keys); {a: 1}; end
   end.new
   assert_true((good in {a: 1}))
+end
+
+class SelfAttrWrite
+  def plain;    self.a = 1;             @a;       end
+  def value;    x = (self.a = 1);       [x, @a];  end
+  def opasgn;   @c = 1; self.c += 1;    @c;       end
+  def orasgn;   @c = nil; self.c ||= 5; @c;       end
+  def andasgn;  @c = 1; self.c &&= 6;   @c;       end
+  def multi;    self.a, self.b = 1, 2;  [@a, @b]; end
+  def safe;     self&.a = 3;            @a;       end
+  def safe_op;  @c = 1; self&.c += 3;   @c;       end
+  def index;    self[0] = 9;            @i;       end
+  def index3;   self[0, 1] = 7;         @i;       end
+  def aliased;  x = self; x.a = 1;      @a;       end
+
+  private
+  attr_writer :a, :b
+  attr_accessor :c
+  def []=(i, j = nil, v); @i = v; end
+end
+
+assert('a private setter is callable on a written self') do
+  o = SelfAttrWrite.new
+  # the forms CRuby exempts: an attribute write whose receiver is the
+  # literal `self`, as a statement or a value, in the op-assign,
+  # multiple, safe and index forms too
+  assert_equal 1, o.plain
+  assert_equal [1, 1], o.value
+  assert_equal 2, o.opasgn
+  assert_equal 5, o.orasgn
+  assert_equal 6, o.andasgn
+  assert_equal [1, 2], o.multi
+  assert_equal 3, o.safe
+  assert_equal 4, o.safe_op
+  assert_equal 9, o.index
+  assert_equal 7, o.index3
+
+  # only the literal `self` is exempt: a local holding self is not, and
+  # neither is a call from outside
+  assert_raise_with_message_pattern(NoMethodError, "private method 'a=' called for SelfAttrWrite") do
+    o.aliased
+  end
+  assert_raise_with_message_pattern(NoMethodError, "private method 'a=' called for SelfAttrWrite") do
+    o.a = 1
+  end
+  assert_raise_with_message_pattern(NoMethodError, "private method 'c' called for SelfAttrWrite") do
+    o.c
+  end
 end
