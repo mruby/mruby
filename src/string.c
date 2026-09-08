@@ -1001,7 +1001,7 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
  * based on byte offsets and length. This function may share the underlying
  * buffer with the original string if possible.
  */
-mrb_value
+MRB_API mrb_value
 mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   struct RString *orig = mrb_str_ptr(str);

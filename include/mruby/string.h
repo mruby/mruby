@@ -397,6 +397,29 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
  */
 MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
+/*
+ * Returns a sub-string of a string by byte offsets.
+ *
+ * Where mrb_str_substr() counts characters under MRB_UTF8_STRING, this counts
+ * bytes in every build, which is what a caller working from an offset it
+ * found itself in the bytes wants.
+ *
+ * The range is the caller's to get right. It is not checked here: `beg` and
+ * `len` must name bytes the string has, and a range past the end yields a
+ * string over memory the original does not own. Ask mrb_str_substr() where
+ * the range comes from outside.
+ *
+ * The result may share the original's buffer rather than copy it, so it is
+ * only as long-lived as the original.
+ *
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
+ * @param beg The beginning of the sub-string, in bytes from the start.
+ * @param len The length of the sub-string, in bytes.
+ * @return [mrb_value] An object as a Ruby sub-string.
+ */
+MRB_API mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
+
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, mrb_int capa);
 #define mrb_str_buf_new(mrb, capa) mrb_str_new_capa(mrb, (capa))
 
