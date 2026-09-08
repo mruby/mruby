@@ -1835,7 +1835,7 @@ mrc_generate_code(mrc_ccontext *c, mrc_node *node)
 static void gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val);
 static void gen_lvar(mrc_codegen_scope *s, mrc_sym name, int depth);
 static void codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target,
-                            uint32_t *fail_pos, int known_array_len);
+                            uint32_t *fail_pos, int known_array_len, int cache);
 
 static mrc_sym
 nsym(mrc_parser_state *p, const uint8_t *start, size_t length)
@@ -2760,7 +2760,7 @@ gen_pattern_eqq(mrc_codegen_scope *s, mrc_node *value, int target, uint32_t *fai
    before it sends, so a subject with no deconstruction hook simply does not
    match, the way CRuby has it, rather than raising NoMethodError. */
 static void
-gen_pattern_respond_to(mrc_codegen_scope *s, int target, mrc_sym mid, uint32_t *fail_pos)
+gen_pattern_respond_to(mrc_codegen_scope *s, int target, mrc_sym mid, uint32_t *fail_pos, int cache)
 {
   int reg = cursp();
 
@@ -2771,16 +2771,87 @@ gen_pattern_respond_to(mrc_codegen_scope *s, int target, mrc_sym mid, uint32_t *
   push(); pop();                /* touch block slot */
   s->sp = reg;
   genop_3(s, OP_SEND, reg, new_sym(s, MRC_SYM_2(respond_to_p)), 1);
+  if (cache) gen_move(s, cache, reg, 1);
   *fail_pos = genjmp2(s, OP_JMPNOT, reg, *fail_pos, 1);
+}
+
+/* Send `deconstruct` to `target` and leave the array in cursp().  `cache` is
+   the register an enclosing `case/in` keeps for the answer across its
+   clauses, or 0 for a pattern with none: `nil` until a clause asks, `false`
+   once the subject has turned out to have no hook, the array otherwise.  A
+   later clause reads it instead of asking again, as CRuby does. */
+static void
+gen_pattern_deconstruct(mrc_codegen_scope *s, int target, uint32_t *fail_pos, int cache)
+{
+  int reg = cursp();
+  uint32_t ask = JMPLINK_START, have = JMPLINK_START;
+
+  if (cache) {
+    ask = genjmp2(s, OP_JMPNIL, cache, JMPLINK_START, 1);
+    *fail_pos = genjmp2(s, OP_JMPNOT, cache, *fail_pos, 1);
+    gen_move(s, reg, cache, 1);
+    have = genjmp(s, OP_JMP, JMPLINK_START);
+    dispatch(s, ask);
+  }
+  gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos, cache);
+  gen_move(s, reg, target, 0);
+  push_n(2); pop_n(2);          /* space for receiver and a block */
+  genop_3(s, OP_SEND, reg, new_sym(s, MRC_SYM_1(deconstruct)), 0);
+  if (cache) {
+    gen_move(s, cache, reg, 1);
+    dispatch(s, have);
+  }
+}
+
+/* Whether `pattern`, at the top of an `in` clause, would send `deconstruct`
+   to the subject: it is an array or find pattern, or holds one under a
+   guard, a capture or an alternative. */
+static int
+pattern_deconstructs(mrc_node *pattern)
+{
+  for (;;) {
+    switch (nint(pattern)) {
+    case PM_IF_NODE:
+      {
+        pm_if_node_t *n = (pm_if_node_t *)pattern;
+        if (!n->statements || n->statements->body.size == 0) return FALSE;
+        pattern = n->statements->body.nodes[0];
+      }
+      break;
+    case PM_UNLESS_NODE:
+      {
+        pm_unless_node_t *n = (pm_unless_node_t *)pattern;
+        if (!n->statements || n->statements->body.size == 0) return FALSE;
+        pattern = n->statements->body.nodes[0];
+      }
+      break;
+    case PM_CAPTURE_PATTERN_NODE:
+      pattern = (mrc_node *)((pm_capture_pattern_node_t *)pattern)->value;
+      break;
+    case PM_ALTERNATION_PATTERN_NODE:
+      {
+        pm_alternation_pattern_node_t *n = (pm_alternation_pattern_node_t *)pattern;
+        if (pattern_deconstructs((mrc_node *)n->left)) return TRUE;
+        pattern = (mrc_node *)n->right;
+      }
+      break;
+    case PM_ARRAY_PATTERN_NODE:
+    case PM_FIND_PATTERN_NODE:
+      return TRUE;
+    default:
+      return FALSE;
+    }
+  }
 }
 
 /* Generate pattern matching code for a single pattern.
  * target: stack position of the value being matched
  * fail_pos: linked list of jump positions for pattern match failure
  * known_array_len: -1 if unknown, >= 0 if target is known to be an array of that length
+ * cache: register of the `case/in` that keeps what `deconstruct` answered, or 0
  */
 static void
-codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len)
+codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len, int cache)
 {
   uint32_t tmp;
 
@@ -2802,7 +2873,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       if (stmts->body.size > 0) {
         /* Extract and match the inner pattern first */
         mrc_node *inner_pattern = stmts->body.nodes[0];
-        codegen_pattern(s, inner_pattern, target, fail_pos, known_array_len);
+        codegen_pattern(s, inner_pattern, target, fail_pos, known_array_len, cache);
       }
     }
     /* Generate the guard condition */
@@ -2827,7 +2898,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       if (stmts->body.size > 0) {
         /* Extract and match the inner pattern first */
         mrc_node *inner_pattern = stmts->body.nodes[0];
-        codegen_pattern(s, inner_pattern, target, fail_pos, known_array_len);
+        codegen_pattern(s, inner_pattern, target, fail_pos, known_array_len, cache);
       }
     }
     /* Generate the guard condition */
@@ -2884,7 +2955,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
     {
       /* Unwrap implicit node and process inner value */
       pm_implicit_node_t *implicit = (pm_implicit_node_t *)pattern;
-      codegen_pattern(s, (mrc_node *)implicit->value, target, fail_pos, known_array_len);
+      codegen_pattern(s, (mrc_node *)implicit->value, target, fail_pos, known_array_len, 0);
     }
     break;
 
@@ -2895,7 +2966,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       uint32_t success_pos = JMPLINK_START;
 
       /* Try left pattern */
-      codegen_pattern(s, (mrc_node *)pat_alt->left, target, &left_fail, known_array_len);
+      codegen_pattern(s, (mrc_node *)pat_alt->left, target, &left_fail, known_array_len, cache);
 
       /* Optimize JMPNOT+JMP to JMPIF when possible.
          Only when the left pattern's tail is an OP_JMPNOT (BS format, so the
@@ -2927,7 +2998,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       if (left_fail != JMPLINK_START) {
         dispatch_linked(s, left_fail);
       }
-      codegen_pattern(s, (mrc_node *)pat_alt->right, target, fail_pos, known_array_len);
+      codegen_pattern(s, (mrc_node *)pat_alt->right, target, fail_pos, known_array_len, cache);
 
       /* Dispatch success jumps */
       if (success_pos != JMPLINK_START) {
@@ -2940,7 +3011,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
     {
       CAST3(capture_pattern, pattern, pat_as);
       /* First match the inner pattern */
-      codegen_pattern(s, (mrc_node *)pat_as->value, target, fail_pos, known_array_len);
+      codegen_pattern(s, (mrc_node *)pat_as->value, target, fail_pos, known_array_len, cache);
       /* Then bind the value to the variable */
       CAST3(local_variable_target, pat_as->target, var_target);
       gen_pattern_bind(s, var_target, target);
@@ -3013,7 +3084,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           push();
           /* Element is now at sp */
           /* Match element pattern (elements are not known arrays) */
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1);
+          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
           pop();
         }
 
@@ -3051,17 +3122,12 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           push(); pop();  /* space for the index */
           genop_1(s, OP_GETIDX, cursp() - 1);
           /* Element is now at cursp-1 */
-          codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1);
+          codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1, 0);
           pop();
         }
       }
       else {
-        gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
-
-        /* Call target.deconstruct() */
-        gen_move(s, cursp(), target, 0);
-        push_n(2); pop_n(2);  /* space for receiver and a block */
-        genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_SYM_1(deconstruct)), 0);
+        gen_pattern_deconstruct(s, target, fail_pos, cache);
         arr_reg = cursp();
         push();  /* protect arr_reg on stack */
 
@@ -3092,7 +3158,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           int sp = cursp();
           genop_3(s, OP_AREF, sp, arr_reg, i);
           push();
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1);
+          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
           pop();
         }
 
@@ -3128,7 +3194,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           gen_int(s, cursp(), -(post_len - i));
           push(); pop();  /* space for the index */
           genop_1(s, OP_GETIDX, cursp() - 1);
-          codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1);
+          codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1, 0);
           pop();
         }
         pop();  /* release arr_reg */
@@ -3157,7 +3223,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       /* Call target.deconstruct_keys(keys_array or nil).
        * Pass keys_array only when no rest pattern (partial-match optimization).
        * Pass nil when any ** is present so deconstruct_keys returns all keys. */
-      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct_keys), fail_pos);
+      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct_keys), fail_pos, 0);
 
       hash_reg = cursp();
       gen_move(s, hash_reg, target, 0);
@@ -3239,7 +3305,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             /* Prism gives the shorthand `{a:}` an implicit local target
                as its value, so there is always a sub-pattern to match. */
             push(); /* keep the value below cursp() for the sub-pattern */
-            codegen_pattern(s, (mrc_node *)assoc->value, val_reg, fail_pos, -1);
+            codegen_pattern(s, (mrc_node *)assoc->value, val_reg, fail_pos, -1, 0);
             s->sp = loop_sp;
             key_idx++;
           }
@@ -3315,12 +3381,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
         gen_pattern_eqq(s, (mrc_node *)pat_find->constant, target, fail_pos);
       }
 
-      gen_pattern_respond_to(s, target, MRC_SYM_1(deconstruct), fail_pos);
-
-      /* Call deconstruct on target */
-      gen_move(s, cursp(), target, 0);
-      push_n(2); pop_n(2);  /* space for receiver and a block */
-      genop_3(s, OP_SEND, arr_reg, new_sym(s, MRC_SYM_1(deconstruct)), 0);
+      gen_pattern_deconstruct(s, target, fail_pos, cache);
       push(); /* protect arr_reg */
 
       /* Check if deconstruct returned nil */
@@ -3372,7 +3433,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
         push_n(2); pop_n(2);  /* space for the index and the ADD operand */
         genop_1(s, OP_GETIDX, cursp() - 1);
         int elem_reg = cursp() - 1;
-        codegen_pattern(s, pat_find->requireds.nodes[i], elem_reg, &match_fail, -1);
+        codegen_pattern(s, pat_find->requireds.nodes[i], elem_reg, &match_fail, -1, 0);
         pop();
       }
 
@@ -6110,7 +6171,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       int head = cursp();
       codegen(s, (mrc_node *)cast->value, VAL);
       uint32_t fail_pos = JMPLINK_START;
-      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1);
+      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1, 0);
       genop_1(s, OP_LOADTRUE, head);
       uint32_t done = genjmp(s, OP_JMP, JMPLINK_START);
       if (fail_pos != JMPLINK_START) dispatch_linked(s, fail_pos);
@@ -6127,7 +6188,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       int head = cursp();
       codegen(s, (mrc_node *)cast->value, VAL);
       uint32_t fail_pos = JMPLINK_START;
-      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1);
+      codegen_pattern(s, (mrc_node *)cast->pattern, head, &fail_pos, -1, 0);
       uint32_t ok = genjmp(s, OP_JMP, JMPLINK_START);
       if (fail_pos != JMPLINK_START) dispatch_linked(s, fail_pos);
       genop_1(s, OP_LOADFALSE, cursp());
@@ -6164,9 +6225,25 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
 
       /* Generate code for the case value */
+      int cache = 0;
       if (cast->predicate) {
         head = cursp();
         codegen(s, (mrc_node *)cast->predicate, VAL);
+
+        /* A register that keeps what `deconstruct` answered across the
+           clauses, when more than one of them could ask (an array literal
+           subject is never asked). */
+        if (known_array_len < 0 && cast->conditions.size > 1) {
+          for (size_t i = 0; i < cast->conditions.size; i++) {
+            pm_in_node_t *in_n = (pm_in_node_t *)cast->conditions.nodes[i];
+            if (in_n->pattern && pattern_deconstructs((mrc_node *)in_n->pattern)) {
+              cache = cursp();
+              genop_1(s, OP_LOADNIL, cache);
+              push();
+              break;
+            }
+          }
+        }
       }
 
       /* Iterate through in clauses */
@@ -6176,7 +6253,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
 
         /* Generate pattern matching code */
         if (in_n->pattern) {
-          codegen_pattern(s, (mrc_node *)in_n->pattern, head, &fail_pos, known_array_len);
+          codegen_pattern(s, (mrc_node *)in_n->pattern, head, &fail_pos, known_array_len, cache);
         }
 
         /* Guard clauses on patterns are handled inside codegen_pattern (via PM_IF_NODE/PM_UNLESS_NODE wrappers) */
@@ -6215,12 +6292,12 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         /* Move result to original case value position */
         if (head) {
           gen_move(s, head, cursp(), 0);
-          pop();
+          pop_n(cache ? 2 : 1);
         }
         push();
       }
       else {
-        if (head) pop();
+        if (head) pop_n(cache ? 2 : 1);
       }
       break;
     }
