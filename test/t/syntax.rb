@@ -2907,3 +2907,33 @@ assert('pattern matching - a guard the compiler can answer for itself, on a hook
                     in [1, 2] then :b
                     end)
 end
+
+class SelfIndexOpAssign
+  def opasgn;  @h = {0 => 1}; self[0] += 1;                 @h[0];     end
+  def orasgn;  @h = {};       self[0] ||= 5;                @h[0];     end
+  def andasgn; @h = {0 => 1}; self[0] &&= 6;                @h[0];     end
+  def value;   @h = {0 => 1}; x = (self[0] += 1);           [x, @h[0]]; end
+  def two;     @h = {0 => 1}; self[0, 1] += 1;              @h[0];     end
+  def splat;   @h = {0 => 1}; i = [0]; self[*i] += 1;       @h[0];     end
+
+  private
+  def [](i, j = nil); @h[i]; end
+  def []=(i, j = nil, v); @h[i] = v; end
+end
+
+assert('a private index accessor is callable in an op-assign on a written self') do
+  o = SelfIndexOpAssign.new
+  # the forms CRuby exempts: both the `[]` and the `[]=` of an op-assign
+  # whose receiver is the literal `self`
+  assert_equal 2, o.opasgn
+  assert_equal 5, o.orasgn
+  assert_equal 6, o.andasgn
+  assert_equal [2, 2], o.value
+  assert_equal 2, o.two
+  assert_equal 2, o.splat
+
+  # a call from outside is not
+  assert_raise_with_message(NoMethodError, "private method '[]' called for SelfIndexOpAssign") do
+    o[0] += 1
+  end
+end
