@@ -18,13 +18,6 @@ Optional:
 
 - Git (to update mruby source and integrate mrbgems easier)
 - C++ compiler (to use mrbgems which include `*.cpp`, `*.cxx`, `*.cc`)
-- Bison (to compile `mrbgems/mruby-compiler/core/parse.y`)
-- gperf (to compile `mrbgems/mruby-compiler/core/keywords`)
-
-Note that `bison` bundled with macOS is too old to compile `mruby`.
-Try `brew install bison` and follow the instruction shown to update
-the `$PATH` to compile `mruby`. We also encourage you to upgrade `ruby`
-on macOS in similar manner.
 
 ## Build
 
@@ -254,28 +247,6 @@ Configuration of the Archiver binary and flags.
 conf.archiver do |archiver|
   archiver.command = ...
   archiver.archive_options = ...
-end
-```
-
-### Parser Generator
-
-Configuration of the Parser Generator binary and flags.
-
-```ruby
-conf.yacc do |yacc|
-  yacc.command = ...
-  yacc.compile_options = ...
-end
-```
-
-### GPerf
-
-Configuration of the GPerf binary and flags.
-
-```ruby
-conf.gperf do |gperf|
-  gperf.command = ...
-  gperf.compile_options = ...
 end
 ```
 
@@ -574,10 +545,10 @@ An object is compiled again when its flags or a file it read change. An
 edit to the config file alone rebuilds nothing.
 
 ```
- _____    _____    ______    ____    ____    _____    _____    ____
-| CC  |->|GEN  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
-| *.c |  |y.tab|  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
- -----    -----    ------    ----    ----    -----    -----    ----
+ _____    ______    ____    ____    _____    _____    ____
+| CC  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
+| *.c |  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
+ -----    ------    ----    ----    -----    -----    ----
 ```
 
 ### Cross-Compilation
@@ -631,13 +602,13 @@ proceeds like this:
 - copy binaries under `build/host/bin` to `bin` directory
 
 ```
- _______________________________________________________________
-|              Native Compilation for Host System               |
-|  _____      ______      _____      ____      ____      _____  |
-| | CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   | |
-| | *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a| |
-|  -----      ------      -----      ----      ----      -----  |
- ---------------------------------------------------------------
+ ______________________________________________________________
+|              Native Compilation for Host System             |
+|      _____      ______      ____      ____      _____       |
+|     | CC  | -> |AR    | -> |CC  | -> |CC  | -> |AR   |      |
+|     | *.c |    |core.a|    |mrbc|    |*.rb|    |lib.a|      |
+|      -----      ------      ----      ----      -----       |
+ --------------------------------------------------------------
                                 ||
                                \||/
                                 \/
