@@ -2253,7 +2253,15 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     case PM_CALL_TARGET_NODE:
     {
       CAST(call_target);
-      codegen(s, cast->receiver, VAL);
+      /* a written `self` is a call on self, so OP_SSEND, which fills the
+         receiver register itself */
+      int noself = nint(cast->receiver) == PM_SELF_NODE;
+      if (noself) {
+        push();
+      }
+      else {
+        codegen(s, cast->receiver, VAL);
+      }
       /* the value to assign lives in sp (set by the caller for multiple
          assignment) and goes in the register after the receiver, which the
          `aset` arm above reserves the same way: the OP_SEND below reads its
@@ -2263,7 +2271,7 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
       push();  /* reserve the value register so nregs accounts for it */
       push(); pop();  /* touch block slot so nregs covers the OP_SEND */
       pop_n(2);
-      genop_3(s, OP_SEND, cursp(), new_sym(s, cast->name), 1);
+      genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, cast->name), 1);
       break;
     }
     default:
@@ -2458,11 +2466,22 @@ gen_call_assign(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int rec
     push();                    /* room for retval */
     callsp = cursp();
 
-    /* receiver (an attribute write always has an explicit receiver; an
-       explicit `self` must be materialized so OP_SETIDX can read it) */
+    /* receiver: a written `self` is a call on self, which OP_SSEND makes
+       so that a private setter is reachable as in CRuby; the register is
+       still loaded where an instruction reads it before the send, that
+       is for OP_SETIDX and for the `&.` nil check */
     if (cast->receiver == NULL) {
       noself = 1;
       push();
+    }
+    else if (nint(cast->receiver) == PM_SELF_NODE) {
+      noself = 1;
+      if (opt_op || safe) {
+        codegen(s, cast->receiver, VAL);
+      }
+      else {
+        push();
+      }
     }
     else {
       codegen(s, cast->receiver, VAL);
@@ -5024,6 +5043,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       int base;
       int idx, vsp = -1;
+      /* a written `self` is a call on self for both the read and the
+         write, so a private accessor is reachable as in CRuby; the
+         receiver is still loaded for the `&.` nil check and the copy */
+      int op_send = (nint(receiver) == PM_SELF_NODE) ? OP_SSEND : OP_SEND;
       if (val) {
         vsp = cursp();
         push();
@@ -5040,7 +5063,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       /* copy receiver and arguments */
       gen_move(s, cursp(), base, 1);
       push_n(2); pop_n(2); /* space for receiver, arguments and a block */
-      genop_3(s, OP_SEND, cursp(), idx, 0);
+      genop_3(s, op_send, cursp(), idx, 0);
 
       if (-1 != (int32_t)binary_operator) {
         push();
@@ -5064,7 +5087,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       pop();
       idx = new_sym(s, write_name);
-      genop_3(s, OP_SEND, cursp(), idx, 1);
+      genop_3(s, op_send, cursp(), idx, 1);
       if (0 < pos) { dispatch(s, pos); }
       if (safe) { dispatch(s, skip); }
       break;
