@@ -2850,6 +2850,20 @@ pattern_deconstructs(mrc_node *pattern)
  * known_array_len: -1 if unknown, >= 0 if target is known to be an array of that length
  * cache: register of the `case/in` that keeps what `deconstruct` answered, or 0
  */
+/* Put a jump that leaves a pattern on the chain the clause dispatches at its
+   end.  genjmp2() answers JMPLINK_START when its peephole found the jump can
+   never be taken and emitted none, as it does for the `if true` of a guard;
+   the chain is then what it already was, and storing that answer as the chain
+   would drop every jump on it, leaving each one with the zero it was written
+   with, which is the start of the irep. */
+static void
+gen_pattern_fail_jmp(mrc_codegen_scope *s, mrc_code op, uint16_t a, uint32_t *fail_pos, int val)
+{
+  uint32_t tmp = genjmp2(s, op, a, *fail_pos, val);
+
+  if (tmp != JMPLINK_START) *fail_pos = tmp;
+}
+
 static void
 codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len, int cache)
 {
@@ -2881,8 +2895,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       codegen(s, (mrc_node *)if_n->predicate, VAL);
       pop();
       /* if guard: fail if guard is false */
-      tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 0);
-      *fail_pos = tmp;
+      gen_pattern_fail_jmp(s, OP_JMPNOT, cursp(), fail_pos, 0);
     }
     return;
   }
@@ -2906,8 +2919,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       codegen(s, (mrc_node *)unless_n->predicate, VAL);
       pop();
       /* unless guard: fail if guard is true (inverted from if) */
-      tmp = genjmp2(s, OP_JMPIF, cursp(), *fail_pos, 0);
-      *fail_pos = tmp;
+      gen_pattern_fail_jmp(s, OP_JMPIF, cursp(), fail_pos, 0);
     }
     return;
   }
@@ -3132,8 +3144,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
         push();  /* protect arr_reg on stack */
 
         /* Check if deconstruct returned nil */
-        tmp = genjmp2(s, OP_JMPNIL, arr_reg, *fail_pos, 0);
-        *fail_pos = tmp;
+        gen_pattern_fail_jmp(s, OP_JMPNIL, arr_reg, fail_pos, 0);
 
         /* Runtime size check: arr.size() == or >= expected */
         {
@@ -3385,8 +3396,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       push(); /* protect arr_reg */
 
       /* Check if deconstruct returned nil */
-      tmp = genjmp2(s, OP_JMPNIL, arr_reg, *fail_pos, 0);
-      *fail_pos = tmp;
+      gen_pattern_fail_jmp(s, OP_JMPNIL, arr_reg, fail_pos, 0);
 
       /* Check minimum length: arr.size >= elems_len */
       gen_move(s, cursp(), arr_reg, 0);

@@ -2863,3 +2863,47 @@ assert('a private setter is callable on a written self') do
     o.c
   end
 end
+
+assert('pattern matching - a guard the compiler can answer for itself') do
+  # A guard whose condition is a literal needs no jump: the peephole answers
+  # it and emits none. The failure jumps of the pattern below it are still
+  # waiting to be told where the clause ends, and used to be dropped, which
+  # left each of them pointing at the start of the irep.
+  assert_equal :b, (case [1, 2]
+                    in [3] if true then :a
+                    in [1, 2] then :b
+                    end)
+  assert_equal :e, (case [1, 2]
+                    in [3] if true then :a
+                    else :e
+                    end)
+  assert_equal :e, (case [1, 2]
+                    in [3] unless false then :a
+                    else :e
+                    end)
+  assert_equal :a, (case [1, 2]
+                    in [1, 2] if true then :a
+                    end)
+  assert_equal :e, (case({a: 1})
+                    in {a: 2} if true then :a
+                    else :e
+                    end)
+  assert_equal :e, (case [1, 2, 3]
+                    in [*, 9, *] if true then :a
+                    else :e
+                    end)
+  assert_equal :c, (case [1, 2]
+                    in [3] if true then :a
+                    in [4] if true then :b
+                    in [1, 2] if true then :c
+                    end)
+end
+
+assert('pattern matching - a guard the compiler can answer for itself, on a hook') do
+  klass = Class.new
+  klass.define_method(:deconstruct) { [1, 2] }
+  assert_equal :b, (case klass.new
+                    in [3] if true then :a
+                    in [1, 2] then :b
+                    end)
+end
