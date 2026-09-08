@@ -710,3 +710,27 @@ assert('Module.nesting from a block given a class to run under') do
   end
   assert_equal([Test4NestingLex], Test4NestingLex.go)
 end
+
+assert('Module.nesting and Module.constants from a method written in a block given a class') do
+  # The class the block was given is where a `def` in the method adds; the
+  # nesting and the constants the method sees are those of the scope the
+  # block was written in, from the method body and from a block in it.
+  class Test4GivenNestingRecv
+    KR = :recv
+  end
+  module Test4GivenNestingLex
+    KL = :lex
+    def self.make
+      Class.new(Test4GivenNestingRecv) do
+        def nesting; Module.nesting; end
+        def nested_nesting; [1].map { Module.nesting }[0]; end
+        def consts; Module.constants; end
+      end
+    end
+  end
+  o = Test4GivenNestingLex.make.new
+  assert_equal([Test4GivenNestingLex], o.nesting)
+  assert_equal([Test4GivenNestingLex], o.nested_nesting)
+  assert_true o.consts.include?(:KL)
+  assert_false o.consts.include?(:KR)
+end
