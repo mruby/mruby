@@ -555,6 +555,17 @@ thing, and a compiler cache keyed on the command line, `ccache` or `sccache`,
 answers for one from what it learned of the other with nothing configured for
 it on the machine.
 
+The same holds across configs that name different gems, for the objects of
+the parts of the build the two configs agree on up to that point. The
+preallocated symbols (see `doc/guides/symbol.md`) are numbered by the part of the build
+that brings them, the core first and then each gem in the order the config
+names them, and a source sees the numbers as macros, of which only the ones
+it uses reach what the compiler compiles. A core source therefore compiles
+to the same object whatever gems the config adds, a gem's sources stay as
+they are while the gems named before it do, and a gem added at the end of
+the config leaves every object of the others as it was. `src/symbol.c`,
+which carries the table, is the one object that follows the whole config.
+
 To write the two names yourself:
 
 ```ruby
