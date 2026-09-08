@@ -67,16 +67,21 @@ jobs:
         with:
           persist-credentials: false
           submodules: true
+      # 10, not 5: the download is 64.6 MB and the step has taken more than
+      # five minutes, which failed master rather than the pull request that
+      # would have shown it.  A whole job here finishes in four to five, so
+      # five for one step of it was never the headroom it looked like.
       - name: Install i386 cross-build toolchain
         if: matrix.altname == 'i686-gcc'
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             crossbuild-essential-i386
+      # The same, for a download that also carries qemu and binfmt.
       - name: Install armhf cross-build toolchain
         if: matrix.altname == 'armhf-gcc'
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
