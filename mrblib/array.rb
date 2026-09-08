@@ -84,6 +84,9 @@ class Array
   #   array.sort {|a, b| ... } -> new_array
   #
   # Returns a new Array whose elements are those from `self`, sorted.
+  #
+  # With a block, the block orders each pair of elements as it does for
+  # `Array#sort!`, which states what the block is to return.
   def sort(&block)
     self.dup.sort!(&block)
   end

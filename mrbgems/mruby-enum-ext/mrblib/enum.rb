@@ -374,8 +374,9 @@ module Enumerable
   #
   #  Returns two elements array which contains the minimum and the
   #  maximum value in the enumerable. The first form assumes all
-  #  objects implement `Comparable`; the second uses the
-  #  block to return <em>a <=> b</em>.
+  #  objects implement `Comparable`; the second orders each pair
+  #  of elements by the block, read as the block of `Array#sort!`
+  #  is, which states what the block is to return.
   #
   #     a = %w(albatross dog horse)
   #     a.minmax                                  #=> ["albatross", "horse"]
