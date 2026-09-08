@@ -644,8 +644,10 @@ obj_respond_to_p(mrb_state *mrb, mrb_value self, mrb_sym id, mrb_bool priv)
       return TRUE;
     }
   }
+  /* An entry `undef_method` left behind is not a redefinition: it stops the
+     lookup without standing for one, so it is not asked, as in CRuby. */
   mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
-  if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
+  if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false) && mrb_respond_to(mrb, self, rtm_id)) {
     mrb_value v = mrb_funcall_argv2(mrb, self, rtm_id, mrb_symbol_value(id), mrb_bool_value(priv));
     return mrb_bool(v);
   }
@@ -743,7 +745,7 @@ mrb_f_defined_method(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n", &sym);
   mrb_sym rt_id = MRB_SYM_Q(respond_to);
   mrb_bool found;
-  if (mrb_func_basic_p(mrb, self, rt_id, obj_respond_to)) {
+  if (mrb_func_basic_p(mrb, self, rt_id, obj_respond_to) || !mrb_respond_to(mrb, self, rt_id)) {
     found = obj_respond_to_p(mrb, self, sym, TRUE);
   }
   else {
@@ -878,7 +880,7 @@ mrb_f_defined_method_on(mrb_state *mrb, mrb_value self)
   mrb_method_t m = mrb_method_search_vm(mrb, &c, sym);
   if (MRB_METHOD_UNDEF_P(m)) {
     mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
-    if (!mrb_func_basic_p(mrb, recv, rtm_id, mrb_false)) {
+    if (!mrb_func_basic_p(mrb, recv, rtm_id, mrb_false) && mrb_respond_to(mrb, recv, rtm_id)) {
       mrb_value v = mrb_funcall_argv2(mrb, recv, rtm_id,
                                       mrb_symbol_value(sym), mrb_false_value());
       if (mrb_test(v)) return mrb_str_new_lit_frozen(mrb, "method");
