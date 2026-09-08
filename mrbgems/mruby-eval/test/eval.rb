@@ -472,10 +472,14 @@ assert('`super` and `yield` in a string given to eval belong to the caller') do
   base = Class.new do
     def m(x); [:base, x]; end
     def blk; block_given? ? yield(:b) : :noblk; end
+    def kw(a:, b: 2); [a, b]; end
+    def rest(a:, **o); [a, o]; end
   end
   sub = Class.new(base) do
     def m(x); eval("super"); end
     def blk; eval("super"); end
+    def kw(a:, b: 2); eval("super"); end
+    def rest(a:, **o); eval("a = 7; [0].each { return super }"); end
     def y; eval("yield 21"); end
     def y_nested; eval("[1].map { yield 2 }"); end
     def y_args(a, b = 1, *r, c, d: 4, &e); eval("yield a"); end
@@ -484,6 +488,10 @@ assert('`super` and `yield` in a string given to eval belong to the caller') do
 
   assert_equal [:base, 1], o.m(1)
   assert_equal [:blk, :b], o.blk { |v| [:blk, v] }
+  # the keyword locals the string reads are the method's, by name, and the
+  # `rest` it copies is the one the method's frame holds
+  assert_equal [1, 3], o.kw(a: 1, b: 3)
+  assert_equal [7, {c: 2}], o.rest(a: 1, c: 2)
   assert_equal 42, o.y { |v| v * 2 }
   assert_equal [4], o.y_nested { |v| v * 2 }
   assert_equal 35, o.y_args(7, 8) { |v| v * 5 }
