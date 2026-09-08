@@ -95,8 +95,11 @@ binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
      (MRB_ENV_SET_SVAR below; see internal.h). */
   mrb_value *stacks = (mrb_value*)mrb_malloc(mrb, MRB_ENV_SVAR_STACK_SIZE(1));
   /* The space stands in for the frame the binding was taken from, so it
-     answers for the method that frame was called by: that is the name a
-     string evaluated in the binding is named for. */
+     answers for the class that frame ran under and for the method it was
+     called by: a string evaluated in the binding takes the first as the
+     class its constants, `class` bodies and class variables belong to, and
+     is named for the second. */
+  env->c = e ? e->c : NULL;
   env->mid = e ? e->mid : 0;
   env->stack = stacks;
   if (e && e->stack && MRB_ENV_LEN(e) > 0) {

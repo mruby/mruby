@@ -1497,3 +1497,22 @@ assert('constant lookup: a block given a class to run under keeps its own') do
   end
   assert_equal(:lex, host.new.probe)
 end
+
+assert('constant definition: a block given a class to run under keeps its own') do
+  # The same holds for a constant, class or module the block defines: it
+  # belongs to the scope the block was written in, from any depth. The
+  # frame of the block carries the given class for `def`, and a block made
+  # inside it used to define there.
+  recv = Module.new
+  recv.class_eval { [1].each { Test4ConstDefDirect = :a } }
+  recv.class_eval { [1].each { [1].each { Test4ConstDefNested = :b } } }
+  recv.class_eval { [1].each { class Test4ConstDefClass; end } }
+  recv.class_eval { [1].each { module Test4ConstDefModule; end } }
+  Class.new { [1].each { Test4ConstDefClassNew = :c } }
+  Object.new.instance_eval { [1].each { Test4ConstDefInstance = :d } }
+  [:Test4ConstDefDirect, :Test4ConstDefNested, :Test4ConstDefClass,
+   :Test4ConstDefModule, :Test4ConstDefClassNew, :Test4ConstDefInstance].each do |name|
+    assert_true Object.const_defined?(name, false), name.to_s
+    assert_false recv.const_defined?(name, false), name.to_s
+  end
+end

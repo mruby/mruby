@@ -565,6 +565,40 @@ assert('a string given to eval in a `define_method` block sees the closure') do
   assert_equal 20, k.new.read
 end
 
+assert('a constant defined in a string given to eval belongs to the class the method was written in') do
+  # The frame of a method written `def self.name` carries the singleton
+  # class the method was found in, and a constant, class or module the
+  # string defines used to go there, or to `Object` through a binding.
+  # CRuby adds it to the cref, the class the code was written in.
+  class TestEvalConstDef
+    def self.direct; eval("FROM_DIRECT = 1"); end
+    def self.nested; proc { eval("FROM_NESTED = 2") }.call; end
+    def self.bound; binding.eval("FROM_BOUND = 3"); end
+    def self.opened; eval("class Opened; end; module OpenedMod; end"); end
+    class << self
+      def sclass; eval("FROM_SCLASS = 4"); end
+    end
+    def plain; eval("FROM_PLAIN = 5"); end
+  end
+  TestEvalConstDef.direct
+  TestEvalConstDef.nested
+  TestEvalConstDef.bound
+  TestEvalConstDef.opened
+  TestEvalConstDef.sclass
+  TestEvalConstDef.new.plain
+  assert_equal [1, 2, 3, 5], [
+    TestEvalConstDef::FROM_DIRECT, TestEvalConstDef::FROM_NESTED,
+    TestEvalConstDef::FROM_BOUND, TestEvalConstDef::FROM_PLAIN]
+  assert_true TestEvalConstDef.const_defined?(:Opened, false)
+  assert_true TestEvalConstDef.const_defined?(:OpenedMod, false)
+  sclass = TestEvalConstDef.singleton_class
+  assert_false sclass.const_defined?(:FROM_NESTED, false)
+  assert_false Object.const_defined?(:FROM_BOUND, false)
+  # A method written in `class << self` is written in the singleton class.
+  assert_equal 4, sclass::FROM_SCLASS
+  assert_false TestEvalConstDef.const_defined?(:FROM_SCLASS, false)
+end
+
 assert('a string given to eval in a `def` body has no scope around it') do
   # A method body carries no closure, so a local of the scope it was written
   # in is not a name it can reach: it is a method call there.

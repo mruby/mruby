@@ -3418,7 +3418,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SETCONST, BB) {
       ci = mrb->c->ci;
-      struct RClass *c = MRB_PROC_TARGET_CLASS(ci->proc);
+      struct RClass *c = mrb_vm_cref_class(mrb, ci);
       if (!c) c = mrb->object_class;
       mrb_const_set(mrb, mrb_obj_value(c), irep->syms[b], regs[a]);
       ci = mrb->c->ci;
@@ -4637,7 +4637,7 @@ RETRY_TRY_BLOCK:
       mrb_value super = regs[a+1];
 
       if (mrb_nil_p(base)) {
-        baseclass = MRB_PROC_TARGET_CLASS(ci->proc);
+        baseclass = mrb_vm_cref_class(mrb, ci);
         if (!baseclass) baseclass = mrb->object_class;
         base = mrb_obj_value(baseclass);
       }
@@ -4654,7 +4654,7 @@ RETRY_TRY_BLOCK:
       mrb_value base = regs[a];
 
       if (mrb_nil_p(base)) {
-        baseclass = MRB_PROC_TARGET_CLASS(ci->proc);
+        baseclass = mrb_vm_cref_class(mrb, ci);
         if (!baseclass) baseclass = mrb->object_class;
         base = mrb_obj_value(baseclass);
       }
