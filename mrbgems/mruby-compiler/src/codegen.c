@@ -3281,7 +3281,6 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
                 genop_3(s, OP_SEND, recv, new_sym(s, MRC_SYM_1(dup)), 0);
               }
               gen_move(s, var_idx, recv, 1);
-              pop(); /* release recv */
             }
           }
           /* Anonymous **: do nothing */

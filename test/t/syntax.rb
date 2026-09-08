@@ -1450,6 +1450,57 @@ assert('pattern matching - hash patterns') do
   end
 end
 
+assert('pattern matching - a clause that names `**rest` keeps its own value') do
+  # Capturing `**rest` left the frame one register short of where the pattern
+  # began, so the value the clause produced landed where the `case` read it
+  # from, and what came out was the rest Hash, or whatever else that register
+  # held.
+  h = {a: 1, b: 2, c: 3}
+  r = case h
+      in {a:, **rest} then [a, rest]
+      end
+  assert_equal [1, {b: 2, c: 3}], r
+
+  r = case h
+      in {a:, **rest} then :body
+      end
+  assert_equal :body, r
+
+  # no key of its own: the rest is a copy of the whole subject
+  r = case h
+      in {**rest} then [:all, rest]
+      end
+  assert_equal [:all, {a: 1, b: 2, c: 3}], r
+
+  # the value of `in` is the match, not the captured Hash
+  r = (h in {a:, **rest})
+  assert_equal [true, {b: 2, c: 3}], [r, rest]
+
+  # the statement after `=>` reads its locals from the shifted frame
+  f = ->(x) { x => {a:, **rest}; [a, rest] }
+  assert_equal [1, {b: 2, c: 3}], f.call(h)
+
+  # a rest clause that does not match must leave the subject to the next
+  # clause and to `else`
+  r = case {z: 0}
+      in {a:, **rest} then :no
+      in {z:} then [:z, z]
+      end
+  assert_equal [:z, 0], r
+
+  r = case {z: 0}
+      in {a:, **rest} then :no
+      else :else
+      end
+  assert_equal :else, r
+
+  # each `**rest` of a nested pattern captures from its own subject
+  r = case [h, h]
+      in [{a:, **r1}, {b:, **r2}] then [a, r1, b, r2]
+      end
+  assert_equal [1, {b: 2, c: 3}, 2, {a: 1, c: 3}], r
+end
+
 assert('pattern matching - value patterns as a hash value') do
   # a value pattern is the receiver of `===`, the hash value its argument
   case {a: 1}
