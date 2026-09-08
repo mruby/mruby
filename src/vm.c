@@ -1675,6 +1675,12 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
   mrb_gc_protect(mrb, blk);
   ci->stack[bidx] = mrb_nil_value();
   mrb_vm_ci_target_class_set(ci, target_class);
+  /* The block was given the class to run under, as one given to
+     `eval_under()` is: a `def` in it, or in a block made in it, adds to that
+     class rather than to the block's cref, and a visibility written in it
+     starts at the default and ends with the block. */
+  MRB_CI_SET_VISIBILITY_BREAK(ci);
+  MRB_CI_SET_GIVEN_CLASS(ci);
   return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk));
 }
 

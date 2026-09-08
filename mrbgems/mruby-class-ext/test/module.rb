@@ -134,3 +134,38 @@ assert 'Module#module_eval' do
   assert_equal("hi", obj.hi)
   assert_equal("hello", obj.hello)
 end
+
+module ExecGivenClassMaker
+  # Run in a method, so that the blocks' cref is this module rather than the
+  # class `mrb_proc_new()` falls back to when a block at the top level of a
+  # compiled test file has no cref to answer with.
+  def self.on_class(c); c.class_exec { def from_block; end; [1].each { def from_nested_block; end } }; end
+  def self.on_module(m); m.module_exec { def from_block; end }; end
+  def self.private_on(c); c.class_exec { private; def hidden; end }; c.class_exec { def shown; end }; end
+end
+
+assert('a `def` in a block given to class_exec or module_exec adds to the receiver') do
+  # `mrb_object_exec()` set the class the frame runs under without marking
+  # the frame as given one, so a `def` in the block, or in a block made in
+  # it, went to the cref of the block, `Object` for a script, where a
+  # `class_eval` block was marked and answered the receiver. The visibility
+  # of the block starts at the default and ends with the block, as it does
+  # there.
+  c = Class.new
+  ExecGivenClassMaker.on_class(c)
+  assert_true c.new.respond_to?(:from_block)
+  assert_true c.new.respond_to?(:from_nested_block)
+  assert_false Object.new.respond_to?(:from_block, true)
+  assert_false Object.new.respond_to?(:from_nested_block, true)
+
+  m = Module.new
+  ExecGivenClassMaker.on_module(m)
+  assert_true Class.new { include m }.new.respond_to?(:from_block)
+  assert_false Object.new.respond_to?(:from_block, true)
+
+  c = Class.new
+  ExecGivenClassMaker.private_on(c)
+  assert_false c.new.respond_to?(:hidden)
+  assert_true c.new.respond_to?(:hidden, true)
+  assert_true c.new.respond_to?(:shown)
+end
