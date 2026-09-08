@@ -12,7 +12,7 @@ To compile mruby out of the source code you need the following tools:
 - C Compiler (e.g. `gcc` or `clang`)
 - Linker (e.g. `gcc` or `clang`)
 - Archive utility (e.g. `ar`)
-- Ruby 2.5 or later (e.g. `ruby` or `jruby`)
+- Ruby 2.7 or later (e.g. `ruby` or `jruby`)
 
 Optional:
 
@@ -29,7 +29,9 @@ line on build, call `rake -v`.
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used. The default
-configuration is defined in the `build_config/default.rb` file.
+configuration is defined in the `build_config/default.rb` file, or in
+`build_config.rb` of the current directory when `rake` runs outside the
+source root.
 
 Those build configuration files contain the build configuration of mruby, for
 example:
@@ -54,6 +56,8 @@ configured based on your environment.
 
 The mruby build system already contains a set of toolchain templates which
 configure the build environment for specific compiler infrastructures.
+`conf.toolchain` without a name picks one from `CC`, the platform and the
+Visual Studio environment.
 
 #### GCC
 
@@ -72,10 +76,10 @@ GCC toolchain.
 conf.toolchain :clang
 ```
 
-#### Visual Studio 2010, 2012 and 2013
+#### Visual Studio
 
 Toolchain configuration for Visual Studio on Windows. If you use the
-[Visual Studio Command Prompt](<https://msdn.microsoft.com/en-us/library/ms229859(v=vs.110).aspx>),
+[Developer Command Prompt](https://learn.microsoft.com/en-us/visualstudio/ide/reference/command-prompt-powershell),
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
 
 ```ruby
@@ -90,8 +94,39 @@ Toolchain configuration for Android.
 conf.toolchain :android
 ```
 
-Requires the custom standalone Android NDK and the toolchain path
-in `ANDROID_STANDALONE_TOOLCHAIN`.
+Requires the Android NDK, found through `ANDROID_NDK_HOME` or the
+`ndk_home:` parameter. The architecture comes from the `arch:` parameter or
+`ANDROID_ARCH`, and is `armeabi-v7a` by default.
+
+#### Emscripten
+
+Toolchain configuration for Emscripten. Based on the clang toolchain, with
+`emcc`, `em++` and `emar` on the `PATH`.
+
+```ruby
+conf.toolchain :emscripten
+```
+
+#### WASI
+
+Toolchain configuration for the WASI SDK, 26 or later. Based on the clang
+toolchain.
+
+```ruby
+conf.toolchain :wasi, target: 'wasm32-wasip1'
+```
+
+The SDK is found in `WASI_SDK_PATH`, or `/opt/wasi-sdk`.
+
+#### OpenWrt
+
+Toolchain configuration for the OpenWrt build system. The compilers and
+flags come from its `TARGET_CC`, `TARGET_CFLAGS`, `TARGET_CXX`,
+`TARGET_CXXFLAGS`, `TARGET_LDFLAGS` and `TARGET_AR` variables.
+
+```ruby
+conf.toolchain :openwrt
+```
 
 ### Binaries
 
@@ -565,6 +600,8 @@ like this:
     |   |
     |   +- lib           <- Native Libraries
     |   |
+    |   +- mrbc          <- Minimal mrbc place
+    |   |
     |   +- mrbgems
     |   |
     |   +- src
@@ -588,14 +625,14 @@ An extra directory is created for the target platform. In case you
 compile for `i386` a directory called `i386` is created under the
 build directory.
 
-The cross compilation workflow starts in the same way as the normal
-compilation by compiling all _native_ libraries and binaries, except
-for we don't have `host/mrbc` directory (`host` directory itself works
-as placeholder for `mrbc`). Afterwards the cross compilation process
-proceeds like this:
+The cross-compilation workflow starts in the same way as the normal
+compilation by compiling all _native_ libraries and binaries. The target
+borrows the native `mrbc` of `host` when the two builds define the same
+things for it, and otherwise gets a native `mrbc` of its own under
+`build/mrbc/`. Afterwards the cross-compilation process proceeds like this:
 
 - cross-compile all files under `src` and store result in `build/i386/src`
-- create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with native `build/host/bin/mrbc`
+- create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with the native `mrbc` chosen above
 - cross-compile `build/i386/mrblib/mrblib.c` to `build/i386/mrblib/mrblib.o`
 - create `build/i386/lib/libmruby.a` from object files from gems and from `src`
 - create binary commands according to binary gems (e.g. `mirb` and `mruby`)
@@ -683,8 +720,14 @@ convenience. `mruby-config` command prints the configuration used for `libmruby.
 $ mruby-config --help
 Usage: mruby-config [switches]
   switches:
-  --cc                        print compiler name
-  --cflags                    print flags passed to compiler
+  --cc                        print C compiler name
+  --cflags                    print flags passed to C compiler
+  --cxx                       print C++ compiler name
+  --cxxflags                  print flags passed to C++ compiler
+  --as                        print assembler name
+  --asflags                   print flags passed to assembler
+  --objc                      print Objective C compiler name
+  --objcflags                 print flags passed to Objective C compiler
   --ld                        print linker name
   --ldflags                   print flags passed to linker
   --ldflags-before-libs       print flags passed to linker before linked libraries
