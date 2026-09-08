@@ -198,6 +198,58 @@ assert('Module#attr_writer', '15.2.2.4.14') do
   assert_equal 'test', AttrTestWriter.cattr_val
 end
 
+assert('Module#attr_* take the visibility of the scope they are called in') do
+  c = Class.new {
+    def set; self.w = 1; self.a = 2; @r = 3; end
+    def get; [r, a]; end
+    def set_prot(other); other.r = 4; end
+    private
+    attr_reader :r
+    attr_writer :w
+    attr_accessor :a
+    protected
+    attr_writer :r
+  }
+  obj = c.new
+  obj.set
+  assert_equal [3, 2], obj.get
+  assert_raise(NoMethodError) { obj.r }
+  assert_raise(NoMethodError) { obj.a }
+  assert_raise(NoMethodError) { obj.r = 5 }
+  other = c.new
+  obj.set_prot(other)
+  assert_equal [4, nil], other.get
+  assert_false c.method_defined?(:r)
+  assert_false c.method_defined?(:a=)
+  assert_true c.method_defined?(:r=)
+
+  # a `class_eval` block is the body too
+  c = Class.new
+  c.class_eval { private; attr_reader :r }
+  assert_raise(NoMethodError) { c.new.r }
+
+  # a call on another class, or from inside a method, defines a public accessor
+  other = Class.new
+  c = Class.new {
+    private
+    other.attr_accessor :pub
+    def self.make; attr_reader :from_cm; end
+  }
+  c.make
+  assert_nil other.new.pub
+  assert_nil c.new.from_cm
+
+  # module_function scope: private, and no module method is made of it
+  mod = Module.new {
+    module_function
+    attr_reader :mf
+  }
+  assert_false mod.respond_to?(:mf)
+  klass = Class.new { include mod; def call_mf; mf; end }
+  assert_nil klass.new.call_mf
+  assert_raise(NoMethodError) { klass.new.mf }
+end
+
 assert('Module#class_eval', '15.2.2.4.15') do
   class Test4ClassEval
     @a = 11

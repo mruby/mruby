@@ -3364,6 +3364,11 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*access
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
+  /* An accessor made in a module_function scope is private and gets no
+     module method copy, as CRuby's `rb_attr()` makes it. */
+  mrb_bool modfunc;
+  int vis = caller_scope_visibility(mrb, c, &modfunc);
+
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
     mrb_sym method = to_sym(mrb, argv[i]);
@@ -3376,6 +3381,7 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*access
     p->flags |= aargc == 0 ? MRB_PROC_NOARG : 0;
     mrb_method_t m;
     MRB_METHOD_FROM_PROC(m, p);
+    MRB_METHOD_SET_VISIBILITY(m, vis);
     mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
   }
