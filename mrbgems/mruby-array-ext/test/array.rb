@@ -390,6 +390,32 @@ assert("Array#flatten!") do
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2, [3, [4, 5], 6]].flatten!
 end
 
+assert("Array#flatten detects recursion") do
+  a = [1]
+  a << a
+  msg = "tried to flatten recursive array"
+  assert_raise_with_message(ArgumentError, msg) { a.flatten }
+  assert_raise_with_message(ArgumentError, msg) { a.flatten! }
+  # the failed flatten! leaves the receiver as it was
+  assert_equal 2, a.size
+  assert_equal 1, a[0]
+  assert_same a, a[1]
+
+  x = [1]
+  y = [x]
+  x << y
+  assert_raise_with_message(ArgumentError, msg) { x.flatten }
+  assert_raise_with_message(ArgumentError, msg) { x.flatten! }
+  assert_same y, x[1]
+
+  # a level that stops above the cycle leaves it in place
+  assert_equal [1, 1, a], a.flatten(1)
+
+  # the same array under two siblings is not a cycle
+  s = [1, [2]]
+  assert_equal [1, 2, 1, 2], [s, [s]].flatten
+end
+
 assert("Array#compact") do
   a = [1, nil, "2", nil, :t, false, nil]
   assert_equal [1, "2", :t, false], a.compact

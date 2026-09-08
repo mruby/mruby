@@ -1273,6 +1273,19 @@ flatten_internal(mrb_state *mrb, mrb_value self, mrb_int level, mrb_bool *modifi
       idx++;
 
       if (mrb_array_p(e) && (level < 0 || depth <= level)) {
+        /* check recursive: e must not be an ancestor on the current path.
+           A bounded level terminates on its own, so only the unbounded
+           walk checks (CRuby does the same). */
+        if (level < 0) {
+          if (mrb_obj_equal(mrb, e, ary)) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to flatten recursive array");
+          }
+          for (mrb_int j = 0; j < RARRAY_LEN(stack); j += 3) {
+            if (mrb_obj_equal(mrb, e, RARRAY_PTR(stack)[j])) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to flatten recursive array");
+            }
+          }
+        }
         *modified = TRUE;
         // Push current state back
         mrb_ary_push(mrb, stack, ary);
