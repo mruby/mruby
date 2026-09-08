@@ -541,19 +541,21 @@ debug information that the `-g` of the `gcc` and `clang` toolchains writes, and
 the file names `mrbc` records for the backtrace of an mruby script under
 `enable_debug`. Every build keeps them out of it on its own.
 
-It compiles the sources by the names they have from the tree, `src/vm.c` and
-not the path of the checkout, and names the two directories they come from for
-whatever a name cannot carry: the tree, written as `.`, and the build
-directory, written as `build`. The build directory is written as the place it
-takes when nothing moves it, so that a build with `MRUBY_BUILD_DIR` pointing
-anywhere else compiles what a build inside the tree compiles. The names are
-written with `-ffile-prefix-map`, except for the directory a compiler records
-as the one it compiled in, which `clang` is told by `-ffile-compilation-dir`.
+It runs the compilers from the build directory and compiles by the names the
+sources and the generated files have from there, `../src/vm.c` and
+`host/src/symbol.c`, not the path of the checkout. The build directory is
+written as `build`, the place it takes when nothing moves it, so that a build
+with `MRUBY_BUILD_DIR` pointing anywhere else compiles what a build inside the
+tree compiles: the tree is then written as `..`, the name it has from there.
+The names are written with `-ffile-prefix-map`, except for the directory a
+compiler records as the one it compiled in, which `clang` is told by
+`-ffile-compilation-dir`.
 
-Two builds of the same commit in two checkouts therefore compile the same
-thing, and a compiler cache keyed on the command line, `ccache` or `sccache`,
-answers for one from what it learned of the other with nothing configured for
-it on the machine.
+Two builds of the same commit in two checkouts or in two build directories
+therefore compile the same thing, as long as the build directories sit at the
+same depth, and a compiler cache keyed on the command line, `ccache` or
+`sccache`, answers for one from what it learned of the other with nothing
+configured for it on the machine.
 
 The same holds across configs that name different gems, for the objects of
 the parts of the build the two configs agree on up to that point. The
@@ -597,8 +599,8 @@ conf.disable_file_prefix_map
 which is what a build to be debugged from outside the mruby tree wants: a
 debugger looks for the sources under the names the build wrote, and finds them
 only from the tree they are named against. Either tell the debugger where they
-are (`set substitute-path . /path/to/mruby` in gdb), run it from the tree, or
-take the names off this way.
+are (`set substitute-path build /path/to/build` in gdb), run it from the tree
+with the build directory in its place, or take the names off this way.
 
 Note that
 
@@ -610,9 +612,9 @@ Note that
 - The flags a build exports in `libmruby.flags.mak` name every directory in
   full: they are read where the package was installed, which is not where it
   was built, and whoever compiles against it rewrites them.
-- A directory the build cannot name from the tree, a gem or a build directory
-  somewhere else, reaches the compiler as this machine spells it, and is
-  written through the map.
+- A directory the build cannot name from the build directory, a gem outside
+  the tree, reaches the compiler as this machine spells it, and is written
+  through the map.
 
 ## Cross-Compilation
 

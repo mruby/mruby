@@ -135,12 +135,13 @@ module MRuby
     # neither map a path nor be told which directory it compiled in is left
     # alone, and the paths it writes stand as they are.
     #
-    # A build that compiles by the names its sources have from the tree hands
-    # those names to the map too, so a directory of the machine is named here
-    # only where the build could not name it any other way. Two of them then
-    # answer for themselves: the tree, which every name is already written
-    # against, and a build directory that is already spelled the way the map
-    # would write it.
+    # A build that compiles by relative names hands those names to the map
+    # too, so a directory of the machine is named here only where the build
+    # could not name it any other way. The build directory answers for
+    # itself, since every name is written against it. The tree is named from
+    # it, and a build outside the tree names it by a path of the machine,
+    # relative as it is, so the name is mapped to the one the tree has from
+    # the build directory's written name: `..` from `build`.
     #
     # What no name of a source can carry is the directory the compiler records
     # as the one it compiled in, which it takes from the machine whatever it
@@ -151,14 +152,18 @@ module MRuby
       relative = build.compile_relative?
       flags = []
       file_prefix_maps.each do |from, to|
-        if relative && from == MRUBY_ROOT
-          if compilation_dir?
-            flags << option_compilation_dir % to
-            next
+        if relative
+          name = build.compile_path(from)
+          if name == "."
+            if compilation_dir?
+              flags << option_compilation_dir % to
+              next
+            end
+          elsif name != from
+            to = written_tree_name(to) if from == MRUBY_ROOT
+            next if name == to
+            from = name
           end
-        elsif relative
-          from = build.compile_path(from)
-          next if from == to
         end
         flags << option_file_prefix_map % [filename(from), to] if file_prefix_map?
       end
@@ -208,8 +213,8 @@ module MRuby
     # link against still answers.  Both it and the object go in a directory of
     # their own, which is removed afterwards; the compiler still runs where
     # the build runs, so that a relative path among the flags, an `-I` a
-    # configuration wrote without spelling out a root, names what it names
-    # during a compile.
+    # configuration wrote into them without spelling out a root, names what
+    # it names during a compile.
     #
     # The answer is kept for the life of the rake process, since a build has
     # four compilers and a config has several builds, and they name few
@@ -355,10 +360,11 @@ module MRuby
     # The flags a caller compiles with, or that a package carries away.
     #
     # +compiled+ says which of the two is asking. A compile is run from the
-    # tree and names the directories it reads by the names they have from it,
-    # where they have one; a package is compiled from somewhere else entirely,
-    # and its flags name every directory in full, for whoever rewrites them
-    # into the directories the package was installed in.
+    # build directory and names the directories it reads by the names they
+    # have from there, where they have one; a package is compiled from
+    # somewhere else entirely, and its flags name every directory in full,
+    # for whoever rewrites them into the directories the package was
+    # installed in.
     def all_flags(_defines=[], _include_paths=[], _flags=[], compiled: false)
       define_flags = [defines, internal_defines, _defines, build.defines].flatten
                        .map{ |d| option_define % d }
@@ -374,7 +380,7 @@ module MRuby
       opts, params = compile_invocation(outfile, infile, _defines, _include_paths, _flags)
       label = object_ext?(outfile) ? @label : "CPP"
       _pp label, infile.relative_path, outfile.relative_path
-      _run opts, params, chdir: (MRUBY_ROOT if build.compile_relative?)
+      _run opts, params, chdir: build.compile_dir
       # Recorded after the compile, so that a compile that failed leaves
       # nothing claiming a configuration its output was not built with.
       File.write(flags_file(outfile), flags_record(opts, params[:flags]))
@@ -507,13 +513,10 @@ module MRuby
         #    []
       end.flatten.uniq
       # The names a +.d+ file carries are the ones the compile was given, so a
-      # compile that names its sources against the tree leaves relative names
-      # here. They are read against the directory the compile ran in, since
-      # everything below compares them with the names of the tasks, and those
-      # are absolute.
-      header_deps.map! do |dep|
-        Pathname.new(dep).absolute? ? dep : File.join(MRUBY_ROOT, dep)
-      end
+      # compile by relative names leaves relative names here. They are read
+      # against the directory the compile ran in, since everything below
+      # compares them with the names of the tasks, and those are absolute.
+      header_deps.map! {|dep| build.resolve_compile_path(dep) }
       unless object_ext?(file)
         presym_dir = "#{build.presym.header_dir}/"
         header_deps.reject! {|dep| dep.start_with?(presym_dir) }
@@ -537,6 +540,15 @@ module MRuby
 
     private
 
+    # The name the tree has from the build directory once both are written
+    # by the names the map gives them, +tree+ and the build directory's:
+    # what a relative name for the tree is mapped to, so that a build
+    # outside the tree writes what one inside writes.
+    def written_tree_name(tree)
+      build_name = file_prefix_maps[build.build_root] || tree
+      Pathname.new(tree).relative_path_from(Pathname.new(build_name)).to_s
+    end
+
     # Whether the command this compiler names knows +option+, which is asked
     # of the command itself: a toolchain stands for a family of compilers, and
     # an option one of them takes is not in all of them.
@@ -555,7 +567,7 @@ module MRuby
     # What an answer about +source+ is kept under: everything that goes into
     # the compile, the extension included.
     def probe_key(source)
-      [build.filename(command), compile_options, source_exts.first, all_flags, source]
+      [build.filename(command), compile_options, source_exts.first, all_flags(compiled: true), source]
     end
 
     # Compile +source+ and answer whether it compiled.  The source and the
@@ -571,10 +583,12 @@ module MRuby
         outfile = "#{dir}/probe#{out_ext}"
         File.write(infile, source)
         options = compile_options % {
-          flags: all_flags, infile: filename(infile), outfile: filename(outfile)
+          flags: all_flags(compiled: true), infile: filename(infile), outfile: filename(outfile)
         }
-        opts = {out: File::NULL, err: File::NULL}
-        opts[:chdir] = MRUBY_ROOT if build.compile_relative?
+        # The build directory is made here where a probe is the first thing
+        # the build runs from it.
+        mkdir_p build.compile_dir
+        opts = {out: File::NULL, err: File::NULL, chdir: build.compile_dir}
         # `system` answers nil where the command is not there to run at all,
         # which is an answer of no like any other failure to compile.
         compiled = !!system("#{build.filename(command)} #{options}", **opts)
@@ -883,10 +897,10 @@ module MRuby
       opt = opt.sub(/\s-o-(?=\s|\z)/, %Q[ -o "#{filename tmpout}"])
       # The names given here are the ones `mrbc` records for a backtrace, so
       # they are the names the sources have from the tree wherever the build
-      # compiles by those, and `mrbc` is run from the tree to read them. This
-      # is what the compilers are told through their own options, which reach
-      # nothing `mrbc` writes.
-      sources = infiles.map {|f| build.compile_path(f) }
+      # compiles by relative names, and `mrbc` is run from the tree to read
+      # them. This is what the compilers are told through their own options,
+      # which reach nothing `mrbc` writes.
+      sources = infiles.map {|f| build.tree_path(f) }
       cmd = %["#{filename @command}" #{opt} #{filename(sources).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
       opts = build.compile_relative? ? {chdir: MRUBY_ROOT} : {}

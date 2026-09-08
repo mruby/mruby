@@ -247,11 +247,14 @@ module MRuby
     # it takes when nothing moves it, so that a build with `MRUBY_BUILD_DIR`
     # pointing anywhere else compiles what a build inside the tree compiles.
     #
-    # The tree is written as `.`, and under that name the build compiles the
-    # sources by the names they have from the tree, so that what it compiles
-    # is the same wherever the tree sits. A config that writes another name
-    # for the tree is asking for that name in the output, which no relative
-    # name carries, and its build compiles with the paths as they are.
+    # The tree is written as `.`, and under that name the build compiles by
+    # relative names: it runs the compilers from the build directory and
+    # names the sources and the generated files by where they sit from
+    # there, `../src/vm.c` and `host/src/symbol.c`, which is the same
+    # wherever the tree sits as long as the build directory sits at the
+    # same depth. A config that writes another name for the tree is asking
+    # for that name in the output, which no relative name carries, and its
+    # build compiles with the paths as they are.
     #
     # The two maps overlap where the build directory is inside the tree, and
     # both `gcc` and `clang` answer a path both cover with the longer prefix,
@@ -261,7 +264,8 @@ module MRuby
     #
     # No compiler flag reaches the file names `mrbc` records for a backtrace
     # under `enable_debug`: those are the names the build passes it, and the
-    # build passes the names of the tree wherever it compiles by them.
+    # build passes the names of the tree wherever it compiles by relative
+    # names.
     def enable_file_prefix_map(source: ".", build: source == "." ? "build" : "#{source}/build")
       file_prefix_map(MRUBY_ROOT, source)
       file_prefix_map(@build_root, build)
@@ -278,26 +282,59 @@ module MRuby
       @file_prefix_map_source = nil
     end
 
-    # Whether the compilers are handed the names the sources have from the
-    # tree, instead of the paths they have on this machine.
+    # Whether the compilers are handed relative names for the sources and
+    # the build directory, instead of the paths they have on this machine.
     #
     # This is the same question as whether the tree is written as `.`: a
-    # relative name is what a path under the tree looks like once the tree
-    # itself is dropped from it, so the build compiles under that name what
-    # the map would otherwise write. A build that keeps its paths, or that
-    # writes another name for the tree, has no such name to compile with.
+    # relative name is what a path looks like once the directory it is
+    # named from is dropped from it, so the build compiles under such names
+    # what the map would otherwise write. A build that keeps its paths, or
+    # that writes another name for the tree, has no such name to compile
+    # with.
     def compile_relative?
       @file_prefix_map_source == "."
     end
 
-    # The name a compile is given for +path+: the one it has from the tree,
-    # where it sits under the tree and the build compiles by such names, and
-    # the path as it is anywhere else.
+    # The directory a compile of this build runs from, which a relative name
+    # in the flags is written against: the build directory where the build
+    # compiles by relative names, so that the objects and the generated
+    # files are named from where they are and the tree from beside them,
+    # and the tree anywhere else.
+    def compile_dir
+      compile_relative? ? @build_root : MRUBY_ROOT
+    end
+
+    # The name a compile is given for +path+: the one it has from the
+    # directory the compile runs from, where the path sits under the tree or
+    # the build directory and the build compiles by relative names, and the
+    # path as it is anywhere else.
     #
     # A path this leaves alone is one no build of this tree can name the same
-    # way twice, an external gem or a build directory somewhere else, and it
-    # reaches the compiler as the machine spells it.
+    # way twice, an external gem outside both, and it reaches the compiler
+    # as the machine spells it. A relative path is one a config wrote, and
+    # a config writes it against the tree.
     def compile_path(path)
+      return path unless compile_relative?
+      path = File.expand_path(path, MRUBY_ROOT) unless Pathname.new(path).absolute?
+      return path unless [MRUBY_ROOT, @build_root].any? {|dir| path == dir || path.start_with?("#{dir}/") }
+      path.relative_path_from(@build_root)
+    rescue ArgumentError
+      # Another drive on Windows, which no relative name reaches.
+      path
+    end
+
+    # The path a name in a dependency file stands for: what the compiler was
+    # given, read back against the directory it ran from.
+    def resolve_compile_path(name)
+      File.expand_path(name, compile_dir)
+    end
+
+    # The name a path has from the tree, where the build compiles by
+    # relative names, and the path as it is anywhere else. This is what
+    # `mrbc` is given, since the name it records for a backtrace is read by
+    # people and not by the compiler; a path outside the tree is left as it
+    # is.
+    def tree_path(path)
       return path unless compile_relative?
       return "." if path == MRUBY_ROOT
       prefix = "#{MRUBY_ROOT}/"

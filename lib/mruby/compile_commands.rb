@@ -203,17 +203,17 @@ module MRuby
     # the block gives, or nothing where the source is not there.
     #
     # The rule and the record name the source the way the compile is given
-    # it, which is the name it has from the tree where the build compiles by
-    # those names. The command keeps that name, since it is the command that
-    # is run and `directory` says what it is written against, while `file`
-    # is answered in full: it is what a tool matches the file it has open
-    # against, and it has that one by its path.
+    # it, which is the name it has from the build directory where the build
+    # compiles by relative names. The command keeps that name, since it is
+    # the command that is run and `directory` says what it is written
+    # against, while `file` is answered in full: it is what a tool matches
+    # the file it has open against, and it has that one by its path.
     def entry(infile, outfile)
-      path = File.absolute_path(infile, MRUBY_ROOT)
+      path = @build.resolve_compile_path(infile)
       return nil unless File.exist?(path)
 
       {
-        "directory" => MRUBY_ROOT,
+        "directory" => @build.compile_dir,
         "file" => path,
         "command" => yield,
         "output" => outfile,
