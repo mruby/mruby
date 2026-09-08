@@ -31,6 +31,15 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   elsif !cc.defines.include?('MRB_NO_GEMS')
     cc.defines << 'MRC_TARGET_MRUBY'
   end
+  # Prism allocates the tree it parses, and the walk that gives the tree back
+  # costs a C frame per level of it; a tree deep enough to run that off the
+  # stack is written in ordinary source, so the tree is taken from an arena
+  # and given back in one piece instead (see include/prism_xallocator.h).
+  # That needs Prism and the compiler glue on one allocator, which a C++ ABI
+  # build does not have: Prism is compiled as C there and routed to libc,
+  # since it cannot resolve the C++-linkage mrb_malloc.  The arena is off in
+  # that build, and the tree is walked as Prism walks it.
+  cc.defines << 'MRC_PRISM_ARENA' unless build.cxx_abi_enabled?
   cc.defines << 'MRC_DEBUG' if cc.has_define?('MRB_DEBUG')
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
   # PRISM_BUILD_MINIMAL stubs out pm_prettyprint(), so `mruby -v` can only dump

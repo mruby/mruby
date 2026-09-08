@@ -793,3 +793,16 @@ assert('the constant cache forgets an irep when the irep is freed') do
   skip "this build has no constant cache" if dangles.nil?
   assert_false dangles
 end
+
+assert('eval of a pattern deeper than the compiler walks') do
+  # A pattern is walked by a recursion of its own, which nothing bounded: a
+  # pattern nested as deep as it is written ran the compiler off the C stack,
+  # and the walk that gave the tree back afterwards would have too. It goes
+  # on the count the rest of the compiler keeps, and the tree is given back
+  # in one piece rather than walked.
+  assert_raise(SyntaxError) { eval("SOK  =>_xec" * 60000) }
+  # the compiler is still there afterwards, and an ordinary pattern still
+  # compiles and matches
+  assert_equal [1, 2], eval("q = [1, 2]; q => [a, b]; [a, b]")
+  assert_true eval("({k: 1} in {k:})")
+end

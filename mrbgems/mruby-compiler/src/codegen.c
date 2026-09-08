@@ -2865,7 +2865,32 @@ gen_pattern_fail_jmp(mrc_codegen_scope *s, mrc_code op, uint16_t a, uint32_t *fa
 }
 
 static void
+codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len, int cache);
+
+/* A pattern is walked by codegen_pattern_1() and not by codegen(), so its
+   nesting is not on the count codegen() keeps against MRC_CODEGEN_LEVEL_MAX,
+   and source of any depth would recurse there until the C stack ran out.  It
+   goes on the same count here: the two walks are the same resource, and how
+   deep either may go is a property of the compiler rather than of the machine
+   it was built for, which is what makes a count portable where a measure of
+   the stack in bytes is not.  The walk below has exits of its own, so the
+   count is kept here, where there is one. */
+static void
 codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len, int cache)
+{
+  int rlev = s->rlev;
+
+  s->rlev++;
+  if (s->rlev > MRC_CODEGEN_LEVEL_MAX) {
+    s->rlev = rlev;
+    codegen_error(s, "too complex pattern");
+  }
+  codegen_pattern_1(s, pattern, target, fail_pos, known_array_len, cache);
+  s->rlev = rlev;
+}
+
+static void
+codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *fail_pos, int known_array_len, int cache)
 {
   uint32_t tmp;
 

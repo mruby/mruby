@@ -409,6 +409,21 @@ mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
   return mrc_pm_parse(c);
 }
 
+/* Give back the tree.  Where the arena is in use nothing is done here: the
+   parser is still holding what it allocated from the same arena, and the
+   whole of it is given back at mrc_ccontext_free() instead.  Where the arena
+   is not in use, which is a build with its own allocator, the tree is walked
+   as prism walks it. */
+static void
+mrc_prism_release_tree(mrc_ccontext *c, mrc_node *root)
+{
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+  (void)c; (void)root;
+#else
+  if (root) pm_node_destroy(c->p, root);
+#endif
+}
+
 MRC_API mrc_irep *
 mrc_load_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 {
@@ -417,7 +432,10 @@ mrc_load_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
     return NULL;
   }
   mrc_irep *irep = mrc_load_exec(c, root);
-  pm_node_destroy(c->p, root);
+  /* The tree is given back with the arena it was parsed into rather than
+     walked: see prism_xallocator.h.  Everything prism allocated for this
+     parse goes with it, so nothing is left behind. */
+  mrc_prism_release_tree(c, root);
   return irep;
 }
 #endif
@@ -439,7 +457,10 @@ mrc_load_string_cxt(mrc_ccontext *c, const uint8_t **source, size_t length)
 {
   mrc_node *root = mrc_parse_string_cxt(c, source, length);
   mrc_irep *irep = mrc_load_exec(c, root);
-  pm_node_destroy(c->p, root);
+  /* The tree is given back with the arena it was parsed into rather than
+     walked: see prism_xallocator.h.  Everything prism allocated for this
+     parse goes with it, so nothing is left behind. */
+  mrc_prism_release_tree(c, root);
   return irep;
 }
 

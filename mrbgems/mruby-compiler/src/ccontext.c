@@ -8,20 +8,123 @@
    the mrbc/mruby/mirb front-ends) resolves the symbol. The front-ends assign
    it unconditionally for the mruby target, so it must exist regardless of
    MRC_ALLOC_LIBC even though only the non-libc allocator dereferences it. */
+#include <stddef.h>
+
 mrb_state *global_mrb = NULL;
+
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+/* The arena prism allocates a parse from.  Blocks are taken from mrb_malloc()
+   and handed out by bumping a pointer; giving the arena back walks the chain
+   of blocks rather than the tree, so a tree of any depth costs one loop and
+   no C stack.  See prism_xallocator.h for why the tree is not walked. */
+struct mrc_prism_arena_block *mrc_prism_arena = NULL;
+
+#define MRC_PRISM_ARENA_BLOCK (64 * 1024)
+
+struct arena_block {
+  struct mrc_prism_arena_block head;   /* must be first: the public view */
+  size_t used, size;
+};
+
+/* Every answer carries the size it was given, so that growing one knows how
+   much of it there is to copy.  realloc() is told the new size only. */
+struct arena_chunk {
+  size_t size;
+  char body[];
+};
+
+static struct arena_block *
+arena_block_new(size_t need)
+{
+  size_t size = MRC_PRISM_ARENA_BLOCK;
+  while (size - sizeof(struct arena_block) < need) size *= 2;
+  struct arena_block *b = (struct arena_block *)mrb_malloc(global_mrb, size);
+  b->head.prev = mrc_prism_arena;
+  b->used = sizeof(struct arena_block);
+  b->size = size;
+  mrc_prism_arena = &b->head;
+  return b;
+}
+
+/* Open an arena for one compiler context, putting aside the arena of the
+   context this one is being made inside of.  Contexts are made and freed in
+   the order of the calls that make them, so putting the outer one aside here
+   and back at mrc_ccontext_free() leaves each context taking from its own. */
+static void
+arena_open(mrc_ccontext *c)
+{
+  c->prism_arena_outer = mrc_prism_arena;
+  mrc_prism_arena = NULL;
+  arena_block_new(0);
+  c->prism_arena = mrc_prism_arena;
+}
+
+void *
+mrc_prism_arena_alloc(size_t size)
+{
+  size_t need = (sizeof(struct arena_chunk) + size + 7u) & ~(size_t)7;
+  struct arena_block *b = (struct arena_block *)mrc_prism_arena;
+
+  if (b == NULL || b->size - b->used < need) {
+    b = arena_block_new(need);
+  }
+  struct arena_chunk *chunk = (struct arena_chunk *)((char *)b + b->used);
+  b->used += need;
+  chunk->size = size;
+  return chunk->body;
+}
+
+void *
+mrc_prism_arena_realloc(void *ptr, size_t size)
+{
+  void *p = mrc_prism_arena_alloc(size);
+
+  if (ptr != NULL && p != NULL) {
+    /* The old bytes are left where they are: the arena gives everything back
+       at once, so what a growing array leaves behind is reclaimed with it.
+       How much is left behind is bounded by the doubling the caller does. */
+    struct arena_chunk *old = (struct arena_chunk *)((char *)ptr - offsetof(struct arena_chunk, body));
+    size_t copy = old->size < size ? old->size : size;
+    memcpy(p, ptr, copy);
+  }
+  return p;
+}
+
+/* Give back everything this context took, and make the arena of the context
+   it was made inside of the one that is open again. */
+static void
+arena_close(mrc_ccontext *c)
+{
+  struct mrc_prism_arena_block *b = mrc_prism_arena;
+
+  while (b != NULL) {
+    struct mrc_prism_arena_block *prev = b->prev;
+    mrb_free(global_mrb, b);
+    b = prev;
+  }
+  c->prism_arena = NULL;
+  mrc_prism_arena = (struct mrc_prism_arena_block *)c->prism_arena_outer;
+  c->prism_arena_outer = NULL;
+}
+#endif
 #endif
 
 MRC_API mrc_ccontext *
 mrc_ccontext_new(mrb_state *mrb)
 {
   mrc_ccontext temp_c = {0};
-#if defined(MRC_TARGET_MRUBY) && !defined(MRC_ALLOC_LIBC)
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
   global_mrb = mrb;
 #endif
   temp_c.mrb = mrb;
   mrc_ccontext *c = (mrc_ccontext *)mrc_calloc((&temp_c), 1, sizeof(mrc_ccontext));
   c->p = (mrc_parser_state *)mrc_calloc((&temp_c), 1, sizeof(mrc_parser_state));
   c->mrb = temp_c.mrb;
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+  /* Before Prism is asked for anything on this context's behalf, so that
+     every pointer its allocator sees for this context is arena memory. */
+  arena_open(c);
+#endif
   return c;
 }
 
@@ -77,6 +180,12 @@ mrc_ccontext_free(mrc_ccontext *c)
   if (c->filename_table) mrc_free(c, c->filename_table);
   if (c->filename) mrc_free(c, c->filename);
   pm_parser_free(c->p);
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+  /* Everything Prism took for this context, the tree and what the parser
+     kept beside it, came from the arena and is given back here in one piece.
+     After pm_parser_free(), which reaches into that same arena. */
+  arena_close(c);
+#endif
   mrc_diagnostic_list_free(c);
   if (c->p->lex_callback) {
     mrc_free(c, c->p->lex_callback);
