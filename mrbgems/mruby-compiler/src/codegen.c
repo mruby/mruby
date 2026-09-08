@@ -2572,7 +2572,14 @@ gen_call(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int recv_ready
   }
   else if (nint(cast->receiver) == PM_SELF_NODE) {
     noself = noop = 1;
-    push();
+    /* OP_SSEND fills the receiver register itself; only the nil check of
+       `self&.m` reads it before then, so it is loaded for that */
+    if (safe) {
+      codegen(s, cast->receiver, VAL);
+    }
+    else {
+      push();
+    }
   }
   else {
     codegen(s, cast->receiver, VAL); /* receiver */

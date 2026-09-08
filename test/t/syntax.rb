@@ -266,6 +266,23 @@ assert('safe navigation operator-assignment short-circuits on nil') do
   assert_equal 7, d.x
 end
 
+class SelfSafeCall
+  def y(*); :called; end
+  # `[nil].first` leaves nil in the first temporary register, which is
+  # the one the nil check of the call below reads when the receiver is
+  # not loaded; a receiver written as `self` is never nil
+  def bare;  [nil].first; self&.y;     end
+  def args;  [nil].first; self&.y(1);  end
+  def value; [nil].first; x = self&.y; x; end
+end
+
+assert('a safe navigation call on a written self is made') do
+  o = SelfSafeCall.new
+  assert_equal :called, o.bare
+  assert_equal :called, o.args
+  assert_equal :called, o.value
+end
+
 assert('local variable or/and-assignment yields its value') do
   # gen_assignment_lvar() only moves, so the local-variable branch has to push
   # the result the way the other branches do. Without it the expression yields
