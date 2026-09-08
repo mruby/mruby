@@ -1518,6 +1518,60 @@ assert('pattern matching - a clause that names `**rest` keeps its own value') do
   assert_equal [1, {b: 2, c: 3}, 2, {a: 1, c: 3}], r
 end
 
+assert('pattern matching - a capture in a block binds the local of the enclosing scope') do
+  # A capture looked its variable up in the scope of the block alone and
+  # bound nothing when the local lived outside it, so the block left the
+  # outer local as it was.
+  v = w = r = pre = post = h = nil
+  f = ->(x) {
+    x => [v]
+    x => [Integer => w]
+    x => [*r]
+    x => [*pre, 1, *post]
+    {k: 2} => {k: h}
+  }
+  f.call([1])
+  assert_equal [1, 1, [1], [], [], 2], [v, w, r, pre, post, h]
+
+  k = rest = nil
+  [{k: 3, m: 4}].each { |x| x => {k:, **rest} }
+  assert_equal [3, {m: 4}], [k, rest]
+
+  # a `case` in a block
+  a = nil
+  [[5, 6]].each do |x|
+    case x
+    in [_, a] then nil
+    end
+  end
+  assert_equal 6, a
+
+  # the local of an enclosing block, two scopes up
+  z = nil
+  [1].each { [[7]].each { |y| y => [z] } }
+  assert_equal 7, z
+
+  # a `for` body is not a scope of its own, and a block inside it is
+  b = c = nil
+  for x in [[8]]
+    x => [b]
+    [x].each { x => [c] }
+  end
+  assert_equal [8, 8], [b, c]
+
+  # an array literal subject takes the path that knows its length
+  r = nil
+  [3].each do |x|
+    case [x, x]
+    in [*r] then nil
+    end
+  end
+  assert_equal [3, 3], r
+
+  # a local of the block's own scope is bound as before
+  assert_equal [9], [[9]].map { |x| x => [q]; q }
+end
+
 assert('pattern matching - value patterns as a hash value') do
   # a value pattern is the receiver of `===`, the hash value its argument
   case {a: 1}

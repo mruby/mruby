@@ -1974,6 +1974,15 @@ gen_assignment_lvar(mrc_codegen_scope *s, int sp, mrc_sym name, int depth, int v
   }
 }
 
+/* Bind what a pattern captured to the local its target names.  Prism records
+   how many scopes up that local lives, so a capture inside a block reaches a
+   local of the enclosing scope the way an assignment does. */
+static void
+gen_pattern_bind(mrc_codegen_scope *s, pm_local_variable_target_node_t *var, int src)
+{
+  gen_assignment_lvar(s, src, var->name, var->depth + s->for_depth, 1);
+}
+
 /* Load the anonymous forwarding variable `sym` (one of `*`, `**`, `&`) into
    cursp(). When `...` is forwarded from inside a block the variable lives in
    an enclosing method scope, so fall back to an upvar load instead of asserting
@@ -2866,11 +2875,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
   case PM_LOCAL_VARIABLE_TARGET_NODE:
     {
       CAST3(local_variable_target, pattern, var_target);
-      /* Bind the matched value to the variable */
-      int idx = lv_idx(s, var_target->name);
-      if (idx > 0) {
-        gen_move(s, idx, target, 1);  /* nopeep=1 to prevent optimization */
-      }
+      gen_pattern_bind(s, var_target, target);
       /* Variable pattern always matches */
     }
     break;
@@ -2938,10 +2943,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
       codegen_pattern(s, (mrc_node *)pat_as->value, target, fail_pos, known_array_len);
       /* Then bind the value to the variable */
       CAST3(local_variable_target, pat_as->target, var_target);
-      int idx = lv_idx(s, var_target->name);
-      if (idx > 0) {
-        gen_move(s, idx, target, 0);
-      }
+      gen_pattern_bind(s, var_target, target);
     }
     break;
 
@@ -3020,7 +3022,6 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           pm_splat_node_t *splat = (pm_splat_node_t *)pat_arr->rest;
           if (splat->expression && nint(splat->expression) == PM_LOCAL_VARIABLE_TARGET_NODE) {
             pm_local_variable_target_node_t *rest_var = (pm_local_variable_target_node_t *)splat->expression;
-            int var_idx = lv_idx(s, rest_var->name);
             /* Generate: arr[pre_len..-(post_len+1)] or arr[pre_len..-1] if no post */
             int sp_save = cursp();
             gen_move(s, cursp(), arr_reg, 0);
@@ -3038,9 +3039,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             push(); pop();  /* touch block slot */
             s->sp = sp_save;
             genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aref)), 1);
-            if (var_idx > 0) {
-              gen_move(s, var_idx, cursp(), 1);
-            }
+            gen_pattern_bind(s, rest_var, cursp());
           }
         }
 
@@ -3102,7 +3101,6 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           pm_splat_node_t *splat = (pm_splat_node_t *)pat_arr->rest;
           if (splat->expression && nint(splat->expression) == PM_LOCAL_VARIABLE_TARGET_NODE) {
             pm_local_variable_target_node_t *rest_var = (pm_local_variable_target_node_t *)splat->expression;
-            int var_idx = lv_idx(s, rest_var->name);
             int sp_save = cursp();
             gen_move(s, cursp(), arr_reg, 0);
             push();
@@ -3119,9 +3117,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             s->sp = sp_save;
             genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aref)), 1);
             /* Result at R[sp_save] */
-            if (var_idx > 0) {
-              gen_move(s, var_idx, cursp(), 1);
-            }
+            gen_pattern_bind(s, rest_var, cursp());
           }
         }
 
@@ -3240,21 +3236,10 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             s->sp = val_reg;
             genop_3(s, OP_SEND, val_reg, new_sym(s, MRC_OPSYM_2(aref)), 1);
 
-            if (assoc->value) {
-              push(); /* keep the value below cursp() for the sub-pattern */
-              codegen_pattern(s, (mrc_node *)assoc->value, val_reg, fail_pos, -1);
-            }
-            else {
-              /* Shorthand form {a:} - bind to variable with same name as key */
-              if (nint(assoc->key) == PM_SYMBOL_NODE) {
-                pm_symbol_node_t *sym_node = (pm_symbol_node_t *)assoc->key;
-                mrc_sym var_name = nsym(s->c->p, sym_node->unescaped.source, sym_node->unescaped.length);
-                int idx = lv_idx(s, var_name);
-                if (idx > 0) {
-                  gen_move(s, idx, val_reg, 1);
-                }
-              }
-            }
+            /* Prism gives the shorthand `{a:}` an implicit local target
+               as its value, so there is always a sub-pattern to match. */
+            push(); /* keep the value below cursp() for the sub-pattern */
+            codegen_pattern(s, (mrc_node *)assoc->value, val_reg, fail_pos, -1);
             s->sp = loop_sp;
             key_idx++;
           }
@@ -3280,8 +3265,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
           /* Named **var: capture remaining keys via hash.__except(keys_array) */
           if (splat->value && nint(splat->value) == PM_LOCAL_VARIABLE_TARGET_NODE) {
             pm_local_variable_target_node_t *rest_var = (pm_local_variable_target_node_t *)splat->value;
-            int var_idx = lv_idx(s, rest_var->name);
-            if (var_idx > 0) {
+            {
               int recv = cursp();
               gen_move(s, recv, hash_reg, 0);
               push(); /* protect receiver */
@@ -3306,7 +3290,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
                 s->sp = recv;
                 genop_3(s, OP_SEND, recv, new_sym(s, MRC_SYM_1(dup)), 0);
               }
-              gen_move(s, var_idx, recv, 1);
+              gen_pattern_bind(s, rest_var, recv);
             }
           }
           /* Anonymous **: do nothing */
@@ -3399,8 +3383,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             nint(pre_splat->expression) == PM_LOCAL_VARIABLE_TARGET_NODE) {
           pm_local_variable_target_node_t *pre_var =
               (pm_local_variable_target_node_t *)pre_splat->expression;
-          int var_idx = lv_idx(s, pre_var->name);
-          if (var_idx > 0) {
+          {
             /* pre = arr[0...idx] */
             gen_move(s, cursp(), arr_reg, 0);
             push();
@@ -3411,7 +3394,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             genop_1(s, OP_RANGE_EXC, cursp() - 1);
             pop(); pop();
             genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aref)), 1);
-            gen_move(s, var_idx, cursp(), 1);
+            gen_pattern_bind(s, pre_var, cursp());
           }
         }
       }
@@ -3422,8 +3405,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             nint(post_splat->expression) == PM_LOCAL_VARIABLE_TARGET_NODE) {
           pm_local_variable_target_node_t *post_var =
               (pm_local_variable_target_node_t *)post_splat->expression;
-          int var_idx = lv_idx(s, post_var->name);
-          if (var_idx > 0) {
+          {
             /* post = arr[(idx+elems_len)..-1] */
             gen_move(s, cursp(), arr_reg, 0);
             push();
@@ -3436,7 +3418,7 @@ codegen_pattern(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t *f
             genop_1(s, OP_RANGE_INC, cursp() - 1);
             pop(); pop();
             genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_OPSYM_2(aref)), 1);
-            gen_move(s, var_idx, cursp(), 1);
+            gen_pattern_bind(s, post_var, cursp());
           }
         }
       }
