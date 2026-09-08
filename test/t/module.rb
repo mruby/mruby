@@ -433,6 +433,62 @@ assert('Module#method_defined? reports the methods a listing reports') do
   assert_true  answering.new.respond_to?(:no_such_method)
 end
 
+assert('Module#method_defined? with inherit false reports only the module\'s own methods') do
+  mod = Module.new do
+    def mpub; end
+  end
+  ahead = Module.new do
+    def apub; end
+  end
+  cls = Class.new do
+    include mod
+    prepend ahead
+    def pub; end
+    private def priv; end
+  end
+  sub = Class.new(cls)
+
+  # a method the class itself defines, wherever the walk would have found it
+  assert_true  cls.method_defined?(:pub, false)
+  assert_true  cls.method_defined?(:pub, true)
+  assert_false cls.method_defined?(:priv, false)
+  assert_false cls.method_defined?(:no_such_method, false)
+
+  # methods that come from an ancestor, an included module, a prepended
+  # module or Object are not the class's own
+  assert_false sub.method_defined?(:pub, false)
+  assert_true  sub.method_defined?(:pub)
+  assert_false cls.method_defined?(:mpub, false)
+  assert_true  cls.method_defined?(:mpub)
+  assert_false cls.method_defined?(:apub, false)
+  assert_true  cls.method_defined?(:apub)
+  assert_false cls.method_defined?(:inspect, false)
+  assert_true  cls.method_defined?(:inspect)
+
+  # a module is asked the same way, about the modules it includes
+  mod2 = Module.new { include mod }
+  assert_true  mod.method_defined?(:mpub, false)
+  assert_false mod2.method_defined?(:mpub, false)
+  assert_true  mod2.method_defined?(:mpub)
+
+  # a visibility changed in a subclass makes the method the subclass's own
+  shown = Class.new(cls) { public :priv }
+  assert_true  shown.method_defined?(:priv, false)
+  assert_false cls.method_defined?(:priv)
+
+  # a method undefined or left unimplemented is not there to be found, own or
+  # inherited; see "Kernel#respond_to? with an unimplemented method"
+  gone = Class.new(cls) { undef_method :pub }
+  assert_false gone.method_defined?(:pub, false)
+  assert_false gone.method_defined?(:pub)
+  assert_false TestNotImplement.method_defined?(:gone, false)
+
+  # inherit is read for truth, as in CRuby
+  assert_true  sub.method_defined?(:pub, 1)
+  assert_false sub.method_defined?(:pub, nil)
+  assert_raise(ArgumentError) { cls.method_defined?(:pub, false, false) }
+end
+
 assert('Module#module_eval', '15.2.2.4.35') do
   module Test4ModuleEval
     @a = 11
