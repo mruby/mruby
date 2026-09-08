@@ -10,7 +10,11 @@ jobs:
   GCC-CLANG:
     name: "${{ matrix.os }}-${{ matrix.altname || matrix.cc }}"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    # A row that installs a toolchain is given room for that step's own
+    # budget on top of the work: 15 is what the rest of a job takes at
+    # worst, and an apt allowed 10 minutes does not fit beside it.  The
+    # rows that install nothing keep the 15 the whole job costs them.
+    timeout-minutes: ${{ matrix.timeout || 15 }}
     strategy:
       fail-fast: false
       max-parallel: 8
@@ -28,6 +32,7 @@ jobs:
             cc: i686-linux-gnu-gcc
             cxx: i686-linux-gnu-g++
             altname: "i686-gcc"
+            timeout: 25
           # AArch32 ILP32 with unsigned plain `char`, run under qemu.  The
           # emulation is why this one says so: see build_config/ci/gcc-clang.rb.
           - os: ubuntu-24.04
@@ -36,6 +41,7 @@ jobs:
             altname: "armhf-gcc"
             emulated: "1"
             abi_only: "1"
+            timeout: 25
           # AArch64 LP64 with signed plain `char`.
           - {os: macos-26, cc: clang, cxx: clang++}
           - {os: macos-15, cc: clang, cxx: clang++}
@@ -70,7 +76,11 @@ jobs:
       # 10, not 5: the download is 64.6 MB and the step has taken more than
       # five minutes, which failed master rather than the pull request that
       # would have shown it.  A whole job here finishes in four to five, so
-      # five for one step of it was never the headroom it looked like.
+      # five for one step of it was never the headroom it looked like.  The
+      # job is given 25 for the same reason: an apt that takes the ten it is
+      # allowed leaves nothing of a fifteen-minute job for the build and the
+      # suites, and a slow mirror cancelled the tests rather than failing the
+      # step that was slow.
       - name: Install i386 cross-build toolchain
         if: matrix.altname == 'i686-gcc'
         timeout-minutes: 10
