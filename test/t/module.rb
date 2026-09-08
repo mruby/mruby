@@ -502,6 +502,70 @@ assert('Module#define_method') do
   end
 end
 
+assert('Module#define_method takes the visibility of the scope it is called in') do
+  c = Class.new {
+    private
+    define_method(:priv) { :priv }
+    protected
+    define_method(:prot) { :prot }
+    public
+    define_method(:pub) { :pub }
+    def call_priv; priv; end
+    def call_prot; self.prot; end
+  }
+  obj = c.new
+  assert_equal :priv, obj.call_priv
+  assert_equal :prot, obj.call_prot
+  assert_equal :pub, obj.pub
+  assert_raise(NoMethodError) { obj.priv }
+  assert_raise(NoMethodError) { obj.prot }
+  assert_false c.method_defined?(:priv)
+  assert_true c.method_defined?(:prot)
+
+  # a block written in the body is still that body
+  c = Class.new {
+    def call_priv; priv; end
+    private
+    [1].each { define_method(:priv) { :priv } }
+  }
+  assert_equal :priv, c.new.call_priv
+  assert_raise(NoMethodError) { c.new.priv }
+
+  # and so is a `class_eval` block
+  c = Class.new
+  c.class_eval { private; define_method(:priv) { :priv } }
+  assert_raise(NoMethodError) { c.new.priv }
+
+  # a call on another class defines a public method
+  other = Class.new
+  Class.new {
+    private
+    other.define_method(:pub) { :pub }
+  }
+  assert_equal :pub, other.new.pub
+
+  # a call from inside a method is not in the body
+  c = Class.new {
+    private
+    def self.make; define_method(:from_cm) { :from_cm }; end
+    def make; self.class.define_method(:from_im) { :from_im }; end
+  }
+  c.make
+  c.new.__send__(:make)
+  assert_equal :from_cm, c.new.from_cm
+  assert_equal :from_im, c.new.from_im
+
+  # module_function scope: a private instance method and a public module one
+  mod = Module.new {
+    module_function
+    define_method(:mf) { :mf }
+  }
+  assert_equal :mf, mod.mf
+  klass = Class.new { include mod; def call_mf; mf; end }
+  assert_equal :mf, klass.new.call_mf
+  assert_raise(NoMethodError) { klass.new.mf }
+end
+
 # @!group prepend
   assert('Module#prepend') do
     module M0

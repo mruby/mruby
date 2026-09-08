@@ -987,6 +987,35 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
   *cp = NULL;
 }
 
+/* The visibility a method made by a call from Ruby takes, read from the
+   frame the C function was called from.  A call written in the body of the
+   class it defines on takes the visibility written there, as a `def` in
+   that body would; a call on another class, or from inside a method, makes
+   a public method.  The receiver has to be both the self and the class of
+   that frame, the way CRuby's `rb_vm_cref_in_context()` answers for
+   `define_method` and `rb_attr()`.  A singleton class takes no visibility
+   from its body here either. */
+static int
+caller_scope_visibility(mrb_state *mrb, struct RClass *c, mrb_bool *modfunc)
+{
+  const struct mrb_context *ec = mrb->c;
+  mrb_callinfo *ci = ec->ci - 1;
+
+  *modfunc = FALSE;
+  if (ci < ec->cibase || c->tt == MRB_TT_SCLASS) return MRB_METHOD_PUBLIC_FL;
+  if (mrb_vm_ci_target_class(ci) != c) return MRB_METHOD_PUBLIC_FL;
+  mrb_value self = ci->stack[0];
+  if (!(mrb_class_p(self) || mrb_module_p(self)) || mrb_class_ptr(self) != c) {
+    return MRB_METHOD_PUBLIC_FL;
+  }
+
+  struct REnv *e;
+  find_visibility_scope(mrb, c, 1, &ci, &e);
+  mrb_assert(ci || e);
+  *modfunc = e ? MRB_ENV_MODFUNC_P(e) : MRB_CI_MODFUNC_P(ci);
+  return (int)((e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
+}
+
 /* Gives the current frame the visibility of the scope `p` was compiled
    against. `eval` on a string wants this: the string runs in that scope, so a
    `def` in it takes the visibility written there, while the frame goes on
@@ -4417,7 +4446,16 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  return define_method_m(mrb, c, MRB_METHOD_PUBLIC_FL);
+  mrb_bool modfunc;
+  int vis = caller_scope_visibility(mrb, c, &modfunc);
+  mrb_value name = define_method_m(mrb, c, vis);
+  if (modfunc) {
+    /* the copy is made of what the name now resolves to, as the copy
+       `module_function :name` makes is */
+    mrb_sym mid = mrb_symbol(name);
+    define_modfunc_copy(mrb, c, mid, mrb_method_search(mrb, c, mid));
+  }
+  return name;
 }
 
 static mrb_value
