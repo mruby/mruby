@@ -63,10 +63,39 @@ module MRuby
       @build = build
     end
 
+    # The symbols of +layers+, numbered from 1 in the order they are
+    # returned.
+    #
+    # Each layer is the preprocessed files of one part of the build: the
+    # core first, then each gem in the order the build lists them, then the
+    # loader of the gems (see +tasks/presym.rake+). A layer's symbols that no
+    # earlier layer carries are appended in (length, bytes) order, so the
+    # number of a symbol depends on the layers before the one that brings it
+    # and on nothing after. A core source therefore compiles to the same
+    # object whatever gems the config names, a gem's objects stay as they
+    # are while the gems before it do, and a gem added at the end of the
+    # config leaves every number in place; a compiler cache keyed on the
+    # compile (ccache, sccache) answers for those objects across configs.
+    #
+    # The order the numbers give is not the order the search in +symbol.c+
+    # wants, so +table.h+ carries the sorted order beside it.
+    def scan_layers(layers)
+      presyms = []
+      seen = {}
+      layers.each do |paths|
+        presym_hash = {}
+        paths.each {|path| read_preprocessed(presym_hash, path)}
+        fresh = presym_hash.keys.reject {|sym| seen[sym]}
+        fresh.sort_by! {|sym| [c_literal_size(sym), sym]}
+        fresh.each {|sym| seen[sym] = true}
+        presyms.concat(fresh)
+      end
+      presyms
+    end
+
+    # The symbols of +paths+ as one layer.
     def scan(paths)
-      presym_hash = {}
-      paths.each {|path| read_preprocessed(presym_hash, path)}
-      presym_hash.keys.sort_by!{|sym| [c_literal_size(sym), sym]}
+      scan_layers([paths])
     end
 
     def read_list
@@ -114,12 +143,16 @@ module MRuby
         f.puts "#else"
         macros.each {|name, num| f.puts "#define #{name} #{num}"}
         f.puts "#endif"
-        f.puts
-        f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
       end
     end
 
+    # The tables `symbol.c` reads: the length and the name of every symbol
+    # by its number, the numbers in (length, bytes) order for the binary
+    # search of a name, and how many there are.
     def write_table_header(presyms)
+      if presyms.size > 0xffff
+        raise "too many presyms for the sorted table (#{presyms.size} > 65535)"
+      end
       _pp "GEN", table_header_path.relative_path
       File.open(table_header_path, "w:binary") do |f|
         f.puts "static const uint16_t presym_length_table[] = {"
@@ -140,6 +173,13 @@ module MRuby
           f.puts %|  "#{sym}",|
         end
         f.puts "};"
+        f.puts
+        f.puts "static const uint16_t presym_sorted_table[] = {"
+        sorted = presyms.each_with_index.sort_by {|sym, i| [c_literal_size(sym), sym]}
+        sorted.each {|sym, i| f.puts "  #{i + 1},\t/* #{sym} */"}
+        f.puts "};"
+        f.puts
+        f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
       end
     end
 

@@ -2442,7 +2442,7 @@ gc_stat(mrb_state *mrb, mrb_value self)
   mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(step_limit)), mrb_int_value(mrb, (mrb_int)gc->step_limit));
   mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(malloc_increase)), mrb_int_value(mrb, (mrb_int)gc->malloc_increase));
   mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(malloc_threshold)), mrb_int_value(mrb, (mrb_int)gc->malloc_threshold));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(symbol_count)), mrb_int_value(mrb, (mrb_int)(MRB_PRESYM_MAX + mrb->symidx)));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(symbol_count)), mrb_int_value(mrb, (mrb_int)(mrb_presym_max() + mrb->symidx)));
   mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(dynamic_symbol_count)), mrb_int_value(mrb, (mrb_int)mrb->dynamic_sym_count));
 
 #ifdef MRB_GC_STATS
