@@ -2502,6 +2502,25 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
  *
  *  Sort all elements and replace `self` with these
  *  elements.
+ *
+ *  With no block, each pair of elements is ordered by `<=>`, and a pair
+ *  that `<=>` cannot order raises `ArgumentError`.
+ *
+ *  With a block, the block is called with two elements and its answer
+ *  orders them: negative when `a` is to come before `b`, zero when the
+ *  two are tied, positive when `a` is to come after `b`. An Integer is
+ *  read for its sign. `nil` means the pair has no order and raises
+ *  `ArgumentError`. Any other object is asked `> 0` and then `< 0`, and
+ *  is a tie when neither holds.
+ *
+ *  `Array#sort`, `Enumerable#sort`, `Enumerable#max`, `Enumerable#min`
+ *  and `Enumerable#minmax` read their block the same way. Each asks only
+ *  the operator it needs, so an object that answers one of `>` and `<`
+ *  but not the other is outside the contract and may pass one of these
+ *  methods and raise in another.
+ *
+ *     [3, 1, 2].sort!                    #=> [1, 2, 3]
+ *     [3, 1, 2].sort! {|a, b| b <=> a }  #=> [3, 2, 1]
  */
 static mrb_value
 mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
