@@ -2999,8 +2999,13 @@ vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
   return VM_NEXT;
 }
 
+/* `vis` is the visibility the method takes: the default, which is what the
+   scope it is written in says, or public for a singleton definition.  A
+   `def self.x` in a `private` section, or in the body of a `class << self`,
+   is public as CRuby makes it, while a plain `def` in a `class << self`
+   body takes the visibility written there like any other body's `def`. */
 static mrb_sym
-vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16_t b, uint16_t c)
+vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16_t b, uint16_t c, uint32_t vis)
 {
   struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
   mrb_sym mid = irep->syms[b];
@@ -3008,7 +3013,7 @@ vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16
 
   p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT | MRB_PROC_CREF;
   MRB_METHOD_FROM_PROC(m, p);
-  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
+  MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, tc, mid, m);
   mrb_method_added(mrb, tc, mid);
   return mid;
@@ -4713,7 +4718,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_TDEF, BBB) {
       struct RClass *tc = check_target_class(mrb);
       if (mrb_unlikely(!tc)) goto L_RAISE;
-      mid = vm_define_method(mrb, tc, irep, b, c);
+      mid = vm_define_method(mrb, tc, irep, b, c, MRB_METHOD_VDEFAULT_FL);
       ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       regs[a] = mrb_symbol_value(mid);
@@ -4722,7 +4727,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SDEF, BBB) {
       struct RClass *tc = mrb_class_ptr(mrb_singleton_class(mrb, regs[a]));
-      mid = vm_define_method(mrb, tc, irep, b, c);
+      mid = vm_define_method(mrb, tc, irep, b, c, MRB_METHOD_PUBLIC_FL);
       ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       regs[a] = mrb_symbol_value(mid);
