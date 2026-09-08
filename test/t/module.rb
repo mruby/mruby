@@ -696,6 +696,114 @@ assert('Module#define_method takes the visibility of the scope it is called in')
   assert_raise(NoMethodError) { klass.new.mf }
 end
 
+assert('a `private` in the body of a `class << self` reaches the defs below it') do
+  c = Class.new {
+    class << self
+      def call_priv; priv; end
+      def call_prot; self.prot; end
+      def call_dm; dm; end
+      def call_attr; self.a = 1; a; end
+      private
+      def priv; :priv; end
+      define_method(:dm) { :dm }
+      attr_accessor :a
+      def self.on_sclass; :on_sclass; end
+      protected
+      def prot; :prot; end
+    end
+  }
+  assert_equal :priv, c.call_priv
+  assert_equal :prot, c.call_prot
+  assert_equal :dm, c.call_dm
+  assert_equal 1, c.call_attr
+  assert_raise(NoMethodError) { c.priv }
+  assert_raise(NoMethodError) { c.prot }
+  assert_raise(NoMethodError) { c.dm }
+  assert_raise(NoMethodError) { c.a }
+  assert_raise(NoMethodError) { c.a = 2 }
+  assert_false c.respond_to?(:priv)
+  assert_false c.respond_to?(:prot)
+  assert_true c.respond_to?(:priv, true)
+  assert_true c.respond_to?(:call_priv)
+  # a `def self.x` is public wherever it is written
+  assert_equal :on_sclass, (class << c; self; end).on_sclass
+
+  # so is a `def obj.x`, in a `private` section of a class body or of the
+  # object's own singleton class body
+  o = Object.new
+  c2 = Class.new {
+    private
+    def self.cm; :cm; end
+    def o.om; :om; end
+  }
+  class << o
+    private
+    def sing; :sing; end
+    def self.om2; :om2; end
+  end
+  assert_equal :cm, c2.cm
+  assert_equal :om, o.om
+  assert_equal :om2, (class << o; self; end).om2
+  assert_raise(NoMethodError) { o.sing }
+  assert_equal :sing, o.__send__(:sing)
+
+  # the singleton class body of a module, and the same body reached through
+  # `class_eval`
+  m = Module.new
+  class << m
+    private
+    def mp; :mp; end
+  end
+  assert_raise(NoMethodError) { m.mp }
+  c3 = Class.new
+  (class << c3; self; end).class_eval { private; def ce; :ce; end }
+  assert_raise(NoMethodError) { c3.ce }
+  assert_equal :ce, c3.__send__(:ce)
+
+  # a block written in the body is still that body
+  c4 = Class.new {
+    class << self
+      def call_blk; blk; end
+      private
+      [1].each { def blk; :blk; end }
+    end
+  }
+  assert_equal :blk, c4.call_blk
+  assert_raise(NoMethodError) { c4.blk }
+
+  # the body is a scope of its own: it starts public under a `private`
+  # written in the class body, and its `private` stops at its end
+  c5 = Class.new {
+    private
+    class << self
+      def inside; :inside; end
+      private
+      def inner; end
+    end
+    def self.after; :after; end
+    def outer; :outer; end
+  }
+  assert_equal :inside, c5.inside
+  assert_equal :after, c5.after
+  assert_raise(NoMethodError) { c5.new.outer }
+  assert_raise(NoMethodError) { c5.inner }
+
+  # a protected singleton method is reachable from a subclass's singleton
+  # method and from nowhere else
+  c6 = Class.new {
+    class << self
+      def cmp(other); other.prot; end
+      protected
+      def prot; :prot; end
+    end
+  }
+  sub = Class.new(c6)
+  assert_equal :prot, sub.cmp(c6)
+  assert_equal :prot, c6.cmp(sub)
+  assert_raise(NoMethodError) { c6.prot }
+  assert_raise(NoMethodError) { Class.new { def self.cmp(o); o.prot; end }.cmp(c6) }
+end
+
 # @!group prepend
   assert('Module#prepend') do
     module M0

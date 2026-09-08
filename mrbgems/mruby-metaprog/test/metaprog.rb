@@ -626,16 +626,19 @@ assert('Module#define_method - the visibility it takes from the scope') do
   assert_equal [:prot], c.protected_instance_methods(false)
   assert_equal [:from_cm, :pub], c.public_instance_methods(false).sort
 
-  # a singleton class takes no visibility from its body, as a `def` there does not
+  # the body of a `class << self` is a body too, and a `def self.x` there
+  # is public whatever it says
   s = Class.new do
     class << self
       private
       define_method(:sm) {}
       def sd; end
+      def self.sx; end
     end
   end
-  assert_equal [:sd, :sm], s.singleton_methods(false).sort
-  assert_equal [], s.singleton_class.private_instance_methods(false)
+  assert_equal [], s.singleton_methods(false)
+  assert_equal [:sd, :sm], s.singleton_class.private_instance_methods(false).sort
+  assert_equal [:sx], s.singleton_class.singleton_methods(false)
 
   # module_function scope: the instance method is private, the module one public
   mod = Module.new do
@@ -662,14 +665,15 @@ assert('Module#attr_* - the visibility they take from the scope') do
   assert_equal [:w=], c.protected_instance_methods(false)
   assert_equal [:from_cm, :p], c.public_instance_methods(false).sort
 
-  # a singleton class takes no visibility from its body
+  # the body of a `class << self` is a body too
   s = Class.new do
     class << self
       private
       attr_reader :sr
     end
   end
-  assert_equal [:sr], s.singleton_methods(false)
+  assert_equal [], s.singleton_methods(false)
+  assert_equal [:sr], s.singleton_class.private_instance_methods(false)
 
   # module_function scope: private, with no module method copy
   mod = Module.new do

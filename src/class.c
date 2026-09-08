@@ -993,8 +993,8 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
    that body would; a call on another class, or from inside a method, makes
    a public method.  The receiver has to be both the self and the class of
    that frame, the way CRuby's `rb_vm_cref_in_context()` answers for
-   `define_method` and `rb_attr()`.  A singleton class takes no visibility
-   from its body here either. */
+   `define_method` and `rb_attr()`.  The body of a `class << self` is such
+   a body for its singleton class. */
 static int
 caller_scope_visibility(mrb_state *mrb, struct RClass *c, mrb_bool *modfunc)
 {
@@ -1002,10 +1002,10 @@ caller_scope_visibility(mrb_state *mrb, struct RClass *c, mrb_bool *modfunc)
   mrb_callinfo *ci = ec->ci - 1;
 
   *modfunc = FALSE;
-  if (ci < ec->cibase || c->tt == MRB_TT_SCLASS) return MRB_METHOD_PUBLIC_FL;
+  if (ci < ec->cibase) return MRB_METHOD_PUBLIC_FL;
   if (mrb_vm_ci_target_class(ci) != c) return MRB_METHOD_PUBLIC_FL;
   mrb_value self = ci->stack[0];
-  if (!(mrb_class_p(self) || mrb_module_p(self)) || mrb_class_ptr(self) != c) {
+  if (!(mrb_class_p(self) || mrb_module_p(self) || mrb_sclass_p(self)) || mrb_class_ptr(self) != c) {
     return MRB_METHOD_PUBLIC_FL;
   }
 
@@ -1215,18 +1215,17 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PRIVATE_FL);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
-    /* singleton methods are always public */
-    if (c->tt == MRB_TT_SCLASS) {
-      MRB_SET_VISIBILITY_FLAGS(flags, MRB_METHOD_PUBLIC_FL);
-    }
-    else {
-      mrb_callinfo *ci;
-      struct REnv *e;
-      find_visibility_scope(mrb, c, 0, &ci, &e);
-      mrb_assert(ci || e);
-      MRB_SET_VISIBILITY_FLAGS(flags, (uint32_t)(e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
-      modfunc = e ? MRB_ENV_MODFUNC_P(e) : MRB_CI_MODFUNC_P(ci);
-    }
+    /* The visibility written in the scope the `def` stands in.  The body of
+       a `class << self` is such a scope too: a `private` written there
+       reaches the `def`s below it, the way CRuby's cref for that body does.
+       Only a `def self.x` is public whatever the scope says, and the VM
+       passes that as an explicit visibility instead of the default. */
+    mrb_callinfo *ci;
+    struct REnv *e;
+    find_visibility_scope(mrb, c, 0, &ci, &e);
+    mrb_assert(ci || e);
+    MRB_SET_VISIBILITY_FLAGS(flags, (uint32_t)(e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
+    modfunc = e ? MRB_ENV_MODFUNC_P(e) : MRB_CI_MODFUNC_P(ci);
   }
   mt_put(mrb, h, mid, flags, ptr);
   if (!mrb->bootstrapping) {
