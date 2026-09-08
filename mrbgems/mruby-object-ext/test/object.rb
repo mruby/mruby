@@ -65,3 +65,23 @@ assert('argument forwarding via instance_exec from c') do
   # currently there is no easy way to call a method from C passing keyword arguments
   #assert_equal [[], { a: 1 }, nil], instance_exec_from_c(a: 1) { |*args, **kw, &blk| [args, kw, blk] }
 end
+
+module InstanceExecGivenClassMaker
+  # Run in a method, so that the block's cref is this module rather than the
+  # class `mrb_proc_new()` falls back to when a block at the top level of a
+  # compiled test file has no cref to answer with.
+  def self.on(o); o.instance_exec { def from_block; end; [1].each { def from_nested_block; end } }; end
+end
+
+assert('a `def` in a block given to instance_exec adds to the receiver') do
+  # `mrb_object_exec()` set the class the frame runs under without marking
+  # the frame as given one, so a `def` in the block, or in a block made in
+  # it, went to the cref of the block, `Object` for a script, where an
+  # `instance_eval` block was marked and answered the singleton class.
+  o = Object.new
+  InstanceExecGivenClassMaker.on(o)
+  assert_true o.respond_to?(:from_block)
+  assert_true o.respond_to?(:from_nested_block)
+  assert_false Object.new.respond_to?(:from_block, true)
+  assert_false Object.new.respond_to?(:from_nested_block, true)
+end
