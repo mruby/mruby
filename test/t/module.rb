@@ -1516,3 +1516,60 @@ assert('constant definition: a block given a class to run under keeps its own') 
     assert_false recv.const_defined?(name, false), name.to_s
   end
 end
+
+class Test4GivenMethodSuper
+  KS = :recv
+  @@cvs = :recv
+  def self.read_cv; @@cvs; end
+end
+
+module Test4GivenMethodMaker
+  # Run in a method, so that the block's cref is this module rather than the
+  # class `mrb_proc_new()` falls back to when a block at the top level of a
+  # compiled test file has no cref to answer with.
+  KS = :lex
+  @@cvs = :lex
+  def self.make(sup)
+    Class.new(sup) do
+      def direct; KS; end
+      def nested; [1].map { KS }[0]; end
+      def cv; @@cvs; end
+      def cv_defined; defined?(@@cvs); end
+      def cv_write; @@cvs = :written; end
+    end
+  end
+  def self.read_cv; @@cvs; end
+  def self.install(recv)
+    recv.class_eval do
+      def own_direct; KO; end
+      def own_nested; [1].map { KO }[0]; end
+    end
+  end
+end
+
+class Test4GivenMethodOwn
+  KO = :recv
+end
+
+assert('constant and class variable lookup: a method written in a block given a class keeps the block\'s scope') do
+  # The class the block was given is where a `def` in the method adds, not
+  # where a constant or a class variable in the method is read from: those
+  # come from the scope the block was written in, here the module, and the
+  # superclass of the given class does not get in front of it.
+  c = Test4GivenMethodMaker.make(Test4GivenMethodSuper)
+  o = c.new
+  assert_equal(:lex, o.direct)
+  assert_equal(:lex, o.nested)
+  assert_equal(:lex, o.cv)
+  assert_equal("class variable", o.cv_defined)
+  o.cv_write
+  assert_equal(:written, Test4GivenMethodMaker.read_cv)
+  assert_equal(:recv, Test4GivenMethodSuper.read_cv)
+
+  # a constant only the given class has is out of reach from the method
+  # body and from a block made there, as the given class is not a scope
+  # the walk from the block reads
+  Test4GivenMethodMaker.install(Test4GivenMethodOwn)
+  assert_raise(NameError) { Test4GivenMethodOwn.new.own_direct }
+  assert_raise(NameError) { Test4GivenMethodOwn.new.own_nested }
+end

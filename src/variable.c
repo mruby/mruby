@@ -1214,6 +1214,11 @@ mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
 }
 
+/* The class a class variable in the frame's scope is read from: the nearest
+   scope on the `upper` chain that carries a class of its own, a singleton
+   class passed over.  A method written in a block given a class carries the
+   given class for a `def` and is passed over too; the variable is read from
+   the scope the block was written in, as under the cref CRuby skips. */
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
@@ -1223,7 +1228,7 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 
   for (;;) {
     c = MRB_PROC_TARGET_CLASS(p);
-    if (c && c->tt != MRB_TT_SCLASS) break;
+    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(p)) break;
     p = p->upper;
   }
   return mrb_mod_cv_get(mrb, c, sym);
@@ -1239,7 +1244,7 @@ mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
 
   for (;;) {
     c = MRB_PROC_TARGET_CLASS(proc);
-    if (c && c->tt != MRB_TT_SCLASS) break;
+    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(proc)) break;
     proc = proc->upper;
     if (!proc) { c = mrb->object_class; break; }
   }
@@ -1254,7 +1259,7 @@ mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 
   for (;;) {
     c = MRB_PROC_TARGET_CLASS(p);
-    if (c && c->tt != MRB_TT_SCLASS) break;
+    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(p)) break;
     p = p->upper;
   }
   mrb_mod_cv_set(mrb, c, sym, v);
@@ -1364,10 +1369,15 @@ proc_class(mrb_state *mrb, const struct RProc *proc)
    is a scope, as its cref is in CRuby. The caller leaves out the proc
    with no `upper`, the top level: it is not a scope of its own, and
    its class is reached through the ancestors after the lexical scopes,
-   so that a superclass wins over a top-level constant. */
+   so that a superclass wins over a top-level constant.  A method written
+   in a block given a class carries that class for a `def` in its body and
+   is not a scope for the walk, as the cref CRuby pushes for such a block
+   is skipped: the class the block was given is not where a constant in
+   the method is read from. */
 static mrb_bool
 lexical_scope_p(mrb_state *mrb, const struct RProc *proc)
 {
+  if (MRB_PROC_GIVEN_P(proc)) return FALSE;
   if (MRB_PROC_SCOPE_P(proc)) return TRUE;
   return proc_class(mrb, proc) != proc_class(mrb, proc->upper);
 }
