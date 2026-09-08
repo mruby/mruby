@@ -1498,6 +1498,19 @@ mrb_const_cache_clear(mrb_state *mrb)
     cc->irep = NULL;
   }
 }
+
+/* Forget the entries of one irep before its memory is freed. The cache is
+   keyed by the irep's address, so the next irep allocated at that address
+   would otherwise inherit answers resolved in another scope. */
+void
+mrb_const_cache_forget_irep(mrb_state *mrb, const mrb_irep *irep)
+{
+  struct mrb_const_cache_entry *cc = mrb->const_cache;
+
+  for (int i=0; i<MRB_CONST_CACHE_SIZE; cc++,i++) {
+    if (cc->irep == irep) cc->irep = NULL;
+  }
+}
 #endif
 
 MRB_API void

@@ -761,3 +761,35 @@ assert('a `def` in a string evaluated in a method written in a block given a cla
   assert_false Object.new.respond_to?(:from_string, true)
   assert_false Object.new.respond_to?(:from_binding, true)
 end
+
+module ConstCacheIrepReuse
+  X = :outer
+  class Inner
+    X = :inner
+  end
+end
+
+assert('constant read by an eval whose irep took a freed irep\'s address') do
+  # The constant cache is keyed by the irep's address. Once the irep of one
+  # eval string is collected, the next eval string can be compiled into the
+  # same address, and a read of the same constant name from another scope
+  # used to be answered from the stale entry.
+  seen = []
+  8.times do
+    seen << [ConstCacheIrepReuse::Inner.class_eval("X"),
+             ConstCacheIrepReuse.class_eval("X")]
+    GC.start
+  end
+  assert_equal [[:inner, :outer]] * 8, seen
+end
+
+ConstCacheTestValue = :probe
+
+assert('the constant cache forgets an irep when the irep is freed') do
+  # Same defect as above, seen from the cache itself: after the irep of a
+  # constant read is freed no entry may still be keyed by its address,
+  # whatever the allocator does with that address next.
+  dangles = ConstCacheTest.dangles_after_irep_free?("ConstCacheTestValue")
+  skip "this build has no constant cache" if dangles.nil?
+  assert_false dangles
+end
