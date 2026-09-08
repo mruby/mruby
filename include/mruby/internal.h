@@ -579,7 +579,14 @@ enum mrb_case_mode {
    or empty. A caller takes -1 as "the ASCII loop I have is the whole answer",
    which is what every build without the tables answers to every string.
    `swapcase` lives in mruby-string-ext and reaches the tables through this, so
-   they are asked about in one place. */
+   they are asked about in one place.
+   The walk raises rather than answering in two cases: `ArgumentError` for a
+   run of bytes that spells no character, which is what CRuby answers for the
+   same input, and `FrozenError` for a frozen receiver it would convert, raised
+   before anything is read. A string it answers -1 for is not looked at for
+   freezing: the caller's own loop is the one that writes it, and the one that
+   refuses it. A refused conversion leaves the receiver as it was: the answer
+   is built beside the string and taken only at the end. */
 #if defined(MRB_UTF8_STRING) && !defined(MRB_USE_ASCII_CTYPE)
 int mrb_str_case_convert_unicode(mrb_state *mrb, mrb_value str, enum mrb_case_mode mode);
 #else
