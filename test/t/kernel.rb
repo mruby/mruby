@@ -578,6 +578,40 @@ assert('Kernel#respond_to? leaves a method out of reach to respond_to_missing?')
   assert_nil reached.asked
 end
 
+class RespondToMissingUndefined
+  def pub; end
+  private def priv; end
+  undef_method :respond_to_missing?
+end
+
+class RespondToMissingClaims
+  def respond_to_missing?(name, include_private = false)
+    true
+  end
+end
+
+class RespondToMissingStopped < RespondToMissingClaims
+  undef_method :respond_to_missing?
+end
+
+assert('Kernel#respond_to? answers false where respond_to_missing? is undefined') do
+  obj = RespondToMissingUndefined.new
+  # a name with no method behind it is false at either visibility asked for,
+  # rather than an error about `respond_to_missing?` itself
+  assert_false obj.respond_to?(:no_such_method)
+  assert_false obj.respond_to?(:no_such_method, true)
+
+  # the methods that are there answer as before
+  assert_true obj.respond_to?(:pub)
+  assert_false obj.respond_to?(:priv)
+  assert_true obj.respond_to?(:priv, true)
+
+  # the undefinition stops the lookup, so a superclass that would have
+  # claimed the name is not asked either
+  assert_true RespondToMissingClaims.new.respond_to?(:no_such_method)
+  assert_false RespondToMissingStopped.new.respond_to?(:no_such_method)
+end
+
 assert('an unimplemented method can be overridden, aliased and undefined') do
   overridden = Class.new(TestNotImplement) do
     def gone

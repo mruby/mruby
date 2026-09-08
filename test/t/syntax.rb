@@ -2030,6 +2030,43 @@ assert('defined? asks respond_to? about a call on self') do
   assert_nil defined?(TestNotImplement.gone)
 end
 
+class DefinedBareCallNoMissing
+  undef_method :respond_to_missing?
+  def bare_none; defined?(no_such_method_at_all); end
+end
+
+class DefinedBareCallNoRespondTo
+  undef_method :respond_to?
+  def bare_none; defined?(no_such_method_at_all); end
+  def bare_self; defined?(bare_self); end
+end
+
+class DefinedBareCallRaises
+  def respond_to_missing?(name, include_private = false)
+    raise 'defined? let respond_to_missing? raise'
+  end
+  def bare_none; defined?(no_such_method_at_all); end
+end
+
+assert('defined? on self answers nil where respond_to_missing? or respond_to? is undefined') do
+  # a name with no method behind it is nil, not an error about the hook
+  # that has been undefined; the same asked with a receiver is nil as well
+  o = DefinedBareCallNoMissing.new
+  assert_nil o.bare_none
+  assert_nil defined?(o.no_such_method_at_all)
+
+  # an undefined `respond_to?` is not a redefinition either, so the answer
+  # is the one `respond_to?` would give
+  o = DefinedBareCallNoRespondTo.new
+  assert_nil o.bare_none
+  assert_equal 'method', o.bare_self
+  assert_nil defined?(o.no_such_method_at_all)
+
+  # what a `respond_to_missing?` the object defines raises is not caught
+  # for a call on self, which is why an undefined one has to be told apart
+  assert_raise(RuntimeError) { DefinedBareCallRaises.new.bare_none }
+end
+
 assert('defined? answers nil where evaluating a receiver raises') do
   assert_nil defined?(DefinedRecvRaises.boom.anything)
   assert_equal :caught, (defined?(DefinedRecvRaises.boom.x) ? :answered : :caught)
