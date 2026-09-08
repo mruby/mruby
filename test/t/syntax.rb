@@ -2605,6 +2605,93 @@ assert('pattern matching - what a pin may name') do
   assert_equal :no, (case [1, 2]; in [a, ^a] then :ok; else :no; end)
 end
 
+assert('pattern matching - the clauses of a case share one deconstruct') do
+  # Each array or find clause sent `respond_to?` and `deconstruct` to the
+  # subject afresh, so a subject with a costly hook paid for it once per
+  # clause.  CRuby keeps the first answer for the rest of the `case`.
+  counted = Class.new do
+    attr_reader :sent, :asked
+    def initialize(v); @v = v; @sent = 0; @asked = 0; end
+    def deconstruct; @sent += 1; @v; end
+    def respond_to?(m, priv = false); @asked += 1 if m == :deconstruct; super; end
+  end
+
+  d = counted.new([1, 2])
+  r = case d
+      in [3] then :no
+      in [1, 2, 3] then :no
+      in [1, *] then :yes
+      end
+  assert_equal [:yes, 1, 1], [r, d.sent, d.asked]
+
+  # a guard, a capture and an alternative read the same answer
+  d = counted.new([1, 2])
+  r = case d
+      in [3] | [4] then :no
+      in [1, x] => whole if x == 9 then :no
+      in [1, x] unless x == 2 then :no
+      in [1, 2] then :yes
+      end
+  assert_equal [:yes, 1, 1], [r, d.sent, d.asked]
+
+  # a find pattern shares with an array pattern
+  d = counted.new([0, 1, 2])
+  r = case d
+      in [*, 9, *] then :no
+      in [0, *] then :yes
+      end
+  assert_equal [:yes, 1], [r, d.sent]
+
+  # a subject with no hook is asked once and falls through to else
+  bare = Class.new do
+    attr_reader :asked
+    def initialize; @asked = 0; end
+    def respond_to?(m, priv = false); @asked += 1 if m == :deconstruct; super; end
+  end
+  b = bare.new
+  r = case b
+      in [1] then :no
+      in [*] then :no
+      in [*, 1, *] then :no
+      else :else
+      end
+  assert_equal [:else, 1], [r, b.asked]
+
+  # a nested pattern deconstructs its own subject in every clause
+  d = counted.new([1])
+  x = [d, d]
+  r = case x
+      in [[3], _] then :no
+      in [[1], _] then :yes
+      end
+  assert_equal [:yes, 2], [r, d.sent]
+
+  # a case that is the whole body of a method returns through the register
+  cls = Class.new do
+    def self.pick(d)
+      case d
+      in [3] then :a
+      in [1, *] then :b
+      end
+    end
+  end
+  assert_equal :b, cls.pick(counted.new([1, 2]))
+
+  # the value of the case and the subject are where the clauses left them
+  d = counted.new([7])
+  r = case d
+      in [8] then :no
+      in Integer then :no
+      in [q] then [q, d.sent]
+      end
+  assert_equal [7, 1], r
+  r = case counted.new([1])
+      in [2] then 1
+      else 2
+      end
+  assert_equal 2, r
+end
+
 assert('pattern matching - a subject with no deconstruction hook does not match') do
   # The pattern asks whether the subject answers the hook before it sends one,
   # as CRuby does, so a subject that has none fails the pattern rather than
