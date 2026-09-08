@@ -4315,14 +4315,38 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
   return mrb_const_missing(mrb, mod, sym);
 }
 
+/* The visibility of the method `mod` answers `name` with, or -1 when there is
+   none to answer with.  `mrb_obj_respond_to` answers for any method it finds,
+   so the search is made here to weigh the visibility the listing reports on.
+   With `inherit` false the method has to be `mod`'s own: the walk starts at
+   the origin, past the modules prepended in front of it, and a method found
+   further up is not counted.  The arguments are read here so that the four
+   methods built on this (`method_defined?` and the three in mruby-metaprog)
+   read them the same way. */
+int
+mrb_mod_method_visibility(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym id;
+  mrb_bool inherit = TRUE;
+
+  mrb_get_args(mrb, "n|b", &id, &inherit);
+  struct RClass *c = mrb_class_ptr(mod);
+  if (!inherit) MRB_CLASS_ORIGIN(c);
+  struct RClass *found = c;
+  mrb_method_t m = mrb_method_search_vm(mrb, &found, id);
+  if (MRB_METHOD_UNDEF_P(m) || MRB_METHOD_NOTIMPL_P(m)) return -1;
+  if (!inherit && found != c) return -1;
+  return MRB_METHOD_VISIBILITY(m);
+}
+
 /* 15.2.2.4.34 */
 /*
  *  call-seq:
- *     mod.method_defined?(symbol)    -> true or false
+ *     mod.method_defined?(symbol, inherit=true)    -> true or false
  *
  *  Returns `true` if the named method is defined by
- *  _mod_ (or its included modules and, if _mod_ is a class,
- *  its ancestors). Public and protected methods are matched.
+ *  _mod_.  If _inherit_ is set, the lookup will also search _mod_'s
+ *  ancestors. Public and protected methods are matched.
  *
  *     module A
  *       def method1()  end
@@ -4335,25 +4359,20 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
  *       def method3()  end
  *     end
  *
- *     A.method_defined? :method1    #=> true
- *     C.method_defined? "method1"   #=> true
- *     C.method_defined? "method2"   #=> true
- *     C.method_defined? "method3"   #=> true
- *     C.method_defined? "method4"   #=> false
+ *     A.method_defined? :method1           #=> true
+ *     C.method_defined? "method1"          #=> true
+ *     C.method_defined? "method2"          #=> true
+ *     C.method_defined? "method2", true    #=> true
+ *     C.method_defined? "method2", false   #=> false
+ *     C.method_defined? "method3"          #=> true
+ *     C.method_defined? "method4"          #=> false
  */
 
 static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_sym id;
-
-  mrb_get_args(mrb, "n", &id);
-  /* `mrb_obj_respond_to` answers for any method it finds, so the search is
-     made here to weigh the visibility the listing reports on. */
-  struct RClass *c = mrb_class_ptr(mod);
-  mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
-  if (MRB_METHOD_UNDEF_P(m) || MRB_METHOD_NOTIMPL_P(m)) return mrb_false_value();
-  return mrb_bool_value(!(m.flags & MRB_METHOD_PRIVATE_FL));
+  int vis = mrb_mod_method_visibility(mrb, mod);
+  return mrb_bool_value(vis == MRB_METHOD_PUBLIC_FL || vis == MRB_METHOD_PROTECTED_FL);
 }
 
 void
@@ -4914,7 +4933,7 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(inspect),          MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_added),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_removed),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_mod_method_defined,  MRB_SYM_Q(method_defined), MRB_ARGS_REQ(1)),                   /* 15.2.2.4.34 */
+  MRB_MT_ENTRY(mrb_mod_method_defined,  MRB_SYM_Q(method_defined), MRB_ARGS_ARG(1,1)),                 /* 15.2.2.4.34 */
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(method_undefined), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_module_eval,     MRB_SYM(module_eval),      MRB_ARGS_ANY()),                    /* 15.2.2.4.35 */
   MRB_MT_ENTRY(mrb_mod_module_function, MRB_SYM(module_function),  MRB_ARGS_ANY() | MRB_MT_PRIVATE),

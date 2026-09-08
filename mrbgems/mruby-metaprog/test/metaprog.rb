@@ -358,6 +358,66 @@ assert 'Module#prepend #instance_methods(false)' do
   assert_equal([:m1], Class.new(Class.new{def m2;end}){ prepend Module.new; def m1; end }.instance_methods(false), bug6660)
 end
 
+assert('Module#public_method_defined?, #private_method_defined?, #protected_method_defined?') do
+  mod = Module.new do
+    def mpub; end
+    private def mpriv; end
+    protected def mprot; end
+  end
+  cls = Class.new do
+    include mod
+    def pub; end
+    private def priv; end
+    protected def prot; end
+  end
+  sub = Class.new(cls)
+
+  # each answers for exactly one visibility
+  assert_true  cls.public_method_defined?(:pub)
+  assert_false cls.public_method_defined?(:priv)
+  assert_false cls.public_method_defined?(:prot)
+  assert_false cls.private_method_defined?(:pub)
+  assert_true  cls.private_method_defined?(:priv)
+  assert_false cls.private_method_defined?(:prot)
+  assert_false cls.protected_method_defined?(:pub)
+  assert_false cls.protected_method_defined?(:priv)
+  assert_true  cls.protected_method_defined?(:prot)
+
+  # wherever the method is found
+  assert_true  sub.public_method_defined?(:mpub)
+  assert_true  sub.private_method_defined?(:mpriv)
+  assert_true  sub.protected_method_defined?(:mprot)
+  assert_true  cls.private_method_defined?("initialize")
+
+  # or only where the module defines it itself
+  assert_false sub.public_method_defined?(:pub, false)
+  assert_false sub.private_method_defined?(:priv, false)
+  assert_false sub.protected_method_defined?(:prot, false)
+  assert_true  cls.protected_method_defined?(:prot, false)
+
+  # a visibility changed in a subclass makes the method the subclass's own
+  hidden = Class.new(cls) { private :pub }
+  assert_true  hidden.private_method_defined?(:pub, false)
+  assert_false cls.private_method_defined?(:pub)
+
+  # a name with no method behind it, or with the method undefined
+  assert_false cls.public_method_defined?(:no_such_method)
+  assert_false cls.private_method_defined?(:no_such_method)
+  assert_false cls.protected_method_defined?(:no_such_method)
+  gone = Class.new(cls) { undef_method :pub }
+  assert_false gone.public_method_defined?(:pub)
+  assert_false gone.private_method_defined?(:pub)
+  assert_false gone.protected_method_defined?(:pub)
+  assert_false TestNotImplement.public_method_defined?(:gone)
+
+  # the name has to be a Symbol or a String, and inherit is the only other
+  # argument
+  assert_raise(TypeError) { cls.public_method_defined?(1) }
+  assert_raise(TypeError) { cls.private_method_defined?(nil) }
+  assert_raise(TypeError) { cls.protected_method_defined?([]) }
+  assert_raise(ArgumentError) { cls.public_method_defined?(:pub, false, false) }
+end
+
 assert('Module#remove_class_variable', '15.2.2.4.39') do
   class Test4RemoveClassVariable
     @@cv = 99

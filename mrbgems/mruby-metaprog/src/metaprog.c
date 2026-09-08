@@ -573,6 +573,45 @@ mrb_mod_protected_instance_methods(mrb_state *mrb, mrb_value mod)
   return mod_instance_methods(mrb, mod, MT_PROTECTED);
 }
 
+/*
+ *  call-seq:
+ *     mod.public_method_defined?(symbol, inherit=true)    -> true or false
+ *
+ *  Returns `true` if the named public method is defined by _mod_.  If
+ *  _inherit_ is set, the lookup will also search _mod_'s ancestors.
+ */
+static mrb_value
+mrb_mod_public_method_defined(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_bool_value(mrb_mod_method_visibility(mrb, mod) == MRB_METHOD_PUBLIC_FL);
+}
+
+/*
+ *  call-seq:
+ *     mod.private_method_defined?(symbol, inherit=true)    -> true or false
+ *
+ *  Returns `true` if the named private method is defined by _mod_.  If
+ *  _inherit_ is set, the lookup will also search _mod_'s ancestors.
+ */
+static mrb_value
+mrb_mod_private_method_defined(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_bool_value(mrb_mod_method_visibility(mrb, mod) == MRB_METHOD_PRIVATE_FL);
+}
+
+/*
+ *  call-seq:
+ *     mod.protected_method_defined?(symbol, inherit=true)    -> true or false
+ *
+ *  Returns `true` if the named protected method is defined by _mod_.  If
+ *  _inherit_ is set, the lookup will also search _mod_'s ancestors.
+ */
+static mrb_value
+mrb_mod_protected_method_defined(mrb_state *mrb, mrb_value mod)
+{
+  return mrb_bool_value(mrb_mod_method_visibility(mrb, mod) == MT_PROTECTED);
+}
+
 static int
 undefined_method_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 {
@@ -721,6 +760,9 @@ static const mrb_mt_entry metaprog_mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_public_instance_methods,  MRB_SYM(public_instance_methods), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_mod_private_instance_methods, MRB_SYM(private_instance_methods), MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(mrb_mod_protected_instance_methods, MRB_SYM(protected_instance_methods), MRB_ARGS_OPT(1)),
+  MRB_MT_ENTRY(mrb_mod_public_method_defined,    MRB_SYM_Q(public_method_defined), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_mod_private_method_defined,   MRB_SYM_Q(private_method_defined), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_mod_protected_method_defined, MRB_SYM_Q(protected_method_defined), MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(mrb_mod_undefined_methods,        MRB_SYM(undefined_instance_methods), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_mod_remove_method,            MRB_SYM(remove_method),  MRB_ARGS_ANY()),  /* 15.2.2.4.41 */
   MRB_MT_ENTRY(mrb_f_nil,                        MRB_SYM(method_removed), MRB_ARGS_REQ(1)),
