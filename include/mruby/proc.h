@@ -151,14 +151,25 @@ struct RProc {
    it. */
 #define MRB_PROC_CREF 16384
 #define MRB_PROC_CREF_P(p) (((p)->flags & MRB_PROC_CREF) != 0)
+/* A method body written in a block that was given the class to run under:
+   a `Class.new`, `class_eval` or `instance_eval` block.  The class the proc
+   carries is the given one, where a `def` in the body adds, and not its
+   cref: the cref is the scope the block was written in, and a walk up the
+   `upper` chain looking for the cref, or for the scopes a constant or a
+   class variable is read from, passes over the proc as if it were a block.
+   The bit is an aspec bit on a cfunc proc, and a walk that reads it may
+   pass through one, so the test answers no for a cfunc proc. */
+#define MRB_PROC_GIVEN 32768
+#define MRB_PROC_GIVEN_P(p) (((p)->flags & (MRB_PROC_GIVEN | MRB_PROC_CFUNC_FL)) == MRB_PROC_GIVEN)
 #define MRB_PROC_ALIAS_P(p) (((p)->flags & MRB_PROC_ALIAS) != 0)
 
 /* Compressed aspec for cfunc procs (13 bits in RProc.flags).
- * Uses bits 0-6 and 14-19 to store a compressed argument spec.  Bit 14 is
- * also MRB_PROC_CREF; the two never meet, because only mrb_proc_new() makes
- * a proc that can be a scope and only mrb_proc_new_cfunc() makes one that
- * carries an aspec.  A walk that reads MRB_PROC_CREF off the `upper` chain
- * says so by stopping at MRB_PROC_CFUNC_P().
+ * Uses bits 0-6 and 14-19 to store a compressed argument spec.  Bits 14 and
+ * 15 are also MRB_PROC_CREF and MRB_PROC_GIVEN; the two never meet, because
+ * only mrb_proc_new() makes a proc that can be a scope and only
+ * mrb_proc_new_cfunc() makes one that carries an aspec.  A walk that reads
+ * MRB_PROC_CREF off the `upper` chain says so by stopping at
+ * MRB_PROC_CFUNC_P(), and MRB_PROC_GIVEN_P() tests for a cfunc proc itself.
  * Layout: block(0) kdict(1) key(2-3) post(4-5) rest(6) opt(14-16) req(17-19)
  * Field widths are smaller than the full 24-bit aspec: req/opt max 7, post/key max 3.
  * Values exceeding the compressed range are clamped and rest is forced to 1. */

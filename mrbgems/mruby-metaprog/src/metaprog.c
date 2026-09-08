@@ -680,18 +680,19 @@ mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
   }
 
   const struct RProc *proc = mrb->c->ci[-1].proc;
-  struct RClass *c = MRB_PROC_TARGET_CLASS(proc);
+  struct RClass *c = NULL;
   mrb_value ary = mrb_ary_new(mrb);
 
-  if (!c) c = mrb->object_class;
-  mrb_mod_const_at(mrb, c, ary);
-  proc = proc->upper;
-  while (proc) {
+  /* A method given its class carries that class for a `def`, not as a scope
+     constants are read from: passed over, wherever it is on the chain. */
+  for (; proc; proc = proc->upper) {
+    if (MRB_PROC_GIVEN_P(proc)) continue;
     struct RClass *c2 = MRB_PROC_TARGET_CLASS(proc);
     if (!c2) c2 = mrb->object_class;
+    if (!c) c = c2;
     mrb_mod_const_at(mrb, c2, ary);
-    proc = proc->upper;
   }
+  if (!c) c = mrb->object_class;
   while (c) {
     mrb_mod_const_at(mrb, c, ary);
     c = c->super;
@@ -710,7 +711,9 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
   ary = mrb_ary_new(mrb);
   proc = mrb->c->ci[-1].proc;   /* callee proc */
   while (proc && !MRB_PROC_CFUNC_P(proc)) {
-    if (MRB_PROC_SCOPE_P(proc)) {
+    /* A method given its class is not in the nesting: CRuby leaves out the
+       cref the giving block pushed. */
+    if (MRB_PROC_SCOPE_P(proc) && !MRB_PROC_GIVEN_P(proc)) {
       struct RClass *c2 = MRB_PROC_TARGET_CLASS(proc);
 
       if (c2 != c) {

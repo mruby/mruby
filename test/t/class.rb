@@ -582,3 +582,66 @@ assert('a visibility change makes the method table it needs') do
     end
   end
 end
+
+module Test4GivenDefMaker
+  # Run in a method, so that the block's cref is this module rather than the
+  # class `mrb_proc_new()` falls back to when a block at the top level of a
+  # compiled test file has no cref to answer with.
+  def self.klass
+    Class.new do
+      def direct; def from_direct; end; end
+      def in_block; [1].each { def from_block; end }; end
+      def self.on_singleton; def from_singleton_body; end; end
+      def aliased; alias from_alias direct; end
+      def undefs; undef gone; end
+      def gone; end
+      private
+      def hidden; def from_hidden; end; end
+    end
+  end
+  def self.mod; Module.new { def direct; def from_direct; end; end }; end
+  def self.on_eval(c); c.class_eval { def direct; def from_direct; end; end }; end
+  def self.on_instance(o); o.instance_eval { def direct; def from_direct; end; end }; end
+end
+
+assert('a `def` in a method written in a block given a class adds to that class') do
+  # The method proc used to carry its cref, the scope the block was written
+  # in, and a `def` in its body went there: `Object` for a script. The
+  # class the block was given is what the method carries now, so a `def`
+  # or an `alias` in the body, in a block made in the body, or in the body
+  # of a `def self.name` written in the block, adds to that class. The
+  # `def` written under a `private` in the block is private; the one in
+  # its body starts at the default and is public.
+  c = Test4GivenDefMaker.klass
+  o = c.new
+  o.direct
+  o.in_block
+  c.on_singleton
+  assert_nothing_raised { o.aliased }
+  o.__send__(:hidden)
+  [:from_direct, :from_block, :from_singleton_body, :from_alias, :from_hidden].each do |name|
+    assert_true c.method_defined?(name), name.to_s
+    assert_false Object.new.respond_to?(name, true), name.to_s
+  end
+  assert_false c.method_defined?(:hidden)
+  assert_true c.method_defined?(:gone)
+  assert_nothing_raised { o.undefs }
+  assert_false c.method_defined?(:gone)
+
+  m = Test4GivenDefMaker.mod
+  Class.new { include m }.new.direct
+  assert_true m.method_defined?(:from_direct)
+  assert_false Object.new.respond_to?(:from_direct, true)
+
+  c = Class.new
+  Test4GivenDefMaker.on_eval(c)
+  c.new.direct
+  assert_true c.method_defined?(:from_direct)
+  assert_false Object.new.respond_to?(:from_direct, true)
+
+  o = Object.new
+  Test4GivenDefMaker.on_instance(o)
+  o.direct
+  assert_true o.respond_to?(:from_direct)
+  assert_false Object.new.respond_to?(:from_direct, true)
+end

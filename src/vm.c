@@ -3007,11 +3007,11 @@ vm_op_div(mrb_state *mrb, uint32_t a, mrb_sym *midp)
 static mrb_sym
 vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16_t b, uint16_t c, uint32_t vis)
 {
-  struct RProc *p = mrb_proc_new(mrb, irep->reps[c]);
+  struct RProc *p = mrb_method_proc_new(mrb, irep->reps[c]);
   mrb_sym mid = irep->syms[b];
   mrb_method_t m;
 
-  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT | MRB_PROC_CREF;
+  p->flags |= MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
   MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, tc, mid, m);
@@ -4603,8 +4603,7 @@ RETRY_TRY_BLOCK:
       }
       else {
         /* OP_METHOD is the only one here without OP_L_CAPTURE: a method body */
-        p = mrb_proc_new(mrb, nirep);
-        p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
+        p = mrb_method_proc_new(mrb, nirep);
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
       regs[a] = mrb_obj_value(p);

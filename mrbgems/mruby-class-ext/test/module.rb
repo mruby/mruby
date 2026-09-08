@@ -169,3 +169,29 @@ assert('a `def` in a block given to class_exec or module_exec adds to the receiv
   assert_true c.new.respond_to?(:hidden, true)
   assert_true c.new.respond_to?(:shown)
 end
+
+module ExecGivenMethodMaker
+  # Run in a method, for the same reason as above.
+  def self.on_class(c); c.class_exec { def direct; def from_direct; end; end; def in_block; [1].each { def from_block; end }; end }; end
+  def self.on_module(m); m.module_exec { def direct; def from_direct; end; end }; end
+end
+
+assert('a `def` in a method written in a block given to class_exec or module_exec adds to the receiver') do
+  # The method carries the class the block was given, not the cref of the
+  # block, so a `def` in its body, or in a block made there, adds to the
+  # receiver as the `def` written in the block does.
+  c = Class.new
+  ExecGivenMethodMaker.on_class(c)
+  c.new.direct
+  c.new.in_block
+  assert_true c.new.respond_to?(:from_direct)
+  assert_true c.new.respond_to?(:from_block)
+  assert_false Object.new.respond_to?(:from_direct, true)
+  assert_false Object.new.respond_to?(:from_block, true)
+
+  m = Module.new
+  ExecGivenMethodMaker.on_module(m)
+  Class.new { include m }.new.direct
+  assert_true Class.new { include m }.new.respond_to?(:from_direct)
+  assert_false Object.new.respond_to?(:from_direct, true)
+end

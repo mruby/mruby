@@ -85,3 +85,22 @@ assert('a `def` in a block given to instance_exec adds to the receiver') do
   assert_false Object.new.respond_to?(:from_block, true)
   assert_false Object.new.respond_to?(:from_nested_block, true)
 end
+
+module InstanceExecGivenMethodMaker
+  # Run in a method, for the same reason as above.
+  def self.on(o); o.instance_exec { def direct; def from_direct; end; end; def in_block; [1].each { def from_block; end }; end }; end
+end
+
+assert('a `def` in a method written in a block given to instance_exec adds to the receiver') do
+  # The method carries the singleton class the block was given, not the
+  # cref of the block, so a `def` in its body, or in a block made there,
+  # adds to the receiver as the `def` written in the block does.
+  o = Object.new
+  InstanceExecGivenMethodMaker.on(o)
+  o.direct
+  o.in_block
+  assert_true o.respond_to?(:from_direct)
+  assert_true o.respond_to?(:from_block)
+  assert_false Object.new.respond_to?(:from_direct, true)
+  assert_false Object.new.respond_to?(:from_block, true)
+end

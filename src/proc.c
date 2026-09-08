@@ -66,13 +66,17 @@ given_class_env_p(const struct RProc *p)
    the block keeps looking constants up from the scope it was written in.
    An eval string is the other case: it opens a scope of its own, and one
    given a class carries that class as its cref, so it is on the chain and
-   this walk finds it. */
+   this walk finds it.
+
+   A method written in a block given a class carries that class for a `def`
+   in its body and not as its cref, MRB_PROC_GIVEN says so, and the walk
+   passes over it to the scope the block was written in. */
 struct RClass*
 mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci)
 {
   const struct RProc *p = ci->proc;
 
-  while (p && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_CREF_P(p)) p = p->upper;
+  while (p && !MRB_PROC_CFUNC_P(p) && (!MRB_PROC_CREF_P(p) || MRB_PROC_GIVEN_P(p))) p = p->upper;
   return (p && !MRB_PROC_CFUNC_P(p)) ? MRB_PROC_TARGET_CLASS(p) : NULL;
 }
 
@@ -86,8 +90,10 @@ mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci)
    closes over that env and answers with the class it holds, which is how a
    `def` in a block inside the block reaches the same place, and how a string
    evaluated over a binding taken there does.  A scope of its own ends the
-   run: a method written in such a block adds to the given class, but the
-   blocks inside the method body belong to the method and follow its cref. */
+   run: a method written in such a block carries the given class itself,
+   marked MRB_PROC_GIVEN, and a `def` in its body, or in a block made
+   there, adds to that class as CRuby's does under the cref the block
+   pushed. */
 struct RClass*
 mrb_vm_definee_class(mrb_state *mrb, mrb_callinfo *ci)
 {
@@ -125,6 +131,30 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
   }
   p->body.irep = irep;
 
+  return p;
+}
+
+/* The proc for a method body written in the running frame.  Its class is
+   the frame's cref, the scope the body is written in, except where the
+   frame was given a class to run under, as a `Class.new`, `class_eval` or
+   `instance_eval` block is: a `def` in the body then adds to the given
+   class, as it does in the block, and the proc carries that class marked
+   MRB_PROC_GIVEN, so that the walks reading the cref pass over it to the
+   scope around the block.  A method written `def self.name` is included:
+   its body keeps the scope around it, which here is the given class. */
+struct RProc*
+mrb_method_proc_new(mrb_state *mrb, const mrb_irep *irep)
+{
+  struct RProc *p = mrb_proc_new(mrb, irep);
+  struct RClass *given = mrb_vm_definee_class(mrb, mrb->c->ci);
+
+  /* mrb_proc_new() left the cref in the proc, or the frame's class where
+     the chain holds no scope; the proc is new and white, so no barrier. */
+  p->flags |= MRB_PROC_SCOPE | MRB_PROC_CREF;
+  if (given && given != p->e.target_class) {
+    p->e.target_class = given;
+    p->flags |= MRB_PROC_GIVEN;
+  }
   return p;
 }
 
