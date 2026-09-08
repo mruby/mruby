@@ -737,3 +737,27 @@ assert('a string given to eval runs under the class the calling frame runs under
   assert_true Object.const_defined?(:EvalFrameClassConst, false)
   assert_false k.const_defined?(:EvalFrameClassConst, false)
 end
+
+module EvalGivenMethodMaker
+  # Run in a method, so that the block's cref is this module rather than the
+  # class `mrb_proc_new()` falls back to when a block at the top level of a
+  # compiled test file has no cref to answer with.
+  def self.klass
+    Class.new do
+      def in_string; eval("def from_string; end"); end
+      def in_binding; eval("def from_binding; end", binding); end
+    end
+  end
+end
+
+assert('a `def` in a string evaluated in a method written in a block given a class adds to that class') do
+  # The string's frame runs under the class the method was found in, and the
+  # method carries the class its block was given, so the `def` lands where
+  # one written in the method body does.
+  c = EvalGivenMethodMaker.klass
+  c.new.in_string
+  c.new.in_binding
+  assert_equal [:from_binding, :from_string, :in_binding, :in_string], c.instance_methods(false).sort
+  assert_false Object.new.respond_to?(:from_string, true)
+  assert_false Object.new.respond_to?(:from_binding, true)
+end
