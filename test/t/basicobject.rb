@@ -9,6 +9,27 @@ assert('BasicObject superclass') do
   assert_nil(BasicObject.superclass)
 end
 
+assert('BasicObject reopened at the top level is the class Object inherits from') do
+  # `class BasicObject` at the top level asks `Object` whether it holds the
+  # constant and, told it does not, makes a new class under `Object` by that
+  # name. The constant is kept in `Object` as well as in `BasicObject`
+  # itself, as CRuby keeps it, so the reopening reaches every object.
+  reopened = class BasicObject
+    def basic_object_reopen_probe; :reopened; end
+    self
+  end
+  begin
+    assert_same(Object.superclass, reopened)
+    assert_nil(reopened.superclass)
+    assert_equal(:reopened, nil.basic_object_reopen_probe)
+    assert_equal(:reopened, Class.new(BasicObject).new.basic_object_reopen_probe)
+  ensure
+    class BasicObject
+      undef_method :basic_object_reopen_probe
+    end
+  end
+end
+
 assert('BasicObject#== defined by a class is asked about the receiver itself') do
   # `OP_EQ` answers `obj == obj` from the identity of its operands, which it
   # may only do while the builtin `==` is what would be asked: CRuby's `opt_eq`

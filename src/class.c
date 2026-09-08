@@ -5027,6 +5027,7 @@ mrb_init_class(mrb_state *mrb)
 
   /* name basic classes */
   mrb_define_const_id(mrb, bob, MRB_SYM(BasicObject), mrb_obj_value(bob));
+  mrb_define_const_id(mrb, obj, MRB_SYM(BasicObject), mrb_obj_value(bob));
   mrb_define_const_id(mrb, obj, MRB_SYM(Object),      mrb_obj_value(obj));
   mrb_define_const_id(mrb, obj, MRB_SYM(Module),      mrb_obj_value(mod));
   mrb_define_const_id(mrb, obj, MRB_SYM(Class),       mrb_obj_value(cls));
