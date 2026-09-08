@@ -1130,6 +1130,16 @@ eq_defined_mark(mrb_state *mrb, struct RClass *c)
   }
 }
 
+/* module_function scope: also define a public method on the singleton
+   class, so the module method (M.foo) mirrors the private instance one */
+static void
+define_modfunc_copy(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
+{
+  MRB_SET_VISIBILITY_FLAGS(m.flags, MRB_METHOD_PUBLIC_FL);
+  prepare_singleton_class(mrb, (struct RBasic*)c);
+  mrb_define_method_raw(mrb, c->c, mid, m);
+}
+
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
@@ -1196,12 +1206,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     if (mid == MRB_OPSYM(eq)) eq_defined_mark(mrb, named);
   }
   if (modfunc) {
-    /* module_function scope: also define a public method on the singleton
-       class, so the module method (M.foo) mirrors the private instance one */
-    mrb_method_t sm = m;
-    MRB_SET_VISIBILITY_FLAGS(sm.flags, MRB_METHOD_PUBLIC_FL);
-    prepare_singleton_class(mrb, (struct RBasic*)c);
-    mrb_define_method_raw(mrb, c->c, mid, sm);
+    define_modfunc_copy(mrb, c, mid, m);
   }
 }
 
