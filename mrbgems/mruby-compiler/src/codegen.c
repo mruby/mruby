@@ -130,6 +130,7 @@ typedef struct scope {
   uint32_t lastlabel;
   uint16_t ainfo:15;
   mrc_bool mscope:1;
+  uint32_t aspec;               /* the operand of this scope's `OP_ENTER` */
 
   struct loopinfo *loop;
   const char *filename;
@@ -1564,24 +1565,118 @@ loop_pop(mrc_codegen_scope *s, int val)
   if (val) push();
 }
 
+/* The method scope a `super`, a `zsuper` or a `yield` belongs to. */
+struct mscope {
+  int ainfo;                    /* the argument layout the forwarded arguments
+                                   and the block are read by; -1 when there
+                                   is no method scope */
+  int lv;                       /* scopes between the method and the asker */
+  uint32_t aspec;               /* the operand of the method's `OP_ENTER` */
+  const mrc_constant_id_list *names;  /* its locals by register, when the
+                                         method is in this compile unit */
+#if defined(MRC_TARGET_MRUBY)
+  const mrc_irep *irep;         /* its irep, when the method is on the proc
+                                   chain of the compile context instead */
+#endif
+};
+
+/* Read the method's local in register `reg` into `cursp()`. */
 static void
-gen_blkmove(mrc_codegen_scope *s, uint16_t ainfo, int lv)
+gen_mscope_lvar(mrc_codegen_scope *s, const struct mscope *m, int reg)
 {
-  int m1 = (ainfo>>7)&0x3f;
-  int r  = (ainfo>>6)&0x1;
-  int m2 = (ainfo>>1)&0x1f;
-  int kd = (ainfo)&0x1;
-  int off = m1+r+m2+kd+1;
-  if (lv == 0) {
-    gen_move(s, cursp(), off, 0);
+  if (m->lv == 0) {
+    gen_move(s, cursp(), reg, 0);
   }
   else {
     /* `lv` counts the scopes between here and the method, while `OP_GETUPVAR`
        counts the envs above this frame's own, and the method's env is the
        first of those: one level fewer. */
-    genop_3(s, OP_GETUPVAR, cursp(), off, lv-1);
+    genop_3(s, OP_GETUPVAR, cursp(), reg, m->lv-1);
   }
   push();
+}
+
+static void
+gen_blkmove(mrc_codegen_scope *s, const struct mscope *m)
+{
+  int m1 = (m->ainfo>>7)&0x3f;
+  int r  = (m->ainfo>>6)&0x1;
+  int m2 = (m->ainfo>>1)&0x1f;
+  int kd = (m->ainfo)&0x1;
+  gen_mscope_lvar(s, m, m1+r+m2+kd+1);
+}
+
+static mrc_sym nsym(mrc_parser_state *p, const uint8_t *start, size_t length);
+
+/* The name of the method's local in register `reg`, as a symbol of this
+   compile unit.  0 when the method carries no names. */
+static mrc_sym
+mscope_lvar_name(mrc_codegen_scope *s, const struct mscope *m, int reg)
+{
+  if (m->names) return m->names->ids[reg-1];
+#if defined(MRC_TARGET_MRUBY)
+  if (m->irep && m->irep->lv) {
+    const char *name = mrb_sym_name(s->c->mrb, m->irep->lv[reg-1]);
+    if (name) return nsym(s->c->p, (const uint8_t *)name, strlen(name));
+  }
+#endif
+  return 0;
+}
+
+/* Build the keyword hash a bare `super` forwards, at `cursp()`.
+
+   `OP_KARG` moves each keyword parameter into its local by deleting it from
+   the dictionary the frame received, so by the time `super` runs that
+   dictionary holds only what no parameter claimed, and it is the very object
+   that `**rest` names.  Forwarding it as read hands the parent a dictionary
+   with the declared keywords missing, and lets the parent's `OP_KARG` delete
+   from the caller's `rest`.  The keyword locals hold the current values, as
+   CRuby forwards them, so the hash is rebuilt from a copy of `rest` with
+   those written over it: the order CRuby's parent sees the keys in, and the
+   one that lets a declared keyword win over a key of its name in `rest`.
+
+   Answers whether the hash was built; the registers above `cursp()` are
+   used as scratch, the block's slot among them.  When the method carries no
+   local names there is nothing to build it from, and the dictionary stays
+   as read. */
+static mrc_bool
+gen_zsuper_kwargs(mrc_codegen_scope *s, const struct mscope *m)
+{
+  uint32_t a = m->aspec;
+  int ka = MRC_ASPEC_KEY(a);
+  int kd = MRC_ASPEC_KDICT(a);
+  int kw_pos = MRC_ASPEC_REQ(a) + MRC_ASPEC_OPT(a) + MRC_ASPEC_REST(a) + MRC_ASPEC_POST(a) + 1;
+  /* the keyword locals follow the dictionary, the block's slot and the
+     block's name */
+  int kw_reg = kw_pos + 2 + MRC_ASPEC_BLOCK(a);
+
+  if (ka > 0 && mscope_lvar_name(s, m, kw_reg) == 0) return FALSE;
+  if (kd) {
+    genop_2(s, OP_HASH, cursp(), 0);
+    push();
+    gen_mscope_lvar(s, m, kw_pos);
+    pop(); pop();
+    genop_1(s, OP_HASHCAT, cursp());
+    push();
+  }
+  for (int i = 0; i < ka; i++) {
+    genop_2(s, OP_LOADSYM, cursp(), new_sym(s, mscope_lvar_name(s, m, kw_reg+i)));
+    push();
+    gen_mscope_lvar(s, m, kw_reg+i);
+  }
+  if (ka > 0) {
+    pop_n(ka*2);
+    if (kd) {
+      pop();
+      genop_2(s, OP_HASHADD, cursp(), ka);
+    }
+    else {
+      genop_2(s, OP_HASH, cursp(), ka);
+    }
+    push();
+  }
+  pop();
+  return TRUE;
 }
 
 /* Whether a `return` here leaves a method that is not part of this compile
@@ -1604,22 +1699,30 @@ return_leaves_upper_p(mrc_codegen_scope *s)
 }
 
 /* Find the method scope that a `super`, a `zsuper` or a `yield` belongs to.
-   Answers its `ainfo`, the argument layout that the forwarded arguments and
-   the block are read by, and sets `lvp` to the number of levels between it
-   and `s`.  Answers -1 when there is no method scope to find. */
-static int
-search_mscope(mrc_codegen_scope *s, int *lvp)
+   Fills `m` with its `ainfo`, the argument layout that the forwarded
+   arguments and the block are read by, the number of levels between it and
+   `s`, and where its locals are to be found.  `ainfo` is -1 when there is
+   no method scope to find. */
+static void
+search_mscope(mrc_codegen_scope *s, struct mscope *m)
 {
   mrc_codegen_scope *s2 = s;
   int lv = 0;
 
+  memset(m, 0, sizeof(*m));
+  m->ainfo = -1;
   while (!s2->mscope) {
     lv++;
     s2 = s2->prev;
     if (!s2) break;
   }
-  *lvp = lv;
-  if (s2) return (int)s2->ainfo;
+  m->lv = lv;
+  if (s2) {
+    m->ainfo = (int)s2->ainfo;
+    m->aspec = s2->aspec;
+    m->names = s2->lv;
+    return;
+  }
 
 #if defined(MRC_TARGET_MRUBY)
   /* A string compiled for `eval` has a scope chain of its own, and the method
@@ -1631,7 +1734,7 @@ search_mscope(mrc_codegen_scope *s, int *lvp)
      for itself as the `ainfo` it would have answered. */
   const struct RProc *u = s->c->upper;
 
-  (*lvp)--;
+  m->lv--;
 
   while (u && !MRC_PROC_CFUNC_P(u)) {
     if (MRC_PROC_SCOPE_P(u)) {
@@ -1639,17 +1742,18 @@ search_mscope(mrc_codegen_scope *s, int *lvp)
       if (!ir || ir->ilen == 0 || ir->iseq[0] != OP_ENTER) break;
       uint32_t a = PEEK_W(ir->iseq + 1);
       uint32_t ma = MRC_ASPEC_REQ(a) + MRC_ASPEC_OPT(a);
-      return (int)(((ma & 0x3f) << 7)
-                   | (MRC_ASPEC_REST(a) << 6)
-                   | ((MRC_ASPEC_POST(a) & 0x1f) << 1)
-                   | ((MRC_ASPEC_KEY(a) || MRC_ASPEC_KDICT(a)) ? 1 : 0));
+      m->ainfo = (int)(((ma & 0x3f) << 7)
+                       | (MRC_ASPEC_REST(a) << 6)
+                       | ((MRC_ASPEC_POST(a) & 0x1f) << 1)
+                       | ((MRC_ASPEC_KEY(a) || MRC_ASPEC_KDICT(a)) ? 1 : 0));
+      m->aspec = a;
+      m->irep = ir;
+      return;
     }
     u = u->upper;
-    (*lvp)++;
+    m->lv++;
   }
 #endif
-
-  return -1;
 }
 
 static void
@@ -3657,6 +3761,7 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
   if (parameters == NULL) { /* empty parameter OR numbered parameters */
     genop_W(s, OP_ENTER, MRC_ARGS_REQ(na));
     s->ainfo = (na & 0x3f) << 7;
+    s->aspec = MRC_ARGS_REQ(na);
   }
   else {
     mrc_aspec a;
@@ -3686,6 +3791,7 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
       | ((ra & 0x1) << 6)
       | ((pa & 0x1f) << 1)
       | ((ka | kd) ? 1 : 0);
+    s->aspec = a;
     /* generate jump table for optional arguments initializer */
     pos = new_label(s);
     for (i=0; i<oa; i++) {
@@ -6270,10 +6376,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_SUPER_NODE:
     {
       CAST(super);
-      int lv;
-      int ainfo = search_mscope(s, &lv);
+      struct mscope m;
       int n = 0, nk = 0, st = 0;
 
+      search_mscope(s, &m);
       push();
       CAST3(arguments, cast->arguments, arguments);
       if (arguments) {
@@ -6296,7 +6402,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (ainfo >= 0) gen_blkmove(s, (uint16_t)ainfo, lv);
+        else if (m.ainfo >= 0) gen_blkmove(s, &m);
         else {
           genop_1(s, OP_LOADNIL, cursp());
           push();
@@ -6307,7 +6413,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (ainfo >= 0) gen_blkmove(s, (uint16_t)ainfo, lv);
+        else if (m.ainfo >= 0) gen_blkmove(s, &m);
         else {
           genop_1(s, OP_LOADNIL, cursp());
           push();
@@ -6322,25 +6428,32 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_FORWARDING_SUPER_NODE:
     {
       CAST(forwarding_super);
-      int lv;
-      int ainfo = search_mscope(s, &lv);
+      struct mscope m;
       int n = CALL_MAXARGS;
       int sp = cursp();
 
+      search_mscope(s, &m);
       push();        /* room for receiver */
-      if (ainfo > 0) {
-        genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
+      if (m.ainfo > 0) {
+        mrc_bool blk_lost = FALSE;
+
+        genop_2S(s, OP_ARGARY, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
         push(); push(); push();   /* ARGARY pushes 3 values at most */
         pop(); pop(); pop();
         /* keyword arguments */
-        if (ainfo & 0x1) {
+        if (m.ainfo & 0x1) {
           n |= CALL_MAXARGS<<4;
           push();
+          blk_lost = gen_zsuper_kwargs(s, &m);
         }
         /* block argument */
         if (cast->block) {
           push();
           codegen(s, (mrc_node *)cast->block, VAL);
+        }
+        else if (blk_lost) {
+          push();
+          gen_blkmove(s, &m);
         }
       }
       else {
@@ -6348,8 +6461,8 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->block) {
           codegen(s, (mrc_node *)cast->block, VAL);
         }
-        else if (ainfo >= 0) {
-          gen_blkmove(s, 0, lv);
+        else if (m.ainfo >= 0) {
+          gen_blkmove(s, &m);
         }
         else {
           /* There is no method scope to belong to, so there is no block to
@@ -6386,11 +6499,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     case PM_YIELD_NODE:
     {
       CAST(yield);
-      int lv;
-      int ainfo = search_mscope(s, &lv);
+      struct mscope m;
       int n = 0, nk = 0, st = 0;
 
-      if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
+      search_mscope(s, &m);
+      if (m.ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       CAST3(arguments, cast->arguments, arguments);
       if (arguments) {
@@ -6412,7 +6525,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       push(); pop(); /* space for a block */
       pop_n(st+1);
-      genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
+      genop_2S(s, OP_BLKPUSH, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
       if (nk == 0 && n < 15) {
         /* fast path: direct block call without method dispatch */
         genop_2(s, OP_BLKCALL, cursp(), n);

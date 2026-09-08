@@ -47,6 +47,76 @@ assert('super forwards the caller\'s block from inside a block') do
   assert_equal [:blk, :b], deep.new.m { |v| [:blk, v] }
 end
 
+assert('super forwards the keyword arguments at their current values') do
+  # Each keyword parameter is moved into its local by deleting it from the
+  # dictionary the frame received, so by the time `super` runs the dictionary
+  # holds only what no parameter claimed, and it is the object `**rest`
+  # names.  A bare `super` builds the parent's dictionary afresh from the
+  # keyword locals and a copy of `rest`, as CRuby does.
+  base = Class.new do
+    def kw(a:, b: 2); [a, b]; end
+    def rest(a:, **o); [a, o]; end
+    def restonly(**o); o; end
+    def all(x, *r, y, a:, b: 2, **o, &blk); [x, r, y, a, b, o, blk ? blk.call : nil]; end
+  end
+  sub = Class.new(base) do
+    def kw(a:, b: 2); super; end
+    def rest(a:, **o); super; end
+    def restonly(**o); [super, o]; end
+    def all(x, *r, y, a:, b: 2, **o, &blk); super; end
+  end
+  o = sub.new
+  assert_equal [1, 3], o.kw(a: 1, b: 3)
+  assert_equal [1, 2], o.kw(a: 1)
+  assert_equal [1, {c: 3}], o.rest(a: 1, c: 3)
+  assert_equal [1, [2], 3, 4, 2, {c: 5}, :blk], o.all(1, 2, 3, a: 4, c: 5) { :blk }
+
+  # the parent's dictionary is a copy, so what its keyword parameters delete
+  # from it stays in the child's `rest`
+  parent_dict, own = o.restonly(a: 1)
+  assert_equal({a: 1}, parent_dict)
+  assert_equal({a: 1}, own)
+  assert_false parent_dict.equal?(own)
+  twice = Class.new(base) do
+    def kw(a:, b: 2); [super, super]; end
+    def rest(a:, **o); [super, super, o]; end
+  end
+  assert_equal [[1, 2], [1, 2]], twice.new.kw(a: 1)
+  assert_equal [[1, {c: 2}], [1, {c: 2}], {c: 2}], twice.new.rest(a: 1, c: 2)
+
+  # the locals are read where `super` is, so a keyword reassigned before it
+  # reaches the parent reassigned, a declared keyword wins over a key of its
+  # name in `rest`, and the child's default is what the parent sees when the
+  # caller passed nothing
+  reassign = Class.new(base) do
+    def kw(a:, b: 2); a *= 10; b = :changed; super; end
+    def rest(a:, **o); o = {a: 5, z: 1}; super; end
+  end
+  assert_equal [10, :changed], reassign.new.kw(a: 1)
+  assert_equal [1, {z: 1}], reassign.new.rest(a: 1)
+  defaults = Class.new(Class.new { def m(a: :parent); a; end }) { def m(a: :child); super; end }
+  assert_equal :child, defaults.new.m
+
+  # from inside a block, a nested block or a lambda, up more than one level,
+  # with a block of its own, and through `...` and the anonymous `**`
+  blk = Class.new(base) do
+    def kw(a:, b: 2); r = nil; [0].each { r = super }; r; end
+    def rest(a:, **o); r = nil; [0].each { [1].each { r = super } }; r; end
+    def restonly(**o); -> { super }.call; end
+    def all(x, *r, y, a:, b: 2, **o, &blk); super { :from_child }; end
+  end
+  assert_equal [1, 2], blk.new.kw(a: 1)
+  assert_equal [1, {c: 2}], blk.new.rest(a: 1, c: 2)
+  assert_equal({a: 1}, blk.new.restonly(a: 1))
+  assert_equal [1, [], 2, 3, 2, {}, :from_child], blk.new.all(1, 2, a: 3)
+  deep = Class.new(sub) { def kw(a:, b: 2); super; end }
+  assert_equal [1, 3], deep.new.kw(a: 1, b: 3)
+  fwd = Class.new(base) { def rest(...); super; end }
+  assert_equal [1, {c: 2}], fwd.new.rest(a: 1, c: 2)
+  anon = Class.new(base) { def rest(*, **, &); super; end }
+  assert_equal [1, {c: 2}], anon.new.rest(a: 1, c: 2)
+end
+
 assert('yield', '11.3.5') do
 # it's syntax error now
 #  assert_raise LocalJumpError do
