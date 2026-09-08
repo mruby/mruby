@@ -2937,3 +2937,147 @@ assert('a private index accessor is callable in an op-assign on a written self')
     o[0] += 1
   end
 end
+
+class PrivateOperator
+  def initialize; @h = {0 => 1, 1 => 3}; end
+
+  # a written `self` reaches them, in a block too; `[0]` and `[1]` are two
+  # instructions, as are `+ 1` and `+ o`
+  def own_aref;  self[0];                end
+  def own_aref1; self[1];                end
+  def own_aset;  self[0] = 2; @h[0];     end
+  def own_plus;  self + 1;               end
+  def own_add;   self + self;            end
+  def own_eq;    self == 1;              end
+  def own_lt;    self < 1;               end
+  def own_block; [1].map { self[0] }[0]; end
+
+  # another object does not, whichever instruction makes the call
+  def aref(o);  o[0];     end
+  def aref1(o); o[1];     end
+  def aset(o);  o[0] = 2; end
+  def plus(o);  o + 1;    end
+  def add(o);   o + o;    end
+  def eq(o);    o == 1;   end
+  def lt(o);    o < 1;    end
+
+  private
+  def [](i);     @h[i];     end
+  def []=(i, v); @h[i] = v; end
+  def +(o);      :plus;     end
+  def ==(o);     :eq;       end
+  def <(o);      :lt;       end
+end
+
+class ProtectedOperator
+  def eq(o);   o == 1; end
+  def aref(o); o[0];   end
+
+  protected
+  def ==(o); :eq;   end
+  def [](i); :aref; end
+end
+
+class ProtectedOperatorSub < ProtectedOperator
+end
+
+class ProtectedOperatorOther
+  def eq(o); o == 1; end
+end
+
+class SuperOperator
+  private
+  def [](i); :aref; end
+  def +(o);  :plus; end
+  protected
+  def ==(o); :eq;   end
+end
+
+class SuperOperatorSub < SuperOperator
+  def own_aref; self[0]; end
+  def own_plus; self + 1; end
+  def eq(o);    o == 1;  end
+
+  private
+  def [](i); super; end
+  def +(o);  super; end
+  protected
+  def ==(o); super; end
+end
+
+class PrivateArefArray < Array
+  private
+  def [](i); :sub; end
+end
+
+assert('an operator instruction checks visibility on the send it falls back to') do
+  o = PrivateOperator.new
+  assert_equal 1, o.own_aref
+  assert_equal 3, o.own_aref1
+  assert_equal 2, o.own_aset
+  assert_equal :plus, o.own_plus
+  assert_equal :plus, o.own_add
+  assert_equal :eq, o.own_eq
+  assert_equal :lt, o.own_lt
+  assert_equal 2, o.own_block
+
+  other = PrivateOperator.new
+  assert_raise_with_message(NoMethodError, "private method '[]' called for PrivateOperator") do
+    o.aref(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '[]' called for PrivateOperator") do
+    o.aref1(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '[]=' called for PrivateOperator") do
+    o.aset(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '+' called for PrivateOperator") do
+    o.plus(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '+' called for PrivateOperator") do
+    o.add(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '==' called for PrivateOperator") do
+    o.eq(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '<' called for PrivateOperator") do
+    o.lt(other)
+  end
+  assert_raise_with_message(NoMethodError, "private method '[]' called for PrivateOperator") do
+    o[0]
+  end
+  assert_raise_with_message(NoMethodError, "private method '[]=' called for PrivateOperator") do
+    o[0] = 2
+  end
+
+  # a protected operator is reachable while the caller's `self` is of the
+  # class that defines it, a subclass included
+  p = ProtectedOperator.new
+  assert_equal :eq, p.eq(ProtectedOperator.new)
+  assert_equal :aref, p.aref(ProtectedOperator.new)
+  assert_equal :eq, ProtectedOperatorSub.new.eq(p)
+  assert_raise_with_message(NoMethodError, "protected method '==' called for ProtectedOperator") do
+    ProtectedOperatorOther.new.eq(p)
+  end
+  assert_raise_with_message(NoMethodError, "protected method '==' called for ProtectedOperator") do
+    p == 1
+  end
+  assert_raise_with_message(NoMethodError, "protected method '[]' called for ProtectedOperator") do
+    p[0]
+  end
+
+  # the Array fast path leaves a subclass to the send, which is checked
+  assert_raise_with_message(NoMethodError, "private method '[]' called for PrivateArefArray") do
+    PrivateArefArray.new[0]
+  end
+end
+
+assert('super reaches a private or protected operator') do
+  o = SuperOperatorSub.new
+  assert_equal :aref, o.own_aref
+  assert_equal :plus, o.own_plus
+  assert_equal :eq, o.eq(SuperOperator.new)
+  assert_raise_with_message(NoMethodError, "protected method '==' called for SuperOperatorSub") do
+    o == 1
+  end
+end
