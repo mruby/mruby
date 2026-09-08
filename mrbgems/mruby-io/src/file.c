@@ -911,40 +911,32 @@ mrb_file_path(mrb_state *mrb, mrb_value klass)
   return filename;
 }
 
-// Forward declaration for recursive join processing
-static mrb_value mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc);
-
-static mrb_value
-mrb_file_join_process_args(mrb_state *mrb, const mrb_value *argv, mrb_int argc)
+/* Flattens the arguments of File.join into `names`, checking each value
+   is a String as it lands. `seen` holds the arrays currently being walked,
+   innermost last, so an array that contains itself (directly or through
+   another array) is caught on re-entry the way CRuby catches it. Only
+   the ancestors are kept, so the same array may appear twice as siblings. */
+static void
+mrb_file_join_flatten(mrb_state *mrb, mrb_value names, mrb_value seen, const mrb_value *argv, mrb_int argc)
 {
-  mrb_value result = mrb_ary_new_capa(mrb, argc);
-
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value arg = argv[i];
 
     if (mrb_array_p(arg)) {
-      // Check for recursive arrays using mruby's built-in detection
-      if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(join), arg)) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array");
+      for (mrb_int k = 0; k < RARRAY_LEN(seen); k++) {
+        if (mrb_obj_eq(mrb, RARRAY_PTR(seen)[k], arg)) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array");
+        }
       }
-
-      // Recursively process the array
-      mrb_value nested = mrb_file_join_process_args(mrb, RARRAY_PTR(arg), RARRAY_LEN(arg));
-
-      // Append nested results to our result
-      mrb_int nested_len = RARRAY_LEN(nested);
-      for (mrb_int k = 0; k < nested_len; k++) {
-        mrb_ary_push(mrb, result, RARRAY_PTR(nested)[k]);
-      }
+      mrb_ary_push(mrb, seen, arg);
+      mrb_file_join_flatten(mrb, names, seen, RARRAY_PTR(arg), RARRAY_LEN(arg));
+      mrb_ary_pop(mrb, seen);
     }
     else {
-      // Convert to string (raises TypeError if not convertible)
       mrb_ensure_string_type(mrb, arg);
-      mrb_ary_push(mrb, result, arg);
+      mrb_ary_push(mrb, names, arg);
     }
   }
-
-  return result;
 }
 
 /*
@@ -970,8 +962,8 @@ mrb_file_join(mrb_state *mrb, mrb_value klass)
     return mrb_str_new_lit(mrb, "");
   }
 
-  // Process arguments and flatten arrays
-  mrb_value names = mrb_file_join_process_args(mrb, argv, argc);
+  mrb_value names = mrb_ary_new_capa(mrb, argc);
+  mrb_file_join_flatten(mrb, names, mrb_ary_new(mrb), argv, argc);
 
   mrb_int names_len = RARRAY_LEN(names);
   if (names_len == 0) {
