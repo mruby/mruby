@@ -5,6 +5,14 @@
 */
 
 #include <string.h>
+/* The presym numbers as an enum rather than as macros: this object follows
+   the whole table anyway, so this is where their names reach the debug
+   information once, for a debugger to show a symbol number by its name
+   (`p (enum mruby_presym)sym`) from any frame. The amalgamated source
+   defines it ahead of every file it holds. */
+#ifndef MRB_PRESYM_ENUM
+# define MRB_PRESYM_ENUM 1
+#endif
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/string.h>

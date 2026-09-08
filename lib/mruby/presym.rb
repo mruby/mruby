@@ -78,26 +78,43 @@ module MRuby
       File.binwrite(list_path, presyms.join("\n") << "\n")
     end
 
+    # The numbers, as macros, or as the enumerators of `enum mruby_presym`
+    # under `MRB_PRESYM_ENUM`.
+    #
+    # A macro that a source does not use leaves no trace in the
+    # preprocessed source, and a compiler cache keyed on it answers for the
+    # object as long as the numbers the source does use are the ones it
+    # compiled with, whatever else the table gained. An enumerator is in
+    # every preprocessed source that includes the header. `symbol.c`, whose
+    # object follows the whole table anyway, asks for the enum, so that the
+    # names reach the debug information once, for a debugger to show a
+    # symbol number by its name (`p (enum mruby_presym)sym` in gdb) from any
+    # frame.
     def write_id_header(presyms)
       prefix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:first).uniq)
       suffix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:last).uniq)
       sym_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
+      macros = presyms.each.with_index(1).map do |sym, num|
+        if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
+          ["MRB_#{affixes * 'SYM'}__#{$2}", num]
+        elsif name = OPERATORS[sym]
+          ["MRB_OPSYM__#{name}", num]
+        end
+      end.compact
       _pp "GEN", id_header_path.relative_path
       File.open(id_header_path, "w:binary") do |f|
+        f.puts "#ifdef MRB_PRESYM_ENUM"
         # PicoRuby builds the VM core as a gem, so its mrbc build scans
         # zero presyms. An empty enum is invalid C, so skip the enum then.
-        unless presyms.empty?
+        unless macros.empty?
           f.puts "enum mruby_presym {"
-          presyms.each.with_index(1) do |sym, num|
-            if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
-              f.puts "  MRB_#{affixes * 'SYM'}__#{$2} = #{num},"
-            elsif name = OPERATORS[sym]
-              f.puts "  MRB_OPSYM__#{name} = #{num},"
-            end
-          end
+          macros.each {|name, num| f.puts "  #{name} = #{num},"}
           f.puts "};"
-          f.puts
         end
+        f.puts "#else"
+        macros.each {|name, num| f.puts "#define #{name} #{num}"}
+        f.puts "#endif"
+        f.puts
         f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
       end
     end

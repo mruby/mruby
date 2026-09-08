@@ -9,6 +9,12 @@
 
 #if !defined(MRB_PRESYM_SCANNING)
 
+/*
+ * The number of every preallocated symbol, written by the build
+ * (`lib/mruby/presym.rb`) from what the sources ask for: a macro each, or
+ * under `MRB_PRESYM_ENUM` the enumerators of `enum mruby_presym`, which
+ * `src/symbol.c` asks for so that the names reach the debug information.
+ */
 #include <mruby/presym/id.h>
 
 /*
