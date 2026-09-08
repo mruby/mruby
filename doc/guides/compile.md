@@ -566,6 +566,10 @@ they are while the gems named before it do, and a gem added at the end of
 the config leaves every object of the others as it was. `src/symbol.c`,
 which carries the table, is the one object that follows the whole config.
 
+An edit to the config file alone rebuilds nothing by itself: an object is
+compiled again when its flags change, which the build compares against a
+record kept beside it, or when a source or header it read does.
+
 To write the two names yourself:
 
 ```ruby

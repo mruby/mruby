@@ -107,6 +107,18 @@ module MRuby
       File.binwrite(list_path, presyms.join("\n") << "\n")
     end
 
+    # Whether the layers the list was last made from are these. The list is
+    # remade from the preprocessed files that are newer than it, which says
+    # nothing about a file that left the build (a gem taken out of the
+    # config) or about a layer that moved, and both change the numbers.
+    def layers_changed?(layers)
+      !File.exist?(layers_path) || File.binread(layers_path) != layers_record(layers)
+    end
+
+    def write_layers(layers)
+      File.binwrite(layers_path, layers_record(layers))
+    end
+
     # The numbers, as macros, or as the enumerators of `enum mruby_presym`
     # under `MRB_PRESYM_ENUM`.
     #
@@ -187,6 +199,10 @@ module MRuby
       @list_path ||= "#{@build.build_dir}/presym".freeze
     end
 
+    def layers_path
+      @layers_path ||= "#{list_path}.layers".freeze
+    end
+
     def header_dir
       @header_dir ||= "#{@build.build_dir}/include/mruby/presym".freeze
     end
@@ -204,6 +220,10 @@ module MRuby
     end
 
     private
+
+    def layers_record(layers)
+      layers.map {|paths| paths.join("\n") << "\n"}.join("\n")
+    end
 
     def read_preprocessed(presym_hash, path)
       File.binread(path).scan(/<@! (.*?) !@>/) do |part,|
