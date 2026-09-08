@@ -67,13 +67,16 @@ MRuby.each_target do |build|
         presym.send("write_#{type}_header", presyms)
       end
     end
+    presym.write_layers(layers)
   end
 
   # The list is the file of the task above, so Rake runs it only when a
   # preprocessed file is newer than the list. The headers are made from the
-  # list, so a header that is gone needs the task too, with the list as it is.
+  # list, so a header that is gone needs the task too, with the list as it
+  # is; and so do layers other than the ones the list was made from, since
+  # a file that left the build or a layer that moved is newer than nothing.
   presym_task.define_singleton_method :needed? do
-    super() || !presym.headers_exist?
+    super() || !presym.headers_exist? || presym.layers_changed?(layers)
   end
 
   # Don't directly write dependency tasks in the "task" arguments.

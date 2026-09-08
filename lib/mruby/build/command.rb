@@ -451,9 +451,15 @@ module MRuby
 
     protected
 
-    # The prerequisites of an output besides its source: the config file and
-    # the headers the last compile of it read. Protected, not private, so the
-    # rules one compiler defines can ask the compiler they run.
+    # The prerequisites of an output besides its source: the headers the last
+    # compile of it read. Protected, not private, so the rules one compiler
+    # defines can ask the compiler they run.
+    #
+    # The config file is not among them. What it decides reaches a compile
+    # through the flags, which +discard_foreign_output+ compares, and through
+    # the sources and headers, which are prerequisites of their own; its
+    # mtime would only compile everything again after an edit that changed
+    # none of that, a gem added for another build or a comment.
     #
     # === Example of +.d+ file
     #
@@ -486,7 +492,7 @@ module MRuby
     #
     def get_dependencies(file, source)
       discard_foreign_output(file) if rule_applies?(source)
-      deps = [MRUBY_CONFIG]
+      deps = []
       dep_file = file.ext(".d")
       return deps unless File.exist?(dep_file)
 
@@ -614,11 +620,12 @@ module MRuby
     # so that the rule that would have found it up to date builds it again.
     #
     # Nothing else in the build tells the two apart. A +.d+ file lists header
-    # dependencies only, and the config file is a dependency by path, so its
-    # mtime does not move when another config takes over the same build
-    # directory. Left uncompared, the output stays up to date against every
-    # dependency it has, and the build silently keeps the flags of whichever
-    # config wrote it first, its defines above all.
+    # dependencies only, and the config file is no dependency at all (see
+    # +get_dependencies+); even as one by path, its mtime would not move when
+    # another config takes over the same build directory. Left uncompared,
+    # the output stays up to date against every dependency it has, and the
+    # build silently keeps the flags of whichever config wrote it first, its
+    # defines above all.
     #
     # An output with no record at all counts as foreign too, since what
     # produced it is unknown.
