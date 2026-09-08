@@ -66,13 +66,17 @@ given_class_env_p(const struct RProc *p)
    the block keeps looking constants up from the scope it was written in.
    An eval string is the other case: it opens a scope of its own, and one
    given a class carries that class as its cref, so it is on the chain and
-   this walk finds it. */
+   this walk finds it.
+
+   A method written in a block given a class carries that class for a `def`
+   in its body and not as its cref, MRB_PROC_GIVEN says so, and the walk
+   passes over it to the scope the block was written in. */
 struct RClass*
 mrb_vm_cref_class(mrb_state *mrb, mrb_callinfo *ci)
 {
   const struct RProc *p = ci->proc;
 
-  while (p && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_CREF_P(p)) p = p->upper;
+  while (p && !MRB_PROC_CFUNC_P(p) && (!MRB_PROC_CREF_P(p) || MRB_PROC_GIVEN_P(p))) p = p->upper;
   return (p && !MRB_PROC_CFUNC_P(p)) ? MRB_PROC_TARGET_CLASS(p) : NULL;
 }
 
