@@ -5184,6 +5184,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       int base, nargs = 0;
       int idx, callargs = -1, vsp = -1;
       int32_t pos = -1;
+      /* a written `self` is a call on self for both the read and the
+         write, so a private `[]` or `[]=` is reachable as in CRuby; the
+         receiver is still loaded for the copy */
+      int op_send = (nint(receiver) == PM_SELF_NODE) ? OP_SSEND : OP_SEND;
       if (val) {
         vsp = cursp();
         push();
@@ -5206,7 +5210,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         gen_move(s, cursp()+i+1, base+i+1, 1);
       }
       push_n(nargs + 2); pop_n(nargs + 2); /* space for receiver, arguments and a block */
-      genop_3(s, OP_SEND, cursp(), idx, callargs);
+      genop_3(s, op_send, cursp(), idx, callargs);
       if (-1 != (int32_t)binary_operator) {
         push();
         codegen(s, value, VAL);
@@ -5236,7 +5240,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       pop();
       idx = new_sym(s, MRC_OPSYM_2(aset));
-      genop_3(s, OP_SEND, cursp(), idx, callargs);
+      genop_3(s, op_send, cursp(), idx, callargs);
       if (0 <= pos) { dispatch(s, pos); }
       break;
     }

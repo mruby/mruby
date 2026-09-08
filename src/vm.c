@@ -3724,20 +3724,36 @@ RETRY_TRY_BLOCK:
         ci->mid = mid;
         /* visibility is checked only when the method is actually found;
            the `method_missing` fallback dispatches regardless of its own
-           visibility, as in CRuby */
-        if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SENDB) {
-          mrb_bool priv = TRUE;
-          if (m.flags & MRB_METHOD_PRIVATE_FL) {
-          vis_err:;
-            mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
-            vis_error(mrb, mid, args, recv, priv);
+           visibility, as in CRuby. A call on a written `self` is exempt,
+           which OP_SSEND says of a named call. The send an operator
+           instruction falls back to has no operand that says how its
+           receiver was written, so it is exempt while the receiver is the
+           caller's own `self`: that admits `x = self; x[0] = 1`, which CRuby
+           rejects, and no other receiver. */
+        if (mrb_unlikely(m.flags & (MRB_METHOD_PRIVATE_FL | MRB_METHOD_PROTECTED_FL))) {
+          mrb_bool exempt;
+          if (insn == OP_SEND || insn == OP_SEND0 || insn == OP_SENDB) {
+            exempt = FALSE;
           }
-          /* protected methods are callable when the caller's `self` belongs
-             to the class (or module) where the method is defined */
-          else if ((m.flags & MRB_METHOD_PROTECTED_FL) &&
-                   !mrb_obj_is_kind_of(mrb, ci[-1].stack[0], ci->u.target_class)) {
-            priv = FALSE;
-            goto vis_err;
+          else if (insn == OP_SSEND || insn == OP_SSEND0 || insn == OP_SSENDB || insn == OP_SUPER) {
+            exempt = TRUE;
+          }
+          else {
+            exempt = mrb_obj_eq(mrb, recv, ci[-1].stack[0]);
+          }
+          if (!exempt) {
+            mrb_bool priv = TRUE;
+            if (m.flags & MRB_METHOD_PRIVATE_FL) {
+            vis_err:;
+              mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
+              vis_error(mrb, mid, args, recv, priv);
+            }
+            /* protected methods are callable when the caller's `self` belongs
+               to the class (or module) where the method is defined */
+            else if (!mrb_obj_is_kind_of(mrb, ci[-1].stack[0], ci->u.target_class)) {
+              priv = FALSE;
+              goto vis_err;
+            }
           }
         }
       }
