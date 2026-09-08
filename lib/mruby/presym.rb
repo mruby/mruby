@@ -63,10 +63,39 @@ module MRuby
       @build = build
     end
 
+    # The symbols of +layers+, numbered from 1 in the order they are
+    # returned.
+    #
+    # Each layer is the preprocessed files of one part of the build: the
+    # core first, then each gem in the order the build lists them, then the
+    # loader of the gems (see +tasks/presym.rake+). A layer's symbols that no
+    # earlier layer carries are appended in (length, bytes) order, so the
+    # number of a symbol depends on the layers before the one that brings it
+    # and on nothing after. A core source therefore compiles to the same
+    # object whatever gems the config names, a gem's objects stay as they
+    # are while the gems before it do, and a gem added at the end of the
+    # config leaves every number in place; a compiler cache keyed on the
+    # compile (ccache, sccache) answers for those objects across configs.
+    #
+    # The order the numbers give is not the order the search in +symbol.c+
+    # wants, so +table.h+ carries the sorted order beside it.
+    def scan_layers(layers)
+      presyms = []
+      seen = {}
+      layers.each do |paths|
+        presym_hash = {}
+        paths.each {|path| read_preprocessed(presym_hash, path)}
+        fresh = presym_hash.keys.reject {|sym| seen[sym]}
+        fresh.sort_by! {|sym| [c_literal_size(sym), sym]}
+        fresh.each {|sym| seen[sym] = true}
+        presyms.concat(fresh)
+      end
+      presyms
+    end
+
+    # The symbols of +paths+ as one layer.
     def scan(paths)
-      presym_hash = {}
-      paths.each {|path| read_preprocessed(presym_hash, path)}
-      presym_hash.keys.sort_by!{|sym| [c_literal_size(sym), sym]}
+      scan_layers([paths])
     end
 
     def read_list
@@ -78,31 +107,52 @@ module MRuby
       File.binwrite(list_path, presyms.join("\n") << "\n")
     end
 
+    # The numbers, as macros, or as the enumerators of `enum mruby_presym`
+    # under `MRB_PRESYM_ENUM`.
+    #
+    # A macro that a source does not use leaves no trace in the
+    # preprocessed source, and a compiler cache keyed on it answers for the
+    # object as long as the numbers the source does use are the ones it
+    # compiled with, whatever else the table gained. An enumerator is in
+    # every preprocessed source that includes the header. `symbol.c`, whose
+    # object follows the whole table anyway, asks for the enum, so that the
+    # names reach the debug information once, for a debugger to show a
+    # symbol number by its name (`p (enum mruby_presym)sym` in gdb) from any
+    # frame.
     def write_id_header(presyms)
       prefix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:first).uniq)
       suffix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:last).uniq)
       sym_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
+      macros = presyms.each.with_index(1).map do |sym, num|
+        if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
+          ["MRB_#{affixes * 'SYM'}__#{$2}", num]
+        elsif name = OPERATORS[sym]
+          ["MRB_OPSYM__#{name}", num]
+        end
+      end.compact
       _pp "GEN", id_header_path.relative_path
       File.open(id_header_path, "w:binary") do |f|
+        f.puts "#ifdef MRB_PRESYM_ENUM"
         # PicoRuby builds the VM core as a gem, so its mrbc build scans
         # zero presyms. An empty enum is invalid C, so skip the enum then.
-        unless presyms.empty?
+        unless macros.empty?
           f.puts "enum mruby_presym {"
-          presyms.each.with_index(1) do |sym, num|
-            if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
-              f.puts "  MRB_#{affixes * 'SYM'}__#{$2} = #{num},"
-            elsif name = OPERATORS[sym]
-              f.puts "  MRB_OPSYM__#{name} = #{num},"
-            end
-          end
+          macros.each {|name, num| f.puts "  #{name} = #{num},"}
           f.puts "};"
-          f.puts
         end
-        f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
+        f.puts "#else"
+        macros.each {|name, num| f.puts "#define #{name} #{num}"}
+        f.puts "#endif"
       end
     end
 
+    # The tables `symbol.c` reads: the length and the name of every symbol
+    # by its number, the numbers in (length, bytes) order for the binary
+    # search of a name, and how many there are.
     def write_table_header(presyms)
+      if presyms.size > 0xffff
+        raise "too many presyms for the sorted table (#{presyms.size} > 65535)"
+      end
       _pp "GEN", table_header_path.relative_path
       File.open(table_header_path, "w:binary") do |f|
         f.puts "static const uint16_t presym_length_table[] = {"
@@ -123,6 +173,13 @@ module MRuby
           f.puts %|  "#{sym}",|
         end
         f.puts "};"
+        f.puts
+        f.puts "static const uint16_t presym_sorted_table[] = {"
+        sorted = presyms.each_with_index.sort_by {|sym, i| [c_literal_size(sym), sym]}
+        sorted.each {|sym, i| f.puts "  #{i + 1},\t/* #{sym} */"}
+        f.puts "};"
+        f.puts
+        f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
       end
     end
 

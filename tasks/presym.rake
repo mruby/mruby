@@ -28,8 +28,26 @@ MRuby.each_target do |build|
     Rake.application.lookup(ppp) || Rake.application.enhance_with_matching_rule(ppp)
   end
 
+  # The preprocessed files in the layers `MRuby::Presym#scan_layers` numbers
+  # them by: the core, then each gem in the order the build lists them (the
+  # order the config names them in, a dependency before what depends on it),
+  # then the loader of the gems, which names them all. A symbol's number
+  # depends on the layers before its own, so what changes most often comes
+  # last: a gem the config adds at its end takes the layer after every other
+  # gem, and the core never sees a gem at all. (The test sources are not
+  # here: they are no product's prerequisite when this runs, and are not
+  # scanned.)
+  obj_ext = build.exts.object
+  gem_init = "#{build.build_dir}/mrbgems/gem_init#{obj_ext}"
+  by_gem = ppps.group_by do |ppp|
+    obj = ppp.ext(obj_ext)
+    gem = build.gems.detect { |g| obj.start_with?("#{g.build_dir}/") }
+    gem || (obj == gem_init ? :gem_init : :core)
+  end
+  layers = [by_gem[:core], *build.gems.map { |gem| by_gem[gem] }, by_gem[:gem_init]].compact
+
   presym_task = file presym.list_path => ppps do
-    presyms = presym.scan(ppps)
+    presyms = presym.scan_layers(layers)
     current_presyms = presym.read_list if File.exist?(presym.list_path)
     if presyms != current_presyms
       mkdir_p presym.header_dir

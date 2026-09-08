@@ -466,6 +466,13 @@ module MRuby
         #define MRB_AMALGAMATION 1
         #endif
 
+        /* The presym numbers as an enum, which is what src/symbol.c asks
+        ** for so that their names reach the debug information; here the
+        ** whole runtime is one translation unit, so the enum serves it all. */
+        #ifndef MRB_PRESYM_ENUM
+        #define MRB_PRESYM_ENUM 1
+        #endif
+
         #include "mruby.h"
 
       PREAMBLE

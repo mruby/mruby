@@ -77,3 +77,22 @@ These macros are converted to static symbol IDs at compile time.
 The `_2` suffix variants (e.g., `MRB_SYM_2`) are kept for backward
 compatibility only; they accept an explicit `mrb_state*` parameter
 but ignore it. New code should use the standard macros above.
+
+The IDs are given by the build from a scan of the sources, the core's
+symbols first and then the ones each gem adds, so an ID depends on the parts
+of the build before the one that brings it and not on the ones after (see
+`doc/guides/compile.md`, "File prefix map", for what that gives a compiler
+cache). They are not stable across versions of mruby, so keep them out of
+anything that outlives a build.
+
+The names of the IDs are in the debug information of `libmruby`, as the
+enumerators of `enum mruby_presym`; in a debugger, a symbol ID reads as its
+name through a cast:
+
+```text
+(gdb) p (enum mruby_presym)sym
+$1 = MRB_SYM__initialize
+```
+
+A dynamic symbol, one interned at run time, has no name there; `p
+mrb_sym_name(mrb, sym)` reads either.

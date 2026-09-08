@@ -5,6 +5,14 @@
 */
 
 #include <string.h>
+/* The presym numbers as an enum rather than as macros: this object follows
+   the whole table anyway, so this is where their names reach the debug
+   information once, for a debugger to show a symbol number by its name
+   (`p (enum mruby_presym)sym`) from any frame. The amalgamated source
+   defines it ahead of every file it holds. */
+#ifndef MRB_PRESYM_ENUM
+# define MRB_PRESYM_ENUM 1
+#endif
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
@@ -19,23 +27,31 @@
 #include <mruby/internal.h>
 
 #ifndef MRB_PRESYM_SCANNING
-/* const uint16_t presym_length_table[]   */
-/* const char * const presym_name_table[] */
+/* const uint16_t presym_length_table[]   by number, from 1
+   const char * const presym_name_table[] by number, from 1
+   const uint16_t presym_sorted_table[]   the numbers in (length, bytes) order
+   MRB_PRESYM_MAX                         how many
+
+   A symbol is numbered by the part of the build that brings it (the core,
+   then the gems), not by its place in the sorted order, so that a source
+   compiles to the same object whatever the other parts add; the search
+   below goes through the sorted order. */
 # include <mruby/presym/table.h>
 #endif
 
 static mrb_sym
 presym_find(const char *name, size_t len)
 {
-  if (presym_length_table[MRB_PRESYM_MAX-1] < len) return 0;
+  if (presym_length_table[presym_sorted_table[MRB_PRESYM_MAX-1]-1] < len) return 0;
 
   mrb_sym presym_size = MRB_PRESYM_MAX;
   for (mrb_sym start = 0; presym_size != 0; presym_size/=2) {
     mrb_sym idx = start+presym_size/2;
-    int cmp = (int)len-(int)presym_length_table[idx];
+    mrb_sym sym = presym_sorted_table[idx];
+    int cmp = (int)len-(int)presym_length_table[sym-1];
     if (cmp == 0) {
-      cmp = memcmp(name, presym_name_table[idx], len);
-      if (cmp == 0) return idx+1;
+      cmp = memcmp(name, presym_name_table[sym-1], len);
+      if (cmp == 0) return sym;
     }
     if (0 < cmp) {
       start = ++idx;
@@ -51,6 +67,16 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
   if (sym > MRB_PRESYM_MAX) return NULL;
   if (lenp) *lenp = presym_length_table[sym-1];
   return presym_name_table[sym-1];
+}
+
+/* How many symbols are preallocated, which is also the largest of their
+   numbers. Where the table is not in view: the number is a macro of the
+   table header, which this file alone includes, so that a change in the
+   count leaves the other objects as they are. */
+mrb_sym
+mrb_presym_max(void)
+{
+  return MRB_PRESYM_MAX;
 }
 
 /* ------------------------------------------------------ */

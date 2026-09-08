@@ -23,14 +23,15 @@
 static mrb_value
 mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ary = mrb_ary_new_capa(mrb, mrb->symidx);
+  mrb_sym presym_max = mrb_presym_max();
+  mrb_value ary = mrb_ary_new_capa(mrb, presym_max + mrb->symidx);
 
-  for (mrb_sym i=1; i<=MRB_PRESYM_MAX; i++) {
+  for (mrb_sym i=1; i<=presym_max; i++) {
     mrb_ary_push(mrb, ary, mrb_symbol_value(i));
   }
   mrb_sym lim = mrb->symidx + 1;
   for (mrb_sym i=1; i<lim; i++) {
-    mrb_ary_push(mrb, ary, mrb_symbol_value(i+MRB_PRESYM_MAX));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(i+presym_max));
   }
 
   return ary;
