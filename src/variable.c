@@ -1214,24 +1214,30 @@ mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   return mrb_mod_cv_defined(mrb, mrb_class_ptr(mod), sym);
 }
 
-/* The class a class variable in the frame's scope is read from: the nearest
-   scope on the `upper` chain that carries a class of its own, a singleton
-   class passed over.  A method written in a block given a class carries the
-   given class for a `def` and is passed over too; the variable is read from
-   the scope the block was written in, as under the cref CRuby skips. */
+/* The class a class variable written in the scope of `p` is read from: the
+   nearest cref on the `upper` chain, as mrb_vm_cref_class() finds it, with a
+   singleton class passed over.  A block is not a cref and carries the class
+   of the frame it was made in, which is the receiver's class where that
+   frame was given one to run under, as a `Class.new` or `class_eval` block
+   is; the variable is read from the scope the block was written in, as
+   under the cref CRuby skips.  A method written in such a block carries the
+   given class for a `def` and is passed over the same way.  Off the end of
+   the chain the variable is read from `Object`, as at the top level. */
+static struct RClass*
+cv_scope_class(mrb_state *mrb, const struct RProc *p)
+{
+  for (; p && !MRB_PROC_CFUNC_P(p); p = p->upper) {
+    if (!MRB_PROC_CREF_P(p) || MRB_PROC_GIVEN_P(p)) continue;
+    struct RClass *c = MRB_PROC_TARGET_CLASS(p);
+    if (c && c->tt != MRB_TT_SCLASS) return c;
+  }
+  return mrb->object_class;
+}
+
 mrb_value
 mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
-  struct RClass *c;
-
-  const struct RProc *p = mrb->c->ci->proc;
-
-  for (;;) {
-    c = MRB_PROC_TARGET_CLASS(p);
-    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(p)) break;
-    p = p->upper;
-  }
-  return mrb_mod_cv_get(mrb, c, sym);
+  return mrb_mod_cv_get(mrb, cv_scope_class(mrb, mrb->c->ci->proc), sym);
 }
 
 /* Non-raising class-variable lookup for `defined?(@@v)`. Resolves the class
@@ -1240,29 +1246,13 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 mrb_bool
 mrb_vm_cv_defined_p(mrb_state *mrb, const struct RProc *proc, mrb_sym sym)
 {
-  struct RClass *c;
-
-  for (;;) {
-    c = MRB_PROC_TARGET_CLASS(proc);
-    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(proc)) break;
-    proc = proc->upper;
-    if (!proc) { c = mrb->object_class; break; }
-  }
-  return mrb_mod_cv_defined(mrb, c, sym);
+  return mrb_mod_cv_defined(mrb, cv_scope_class(mrb, proc), sym);
 }
 
 void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
-  struct RClass *c;
-  const struct RProc *p = mrb->c->ci->proc;
-
-  for (;;) {
-    c = MRB_PROC_TARGET_CLASS(p);
-    if (c && c->tt != MRB_TT_SCLASS && !MRB_PROC_GIVEN_P(p)) break;
-    p = p->upper;
-  }
-  mrb_mod_cv_set(mrb, c, sym, v);
+  mrb_mod_cv_set(mrb, cv_scope_class(mrb, mrb->c->ci->proc), sym, v);
 }
 
 static void

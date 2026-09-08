@@ -1644,9 +1644,14 @@ module Test4GivenMethodMaker
       def cv; @@cvs; end
       def cv_defined; defined?(@@cvs); end
       def cv_write; @@cvs = :written; end
+      def cv_nested; [1].map { @@cvs }[0]; end
+      def cv_nested_defined; [1].map { defined?(@@cvs) }[0]; end
+      def cv_nested_write; [1].each { @@cvs = :nested }; end
     end
   end
   def self.read_cv; @@cvs; end
+  def self.read_under(recv); recv.class_eval { @@cvs }; end
+  def self.write_under(recv); recv.class_eval { @@cvs = :under }; end
   def self.install(recv)
     recv.class_eval do
       def own_direct; KO; end
@@ -1672,6 +1677,21 @@ assert('constant and class variable lookup: a method written in a block given a 
   assert_equal("class variable", o.cv_defined)
   o.cv_write
   assert_equal(:written, Test4GivenMethodMaker.read_cv)
+  assert_equal(:recv, Test4GivenMethodSuper.read_cv)
+
+  # a block made in the method carries the given class, as a `def` in it
+  # adds there, and is no scope of its own either: the variable is still
+  # read from and written to the module
+  assert_equal(:written, o.cv_nested)
+  assert_equal("class variable", o.cv_nested_defined)
+  o.cv_nested_write
+  assert_equal(:nested, Test4GivenMethodMaker.read_cv)
+  assert_equal(:recv, Test4GivenMethodSuper.read_cv)
+
+  # the same for the block given the class itself
+  assert_equal(:nested, Test4GivenMethodMaker.read_under(Test4GivenMethodSuper))
+  Test4GivenMethodMaker.write_under(Test4GivenMethodSuper)
+  assert_equal(:under, Test4GivenMethodMaker.read_cv)
   assert_equal(:recv, Test4GivenMethodSuper.read_cv)
 
   # a constant only the given class has is out of reach from the method
