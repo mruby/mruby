@@ -987,6 +987,35 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
   *cp = NULL;
 }
 
+/* The visibility a method made by a call from Ruby takes, read from the
+   frame the C function was called from.  A call written in the body of the
+   class it defines on takes the visibility written there, as a `def` in
+   that body would; a call on another class, or from inside a method, makes
+   a public method.  The receiver has to be both the self and the class of
+   that frame, the way CRuby's `rb_vm_cref_in_context()` answers for
+   `define_method` and `rb_attr()`.  A singleton class takes no visibility
+   from its body here either. */
+static int
+caller_scope_visibility(mrb_state *mrb, struct RClass *c, mrb_bool *modfunc)
+{
+  const struct mrb_context *ec = mrb->c;
+  mrb_callinfo *ci = ec->ci - 1;
+
+  *modfunc = FALSE;
+  if (ci < ec->cibase || c->tt == MRB_TT_SCLASS) return MRB_METHOD_PUBLIC_FL;
+  if (mrb_vm_ci_target_class(ci) != c) return MRB_METHOD_PUBLIC_FL;
+  mrb_value self = ci->stack[0];
+  if (!(mrb_class_p(self) || mrb_module_p(self)) || mrb_class_ptr(self) != c) {
+    return MRB_METHOD_PUBLIC_FL;
+  }
+
+  struct REnv *e;
+  find_visibility_scope(mrb, c, 1, &ci, &e);
+  mrb_assert(ci || e);
+  *modfunc = e ? MRB_ENV_MODFUNC_P(e) : MRB_CI_MODFUNC_P(ci);
+  return (int)((e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)) << 25);
+}
+
 /* Gives the current frame the visibility of the scope `p` was compiled
    against. `eval` on a string wants this: the string runs in that scope, so a
    `def` in it takes the visibility written there, while the frame goes on
@@ -1130,6 +1159,16 @@ eq_defined_mark(mrb_state *mrb, struct RClass *c)
   }
 }
 
+/* module_function scope: also define a public method on the singleton
+   class, so the module method (M.foo) mirrors the private instance one */
+static void
+define_modfunc_copy(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
+{
+  MRB_SET_VISIBILITY_FLAGS(m.flags, MRB_METHOD_PUBLIC_FL);
+  prepare_singleton_class(mrb, (struct RBasic*)c);
+  mrb_define_method_raw(mrb, c->c, mid, m);
+}
+
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
@@ -1196,12 +1235,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     if (mid == MRB_OPSYM(eq)) eq_defined_mark(mrb, named);
   }
   if (modfunc) {
-    /* module_function scope: also define a public method on the singleton
-       class, so the module method (M.foo) mirrors the private instance one */
-    mrb_method_t sm = m;
-    MRB_SET_VISIBILITY_FLAGS(sm.flags, MRB_METHOD_PUBLIC_FL);
-    prepare_singleton_class(mrb, (struct RBasic*)c);
-    mrb_define_method_raw(mrb, c->c, mid, sm);
+    define_modfunc_copy(mrb, c, mid, m);
   }
 }
 
@@ -2652,6 +2686,11 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     struct RClass *t = c;
     MRB_CLASS_ORIGIN(t);
     mrb_mt_tbl *h = mt_writable(mrb, c, t);
+    if (argc == 1 && mrb_array_p(argv[0])) {
+      /* the names `attr_accessor` and its kin answer with */
+      argc = RARRAY_LEN(argv[0]);
+      argv = RARRAY_PTR(argv[0]);
+    }
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
@@ -3321,8 +3360,11 @@ prepare_writer_name(mrb_state *mrb, mrb_sym sym)
   return prepare_name_common(mrb, sym, NULL, "=");
 }
 
+/* Defines the accessors named and answers their names, reader before
+   writer for each name, so that `private attr_accessor :a` can pass them on
+   the way CRuby's answer can. */
 static mrb_value
-mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*accessor)(mrb_state*, mrb_value), mrb_sym (*access_name)(mrb_state*, mrb_sym))
+mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_bool reader, mrb_bool writer)
 {
   struct RClass *c = mrb_class_ptr(mod);
   const mrb_value *argv;
@@ -3330,22 +3372,30 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*access
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
+  /* An accessor made in a module_function scope is private and gets no
+     module method copy, as CRuby's `rb_attr()` makes it. */
+  mrb_bool modfunc;
+  int vis = caller_scope_visibility(mrb, c, &modfunc);
+
+  mrb_value names = mrb_ary_new_capa(mrb, argc * (reader + writer));
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_sym method = to_sym(mrb, argv[i]);
-    mrb_value name = prepare_ivar_name(mrb, method);
-    if (access_name) {
-      method = access_name(mrb, method);
+    mrb_sym sym = to_sym(mrb, argv[i]);
+    mrb_value ivar = prepare_ivar_name(mrb, sym);
+    for (int w = 0; w < 2; w++) {
+      if (!(w ? writer : reader)) continue;
+      mrb_sym mid = w ? prepare_writer_name(mrb, sym) : sym;
+      struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, w ? mrb_attr_writer : mrb_attr_reader, 1, &ivar);
+      if (!w) p->flags |= MRB_PROC_NOARG;
+      mrb_method_t m;
+      MRB_METHOD_FROM_PROC(m, p);
+      MRB_METHOD_SET_VISIBILITY(m, vis);
+      mrb_define_method_raw(mrb, c, mid, m);
+      mrb_ary_push(mrb, names, mrb_symbol_value(mid));
     }
-
-    struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
-    p->flags |= aargc == 0 ? MRB_PROC_NOARG : 0;
-    mrb_method_t m;
-    MRB_METHOD_FROM_PROC(m, p);
-    mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
   }
-  return mrb_nil_value();
+  return names;
 }
 
 mrb_value
@@ -3358,7 +3408,7 @@ mrb_attr_reader(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 0, mrb_attr_reader, NULL);
+  return mod_attr_define(mrb, mod, TRUE, FALSE);
 }
 
 mrb_value
@@ -3374,14 +3424,13 @@ mrb_attr_writer(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 1, mrb_attr_writer, prepare_writer_name);
+  return mod_attr_define(mrb, mod, FALSE, TRUE);
 }
 
 static mrb_value
 mrb_mod_attr_accessor(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_attr_reader(mrb, mod);
-  return mrb_mod_attr_writer(mrb, mod);
+  return mod_attr_define(mrb, mod, TRUE, TRUE);
 }
 
 static mrb_value
@@ -4431,7 +4480,16 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  return define_method_m(mrb, c, MRB_METHOD_PUBLIC_FL);
+  mrb_bool modfunc;
+  int vis = caller_scope_visibility(mrb, c, &modfunc);
+  mrb_value name = define_method_m(mrb, c, vis);
+  if (modfunc) {
+    /* the copy is made of what the name now resolves to, as the copy
+       `module_function :name` makes is */
+    mrb_sym mid = mrb_symbol(name);
+    define_modfunc_copy(mrb, c, mid, mrb_method_search(mrb, c, mid));
+  }
+  return name;
 }
 
 static mrb_value

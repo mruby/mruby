@@ -198,6 +198,80 @@ assert('Module#attr_writer', '15.2.2.4.14') do
   assert_equal 'test', AttrTestWriter.cattr_val
 end
 
+assert('Module#attr_* answer the names they define') do
+  r = w = a = nil
+  Class.new {
+    r = attr_reader :x, 'y'
+    w = attr_writer :x
+    a = attr_accessor :x, :y
+  }
+  assert_equal [:x, :y], r
+  assert_equal [:x=], w
+  assert_equal [:x, :x=, :y, :y=], a
+
+  # which is what a visibility written in front of them takes
+  c = Class.new {
+    def get; [r, a]; end
+    private attr_reader :r
+    private attr_accessor :a
+  }
+  assert_equal [nil, nil], c.new.get
+  assert_raise(NoMethodError) { c.new.r }
+  assert_raise(NoMethodError) { c.new.a = 2 }
+end
+
+assert('Module#attr_* take the visibility of the scope they are called in') do
+  c = Class.new {
+    def set; self.w = 1; self.a = 2; @r = 3; end
+    def get; [r, a]; end
+    def set_prot(other); other.r = 4; end
+    private
+    attr_reader :r
+    attr_writer :w
+    attr_accessor :a
+    protected
+    attr_writer :r
+  }
+  obj = c.new
+  obj.set
+  assert_equal [3, 2], obj.get
+  assert_raise(NoMethodError) { obj.r }
+  assert_raise(NoMethodError) { obj.a }
+  assert_raise(NoMethodError) { obj.r = 5 }
+  other = c.new
+  obj.set_prot(other)
+  assert_equal [4, nil], other.get
+  assert_false c.method_defined?(:r)
+  assert_false c.method_defined?(:a=)
+  assert_true c.method_defined?(:r=)
+
+  # a `class_eval` block is the body too
+  c = Class.new
+  c.class_eval { private; attr_reader :r }
+  assert_raise(NoMethodError) { c.new.r }
+
+  # a call on another class, or from inside a method, defines a public accessor
+  other = Class.new
+  c = Class.new {
+    private
+    other.attr_accessor :pub
+    def self.make; attr_reader :from_cm; end
+  }
+  c.make
+  assert_nil other.new.pub
+  assert_nil c.new.from_cm
+
+  # module_function scope: private, and no module method is made of it
+  mod = Module.new {
+    module_function
+    attr_reader :mf
+  }
+  assert_false mod.respond_to?(:mf)
+  klass = Class.new { include mod; def call_mf; mf; end }
+  assert_nil klass.new.call_mf
+  assert_raise(NoMethodError) { klass.new.mf }
+end
+
 assert('Module#class_eval', '15.2.2.4.15') do
   class Test4ClassEval
     @a = 11
@@ -556,6 +630,70 @@ assert('Module#define_method') do
   assert_raise(TypeError) do
     Class.new { define_method(:n1, nil) }
   end
+end
+
+assert('Module#define_method takes the visibility of the scope it is called in') do
+  c = Class.new {
+    private
+    define_method(:priv) { :priv }
+    protected
+    define_method(:prot) { :prot }
+    public
+    define_method(:pub) { :pub }
+    def call_priv; priv; end
+    def call_prot; self.prot; end
+  }
+  obj = c.new
+  assert_equal :priv, obj.call_priv
+  assert_equal :prot, obj.call_prot
+  assert_equal :pub, obj.pub
+  assert_raise(NoMethodError) { obj.priv }
+  assert_raise(NoMethodError) { obj.prot }
+  assert_false c.method_defined?(:priv)
+  assert_true c.method_defined?(:prot)
+
+  # a block written in the body is still that body
+  c = Class.new {
+    def call_priv; priv; end
+    private
+    [1].each { define_method(:priv) { :priv } }
+  }
+  assert_equal :priv, c.new.call_priv
+  assert_raise(NoMethodError) { c.new.priv }
+
+  # and so is a `class_eval` block
+  c = Class.new
+  c.class_eval { private; define_method(:priv) { :priv } }
+  assert_raise(NoMethodError) { c.new.priv }
+
+  # a call on another class defines a public method
+  other = Class.new
+  Class.new {
+    private
+    other.define_method(:pub) { :pub }
+  }
+  assert_equal :pub, other.new.pub
+
+  # a call from inside a method is not in the body
+  c = Class.new {
+    private
+    def self.make; define_method(:from_cm) { :from_cm }; end
+    def make; self.class.define_method(:from_im) { :from_im }; end
+  }
+  c.make
+  c.new.__send__(:make)
+  assert_equal :from_cm, c.new.from_cm
+  assert_equal :from_im, c.new.from_im
+
+  # module_function scope: a private instance method and a public module one
+  mod = Module.new {
+    module_function
+    define_method(:mf) { :mf }
+  }
+  assert_equal :mf, mod.mf
+  klass = Class.new { include mod; def call_mf; mf; end }
+  assert_equal :mf, klass.new.call_mf
+  assert_raise(NoMethodError) { klass.new.mf }
 end
 
 # @!group prepend

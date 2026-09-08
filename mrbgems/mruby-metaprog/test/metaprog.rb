@@ -611,6 +611,75 @@ assert('Module.nesting from a method with a receiver', '15.2.2.2.2') do
                Test4NestingInSdef.in_sclass)
 end
 
+assert('Module#define_method - the visibility it takes from the scope') do
+  c = Class.new do
+    private
+    define_method(:priv) {}
+    protected
+    define_method(:prot) {}
+    public
+    define_method(:pub) {}
+    def self.make; define_method(:from_cm) {}; end
+  end
+  c.make
+  assert_equal [:priv], c.private_instance_methods(false)
+  assert_equal [:prot], c.protected_instance_methods(false)
+  assert_equal [:from_cm, :pub], c.public_instance_methods(false).sort
+
+  # a singleton class takes no visibility from its body, as a `def` there does not
+  s = Class.new do
+    class << self
+      private
+      define_method(:sm) {}
+      def sd; end
+    end
+  end
+  assert_equal [:sd, :sm], s.singleton_methods(false).sort
+  assert_equal [], s.singleton_class.private_instance_methods(false)
+
+  # module_function scope: the instance method is private, the module one public
+  mod = Module.new do
+    module_function
+    define_method(:mf) {}
+  end
+  assert_equal [:mf], mod.private_instance_methods(false)
+  assert_equal [:mf], mod.singleton_methods(false)
+end
+
+assert('Module#attr_* - the visibility they take from the scope') do
+  c = Class.new do
+    private
+    attr_reader :r
+    attr_accessor :a
+    protected
+    attr_writer :w
+    public
+    attr_reader :p
+    def self.make; attr_reader :from_cm; end
+  end
+  c.make
+  assert_equal [:a, :a=, :r], c.private_instance_methods(false).sort
+  assert_equal [:w=], c.protected_instance_methods(false)
+  assert_equal [:from_cm, :p], c.public_instance_methods(false).sort
+
+  # a singleton class takes no visibility from its body
+  s = Class.new do
+    class << self
+      private
+      attr_reader :sr
+    end
+  end
+  assert_equal [:sr], s.singleton_methods(false)
+
+  # module_function scope: private, with no module method copy
+  mod = Module.new do
+    module_function
+    attr_reader :mf
+  end
+  assert_equal [:mf], mod.private_instance_methods(false)
+  assert_equal [], mod.singleton_methods(false)
+end
+
 assert('Module#define_method - where a def in the block lands') do
   # A `define_method` block keeps the scope it was written in, its cref
   # along with its locals, so a `def` in it adds to that scope's class and
