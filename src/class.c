@@ -4320,9 +4320,11 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
    so the search is made here to weigh the visibility the listing reports on.
    With `inherit` false the method has to be `mod`'s own: the walk starts at
    the origin, past the modules prepended in front of it, and a method found
-   further up is not counted. */
-static int
-mod_method_visibility(mrb_state *mrb, mrb_value mod)
+   further up is not counted.  The arguments are read here so that the four
+   methods built on this (`method_defined?` and the three in mruby-metaprog)
+   read them the same way. */
+int
+mrb_mod_method_visibility(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym id;
   mrb_bool inherit = TRUE;
@@ -4369,7 +4371,7 @@ mod_method_visibility(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
 {
-  int vis = mod_method_visibility(mrb, mod);
+  int vis = mrb_mod_method_visibility(mrb, mod);
   return mrb_bool_value(vis == MRB_METHOD_PUBLIC_FL || vis == MRB_METHOD_PROTECTED_FL);
 }
 
