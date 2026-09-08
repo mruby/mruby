@@ -2686,6 +2686,11 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     struct RClass *t = c;
     MRB_CLASS_ORIGIN(t);
     mrb_mt_tbl *h = mt_writable(mrb, c, t);
+    if (argc == 1 && mrb_array_p(argv[0])) {
+      /* the names `attr_accessor` and its kin answer with */
+      argc = RARRAY_LEN(argv[0]);
+      argv = RARRAY_PTR(argv[0]);
+    }
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
@@ -3355,8 +3360,11 @@ prepare_writer_name(mrb_state *mrb, mrb_sym sym)
   return prepare_name_common(mrb, sym, NULL, "=");
 }
 
+/* Defines the accessors named and answers their names, reader before
+   writer for each name, so that `private attr_accessor :a` can pass them on
+   the way CRuby's answer can. */
 static mrb_value
-mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*accessor)(mrb_state*, mrb_value), mrb_sym (*access_name)(mrb_state*, mrb_sym))
+mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_bool reader, mrb_bool writer)
 {
   struct RClass *c = mrb_class_ptr(mod);
   const mrb_value *argv;
@@ -3369,23 +3377,25 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_int aargc, mrb_value (*access
   mrb_bool modfunc;
   int vis = caller_scope_visibility(mrb, c, &modfunc);
 
+  mrb_value names = mrb_ary_new_capa(mrb, argc * (reader + writer));
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_sym method = to_sym(mrb, argv[i]);
-    mrb_value name = prepare_ivar_name(mrb, method);
-    if (access_name) {
-      method = access_name(mrb, method);
+    mrb_sym sym = to_sym(mrb, argv[i]);
+    mrb_value ivar = prepare_ivar_name(mrb, sym);
+    for (int w = 0; w < 2; w++) {
+      if (!(w ? writer : reader)) continue;
+      mrb_sym mid = w ? prepare_writer_name(mrb, sym) : sym;
+      struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, w ? mrb_attr_writer : mrb_attr_reader, 1, &ivar);
+      if (!w) p->flags |= MRB_PROC_NOARG;
+      mrb_method_t m;
+      MRB_METHOD_FROM_PROC(m, p);
+      MRB_METHOD_SET_VISIBILITY(m, vis);
+      mrb_define_method_raw(mrb, c, mid, m);
+      mrb_ary_push(mrb, names, mrb_symbol_value(mid));
     }
-
-    struct RProc *p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
-    p->flags |= aargc == 0 ? MRB_PROC_NOARG : 0;
-    mrb_method_t m;
-    MRB_METHOD_FROM_PROC(m, p);
-    MRB_METHOD_SET_VISIBILITY(m, vis);
-    mrb_define_method_raw(mrb, c, method, m);
     mrb_gc_arena_restore(mrb, ai);
   }
-  return mrb_nil_value();
+  return names;
 }
 
 mrb_value
@@ -3398,7 +3408,7 @@ mrb_attr_reader(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 0, mrb_attr_reader, NULL);
+  return mod_attr_define(mrb, mod, TRUE, FALSE);
 }
 
 mrb_value
@@ -3414,14 +3424,13 @@ mrb_attr_writer(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
-  return mod_attr_define(mrb, mod, 1, mrb_attr_writer, prepare_writer_name);
+  return mod_attr_define(mrb, mod, FALSE, TRUE);
 }
 
 static mrb_value
 mrb_mod_attr_accessor(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_attr_reader(mrb, mod);
-  return mrb_mod_attr_writer(mrb, mod);
+  return mod_attr_define(mrb, mod, TRUE, TRUE);
 }
 
 static mrb_value

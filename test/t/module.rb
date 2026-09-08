@@ -198,6 +198,28 @@ assert('Module#attr_writer', '15.2.2.4.14') do
   assert_equal 'test', AttrTestWriter.cattr_val
 end
 
+assert('Module#attr_* answer the names they define') do
+  r = w = a = nil
+  Class.new {
+    r = attr_reader :x, 'y'
+    w = attr_writer :x
+    a = attr_accessor :x, :y
+  }
+  assert_equal [:x, :y], r
+  assert_equal [:x=], w
+  assert_equal [:x, :x=, :y, :y=], a
+
+  # which is what a visibility written in front of them takes
+  c = Class.new {
+    def get; [r, a]; end
+    private attr_reader :r
+    private attr_accessor :a
+  }
+  assert_equal [nil, nil], c.new.get
+  assert_raise(NoMethodError) { c.new.r }
+  assert_raise(NoMethodError) { c.new.a = 2 }
+end
+
 assert('Module#attr_* take the visibility of the scope they are called in') do
   c = Class.new {
     def set; self.w = 1; self.a = 2; @r = 3; end
