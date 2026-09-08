@@ -2688,6 +2688,9 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
     }
     /* initialize rest arguments with empty Array */
     if (r) {
+      /* the post arguments may have been moved over the register the block
+         arrived in, which was its only reference from the stack */
+      mrb_gc_protect(mrb, blk);
       rest = mrb_ary_new_capa(mrb, 0);
       regs[m1+o+1] = rest;
     }
