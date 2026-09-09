@@ -225,6 +225,20 @@ mrb_io_win_p(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/* Wine is close enough to Windows to run the whole suite but not close enough
+   in every corner, and it is what the cross-mingw-winetest build tests with.
+   The version function is exported by its ntdll and by no other. */
+static mrb_value
+mrb_io_wine_p(mrb_state *mrb, mrb_value klass)
+{
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__CYGWIN32__)
+  HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+  return mrb_bool_value(ntdll && GetProcAddress(ntdll, "wine_get_version") != NULL);
+#else
+  return mrb_false_value();
+#endif
+}
+
 #if defined(_WIN32)
 #define MAXPATHLEN 1024
 #define getcwd _getcwd
@@ -266,6 +280,7 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, io_test, "wine?", mrb_io_wine_p, MRB_ARGS_NONE());
 
   mrb_define_const(mrb, io_test, "MRB_USE_IO_PREAD_PWRITE", mrb_bool_value(MRB_USE_IO_PREAD_PWRITE_ENABLED));
 

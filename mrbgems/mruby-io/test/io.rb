@@ -101,9 +101,8 @@ assert('IO#eof?', '15.2.20.5.6') do
   io.close
 end
 
-assert('IO#eof? is answered again after the end') do
-  # Bytes put back after the end are there to be read, and so are bytes that
-  # reach a file after a reader has seen the end of it.
+assert('IO#eof? is answered again after a put-back byte') do
+  # Bytes put back after the end are there to be read.
   io = IO.open(IO.sysopen($mrbtest_io_rfname))
   begin
     io.read
@@ -115,6 +114,12 @@ assert('IO#eof? is answered again after the end') do
   ensure
     io.close
   end
+end
+
+assert('IO#eof? is answered again after the file grows') do
+  # Bytes that reach a file after a reader has seen the end of it are there
+  # to be read.
+  skip "wine reads no further than where this handle saw the end" if MRubyIOTestUtil.wine?
 
   dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
   path = "#{dir}/growing"
