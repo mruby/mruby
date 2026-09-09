@@ -391,6 +391,20 @@ mrb_vm_ci_env_clear(mrb_state *mrb, mrb_callinfo *ci)
   mrb_ci_svar_set(mrb, mrb->c, ci, NULL);
 }
 
+/* A proc that is a scope of its own: one the VM made for a `def` body or a
+ * class body, which captured no env. `mrb_define_method_raw()` marks a
+ * block installed by `define_method` a scope too, but that block keeps the
+ * env it was made in, and its special variables belong to the scope it was
+ * written in, the way its locals do (MRB_PROC_LVAR_BOUNDARY_P() in
+ * mruby/proc.h, the same condition read for the other walk). CRuby resolves
+ * the same way: the block's ep is unchanged by the install, so its svar is
+ * still its lep's. */
+static mrb_bool
+svar_own_scope_p(const struct RProc *p)
+{
+  return MRB_PROC_SCOPE_P(p) && !MRB_PROC_ENV_P(p);
+}
+
 /* The local scope of a block or lambda: following p->upper toward the
  * scope proc, MRB_PROC_ENV() of each step is the env of the frame the
  * proc was defined in, instance by instance, so the env in hand when the
@@ -406,7 +420,7 @@ svar_scope_env(const struct RProc *p)
   if (!e) return NULL;
   for (;;) {
     const struct RProc *up = p->upper;
-    if (!up || MRB_PROC_CFUNC_P(up) || MRB_PROC_SCOPE_P(up)) return e;
+    if (!up || MRB_PROC_CFUNC_P(up) || svar_own_scope_p(up)) return e;
     struct REnv *upenv = MRB_PROC_ENV(up);
     if (!upenv) return e;
     p = up;
@@ -491,8 +505,8 @@ svar_slot_ensure(mrb_state *mrb, struct REnv *e)
 
 /* The owner of the frame-scoped special variables, resolved the way CRuby
  * resolves its svar: walking down from the top, a C frame has no slot of
- * its own, a scope frame owns its own slot, a frame with no
- * scope of its own is as transparent as a C frame (see
+ * its own, a scope frame owns its own slot (see `svar_own_scope_p()`), a
+ * frame with no scope of its own is as transparent as a C frame (see
  * `svar_scopeless_frame_p()`), and a block or lambda frame resolves to the
  * scope it was defined in, wherever that scope now is: a live frame on
  * this or on another context's stack, or the env the scope left behind. A
@@ -539,7 +553,7 @@ svar_owner_from(struct mrb_context *c, mrb_callinfo *top, mrb_callinfo **cip, st
     const struct RProc *p = ci->proc;
 
     if (p && !MRB_PROC_CFUNC_P(p)) {
-      if (MRB_PROC_SCOPE_P(p)) {
+      if (svar_own_scope_p(p)) {
         *cip = ci;
         *ocp = wc;
         return;
