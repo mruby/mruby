@@ -2725,18 +2725,22 @@ gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val)
   }
   if (has_rest || 0 < post) {
     gen_move(s, cursp(), rhs, val);
+    int sp = cursp();
+    /* OP_APOST fills sp..sp+post, and the targets keep being read from there
+       while they are assigned: a call or index target assigns through a send
+       built from cursp() up, so those registers have to be reserved first */
     push_n(post+1);
-    pop_n(post+1);
-    genop_3(s, OP_APOST, cursp(), n, post);
+    genop_3(s, OP_APOST, sp, n, post);
     if (has_rest) { /* rest */
       pm_node_t *rest_expr = ((pm_splat_node_t *)cast->rest)->expression;
       if (rest_expr) {
-        gen_assignment(s, rest_expr, NULL, cursp(), NOVAL);
+        gen_assignment(s, rest_expr, NULL, sp, NOVAL);
       }
     }
     for (int i = 0; i < post; i++) {
-      gen_assignment(s, cast->rights.nodes[i], NULL, cursp()+i+1, NOVAL);
+      gen_assignment(s, cast->rights.nodes[i], NULL, sp+i+1, NOVAL);
     }
+    pop_n(post+1);
     if (val) {
       gen_move(s, cursp(), rhs, 0);
     }
@@ -4937,8 +4941,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
               n++;
             }
             else {
-              genop_1(s, OP_LOADNIL, rhs+n);
-              gen_assignment(s, cast->lefts.nodes[i], NULL, rhs+n, NOVAL);
+              int sp = cursp();
+              genop_1(s, OP_LOADNIL, sp);
+              push();
+              gen_assignment(s, cast->lefts.nodes[i], NULL, sp, NOVAL);
+              pop();
             }
           }
         }
@@ -4958,7 +4965,13 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
             genop_3(s, OP_ARRAY2, cursp(), rhs+n, rn);
           }
           if (((pm_splat_node_t *)cast->rest)->expression) {
-            gen_assignment(s, ((pm_splat_node_t *)cast->rest)->expression, NULL, cursp(), NOVAL);
+            int sp = cursp();
+            /* the array is above the values but not reserved; a target that is
+               a call or an index assigns through a send whose receiver is built
+               at cursp() and would overwrite it */
+            push();
+            gen_assignment(s, ((pm_splat_node_t *)cast->rest)->expression, NULL, sp, NOVAL);
+            pop();
           }
           n += rn;
         }
@@ -4980,8 +4993,11 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
               n++;
             }
             else {
-              genop_1(s, OP_LOADNIL, cursp());
-              gen_assignment(s, cast->rights.nodes[i], NULL, cursp(), NOVAL);
+              int sp = cursp();
+              genop_1(s, OP_LOADNIL, sp);
+              push();
+              gen_assignment(s, cast->rights.nodes[i], NULL, sp, NOVAL);
+              pop();
               n++;
             }
           }

@@ -336,6 +336,47 @@ assert('multiple assignment to an attribute counts its registers') do
   assert_equal [11, 12], [i, h[0]]
 end
 
+assert('a multiple assignment target assigning through a send keeps its value') do
+  # The rest array, the values behind a rest, and the `nil` a target past the
+  # end of the values takes all sit at the top of the frame without being
+  # reserved, and a target that is an attribute or an index assigns by
+  # sending, which builds its receiver from there up. The receiver landed on
+  # the value being assigned, so each such target stored the receiver.
+  klass = Class.new do
+    attr_accessor :v, :w, :x
+  end
+  o = klass.new
+
+  *o.v, o.w = 1, 2, 3
+  assert_equal [[1, 2], 3], [o.v, o.w]
+
+  h = {}
+  h[:a], *h[:b], h[:c] = 1, 2, 3, 4
+  assert_equal({:a => 1, :b => [2, 3], :c => 4}, h)
+
+  # a target the values do not reach takes nil through the same send, in
+  # front of a rest and behind one
+  o = klass.new
+  o.v, o.w, o.x = 1, 2
+  assert_equal [1, 2, nil], [o.v, o.w, o.x]
+  h = {}
+  h[:a], h[:b] = [1]
+  assert_equal({:a => 1, :b => nil}, h)
+  o = klass.new
+  *o.v, o.w, o.x = 1
+  assert_equal [[], 1, nil], [o.v, o.w, o.x]
+
+  # the same targets with an rhs whose length the compiler cannot count
+  rhs = [1, 2, 3]
+  o = klass.new
+  *o.v, o.w = *rhs
+  assert_equal [[1, 2], 3], [o.v, o.w]
+
+  h = {}
+  h[:a], *h[:b], h[:c] = *[1, 2, 3, 4]
+  assert_equal({:a => 1, :b => [2, 3], :c => 4}, h)
+end
+
 assert('a discarded interpolation leaves the register pointer where it was') do
   # A string literal whose value is thrown away is compiled for the side
   # effects of its interpolations alone. Each part was popped though nothing
