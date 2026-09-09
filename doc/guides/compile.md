@@ -76,6 +76,18 @@ GCC toolchain.
 conf.toolchain :clang
 ```
 
+#### Zig
+
+Toolchain configuration for `zig cc`. Based on the clang toolchain, with `zig`
+on the `PATH` or in `ZIG`.
+
+```ruby
+conf.toolchain :zig, target: 'aarch64-linux-musl'
+```
+
+The `target:` parameter names the triple to compile for; without it the target
+is the host.
+
 #### Visual Studio
 
 Toolchain configuration for Visual Studio on Windows. If you use the
