@@ -45,6 +45,10 @@ def plot
       p.puts "e"
     end
   end
+  # A gnuplot that never ran leaves the same trace as one that plotted: what
+  # the shell writes goes to the terminal rather than here, and the status is
+  # the only thing that tells the two apart.
+  raise "gnuplot exited #{$?.exitstatus}" unless $?.success?
 
   puts "Benchmark results output to #{plot_file}"
 end
