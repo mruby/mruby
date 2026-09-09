@@ -956,7 +956,7 @@ static const mrb_mt_entry struct_rom_entries[] = {
   MRB_MT_ENTRY(mrb_struct_len,        MRB_SYM(length),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(to_a),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(values),       MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(to_h),         MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_struct_to_h,       MRB_SYM(__to_h),       MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_to_a,       MRB_SYM(deconstruct),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_struct_deconstruct_keys, MRB_SYM(deconstruct_keys), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_struct_values_at,  MRB_SYM(values_at), MRB_ARGS_ANY()),

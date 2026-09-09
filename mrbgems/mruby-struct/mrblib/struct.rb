@@ -46,6 +46,32 @@ class Struct
   end
 
   ##
+  #  call-seq:
+  #    struct.to_h                -> hash
+  #    struct.to_h {|k, v| ... }  -> hash
+  #
+  #  Create a hash from member names and struct values. If a block is
+  #  given, it is called with each member name and value, and it should
+  #  return a `[key, value]` pair to construct the hash.
+  #
+  #     Customer = Struct.new(:name, :zip)
+  #     Customer.new("Joe", 12345).to_h{|k, v| [k.to_s, v]}
+  #       # => {"name" => "Joe", "zip" => 12345}
+  #
+  def to_h(&blk)
+    h = __to_h
+    return h unless blk
+    ret = {}
+    h.each {|k, v|
+      pair = blk.call(k, v)
+      raise TypeError, "wrong element type #{pair.class} (expected Array)" unless Array === pair
+      raise ArgumentError, "element has wrong array length (expected 2, was #{pair.size})" if pair.size != 2
+      ret[pair[0]] = pair[1]
+    }
+    ret
+  end
+
+  ##
   # 15.2.18.4.11(x)
   #
   alias to_s inspect
