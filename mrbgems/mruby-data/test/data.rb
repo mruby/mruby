@@ -49,6 +49,15 @@ assert('Data#to_h') do
   assert_equal({:white => 'ruuko', :red => 'yuzuki', :green => 'hitoe'}) { s.to_h }
 end
 
+assert('Data#to_h with a block') do
+  s = Data.define(:white, :red).new('ruuko', 'yuzuki')
+  assert_equal({'white' => 'ruuko', 'red' => 'yuzuki'}, s.to_h { |k, v| [k.to_s, v] })
+  assert_equal({:white => 'ruuko', :red => 'yuzuki'}, s.to_h(&->(k, v) { [k, v] }))
+  assert_equal :stopped, s.to_h { |k, v| break :stopped }
+  assert_raise(TypeError)     { s.to_h { |k, v| k } }
+  assert_raise(ArgumentError) { s.to_h { |k, v| [k, v, 1] } }
+end
+
 assert("Data.define does not allow array") do
   assert_raise(TypeError) do
     Data.define("Test", [:a])
