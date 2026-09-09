@@ -13,10 +13,25 @@
 mrb_state *global_mrb = NULL;
 
 #if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
-/* The arena prism allocates a parse from.  Blocks are taken from mrb_malloc()
-   and handed out by bumping a pointer; giving the arena back walks the chain
-   of blocks rather than the tree, so a tree of any depth costs one loop and
-   no C stack.  See prism_xallocator.h for why the tree is not walked. */
+/* The arena prism allocates a parse from.  Blocks are handed out by bumping a
+   pointer; giving the arena back walks the chain of blocks rather than the
+   tree, so a tree of any depth costs one loop and no C stack.  See
+   prism_xallocator.h for why the tree is not walked.
+
+   The blocks come from mrb_malloc(), so that a parse is on the allocator the
+   state was opened with, except where Prism is compiled as C beside a C++
+   core: mrb_malloc() raises on failure and the throw would pass through
+   Prism's frames, so the blocks come from libc there.  See the gem's
+   mrbgem.rake. */
+#if defined(MRC_PRISM_ARENA_LIBC)
+# include <stdlib.h>
+# define arena_block_alloc(size)  malloc(size)
+# define arena_block_free(ptr)    free(ptr)
+#else
+# define arena_block_alloc(size)  mrb_malloc(global_mrb, size)
+# define arena_block_free(ptr)    mrb_free(global_mrb, ptr)
+#endif
+
 struct mrc_prism_arena_block *mrc_prism_arena = NULL;
 
 #define MRC_PRISM_ARENA_BLOCK (64 * 1024)
@@ -38,7 +53,7 @@ arena_block_new(size_t need)
 {
   size_t size = MRC_PRISM_ARENA_BLOCK;
   while (size - sizeof(struct arena_block) < need) size *= 2;
-  struct arena_block *b = (struct arena_block *)mrb_malloc(global_mrb, size);
+  struct arena_block *b = (struct arena_block *)arena_block_alloc(size);
   b->head.prev = mrc_prism_arena;
   b->used = sizeof(struct arena_block);
   b->size = size;
@@ -99,7 +114,7 @@ arena_close(mrc_ccontext *c)
 
   while (b != NULL) {
     struct mrc_prism_arena_block *prev = b->prev;
-    mrb_free(global_mrb, b);
+    arena_block_free(b);
     b = prev;
   }
   c->prism_arena = NULL;

@@ -796,16 +796,14 @@ end
 
 assert('eval of a pattern deeper than the compiler walks') do
   # A pattern is walked by a recursion of its own, which nothing bounded: a
-  # pattern nested as deep as it is written ran the compiler off the C stack.
-  # It goes on the count the rest of the compiler keeps, which trips a little
-  # past two hundred.
+  # pattern nested as deep as it is written ran the compiler off the C stack,
+  # and the walk that gave the tree back afterwards would have too. It goes
+  # on the count the rest of the compiler keeps, and the tree comes from an
+  # arena that is given back in one piece rather than walked.
   #
-  # A thousand and not more: the walk that gives the tree back afterwards is
-  # a frame per level too, and only a build with the Prism arena is spared
-  # it (see mrbgems/mruby-compiler/mrbgem.rake). A build without one frees a
-  # tree this deep on the megabyte of stack Windows gives a thread, where it
-  # runs out a little past thirty thousand.
-  assert_raise(SyntaxError) { eval("SOK  =>_xec" * 1000) }
+  # Deep enough that the walk this replaces would not have survived it on the
+  # megabyte of stack Windows gives a thread.
+  assert_raise(SyntaxError) { eval("SOK  =>_xec" * 60000) }
   # the compiler is still there afterwards, and an ordinary pattern still
   # compiles and matches
   assert_equal [1, 2], eval("q = [1, 2]; q => [a, b]; [a, b]")

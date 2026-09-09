@@ -42,6 +42,12 @@
        pointer at different times: a pointer taken before the arena was open
        would reach realloc() with a malloc header where the chunk header is
        meant to be, and reach free() as memory the arena is holding. */
+    /* C linkage: a C++ ABI build compiles the compiler glue as C++ and Prism
+       as C, and these are what the two share.  Everything else the glue
+       exports keeps the linkage its build gives it. */
+#ifdef __cplusplus
+    extern "C" {
+#endif
     struct mrc_prism_arena_block {
       struct mrc_prism_arena_block *prev;
     };
@@ -49,6 +55,9 @@
 
     void *mrc_prism_arena_alloc(size_t size);
     void *mrc_prism_arena_realloc(void *ptr, size_t size);
+#ifdef __cplusplus
+    }
+#endif
 
     static inline void*
     mrc_prism_alloc(size_t size)
