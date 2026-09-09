@@ -4977,6 +4977,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
           for (size_t i = 0; i < post; i++) {
             if (n < len) {
               gen_assignment(s, cast->rights.nodes[i], NULL, rhs+n, NOVAL);
+              n++;
             }
             else {
               genop_1(s, OP_LOADNIL, cursp());
