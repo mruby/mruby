@@ -873,3 +873,17 @@ assert 'eval a `super` and a `yield` at the width of the forwarded layout' do
   assert_equal 1, eval(yielder.call(16, 15))
   assert_raise(SyntaxError) { eval(yielder.call(16, 16)) }
 end
+
+assert('eval of a multiple assignment with more post-splat targets than fit') do
+  # The post count is the third operand of a `BBB` instruction, and `OP_EXT1`
+  # to `OP_EXT3` widen only the first two. The pre targets stay in range by
+  # rebasing the source array once their index reaches the width, which the
+  # post targets cannot do: whether they are filled from the front or from the
+  # back depends on how long the array turns out to be, and every rebase would
+  # decide that over again for the group it splits off.
+  masgn = lambda do |n|
+    "*r, " + (0...n).map { |i| "@masgn_post#{i}" }.join(", ") + " = (0...#{n + 1}).to_a"
+  end
+  assert_equal 255, eval(masgn.call(255) + "; @masgn_post254")
+  assert_raise(SyntaxError) { eval(masgn.call(256)) }
+end
