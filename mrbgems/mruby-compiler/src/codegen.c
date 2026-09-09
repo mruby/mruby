@@ -3191,15 +3191,26 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
         }
 
         /* Match pre-rest elements using AREF */
-        for (i = 0; i < pre_len; i++) {
-          /* Get arr[i] using AREF */
-          int sp = cursp();
-          genop_3(s, OP_AREF, sp, arr_reg, i);
-          push();
-          /* Element is now at sp */
-          /* Match element pattern (elements are not known arrays) */
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
-          pop();
+        {
+          int base = arr_reg, idx = 0;
+          int scratch = gen_aref_scratch(s, pre_len);
+          for (i = 0; i < pre_len; i++) {
+            if (idx == 255) {
+              base = gen_aref_rebase(s, base, scratch);
+              idx = 0;
+            }
+            /* Get arr[i] using AREF */
+            int sp = cursp();
+            genop_3(s, OP_AREF, sp, base, idx++);
+            push();
+            /* Element is now at sp */
+            /* Match element pattern (elements are not known arrays) */
+            codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
+            pop();
+          }
+          if (0 <= scratch) {
+            pop();
+          }
         }
 
         /* Bind rest elements if rest is a variable */
@@ -3267,12 +3278,23 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
         }
 
         /* Match pre-rest elements */
-        for (i = 0; i < pre_len; i++) {
-          int sp = cursp();
-          genop_3(s, OP_AREF, sp, arr_reg, i);
-          push();
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
-          pop();
+        {
+          int base = arr_reg, idx = 0;
+          int scratch = gen_aref_scratch(s, pre_len);
+          for (i = 0; i < pre_len; i++) {
+            if (idx == 255) {
+              base = gen_aref_rebase(s, base, scratch);
+              idx = 0;
+            }
+            int sp = cursp();
+            genop_3(s, OP_AREF, sp, base, idx++);
+            push();
+            codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
+            pop();
+          }
+          if (0 <= scratch) {
+            pop();
+          }
         }
 
         /* Bind rest elements if rest is a variable */
