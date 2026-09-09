@@ -427,3 +427,25 @@ assert('adding or subtracting a literal zero still sends the operator') do
   assert_equal 5, x + 0
   assert_equal 5, x - 0
 end
+
+assert('a rescue modifier in a loop body leaves the registers balanced') do
+  # The modifier keeps `$!` and the exception in registers of its own; a
+  # loop body that discards its value must give them back, or `break value`
+  # lands where the loop exit does not read.
+  i = 0
+  v = while true
+        i += 1
+        raise 'x' rescue nil
+        break i * 10 if i == 3
+      end
+  assert_equal 30, v
+  assert_nil $!
+
+  i = 0
+  v = while true
+        i += 1
+        begin; raise 'x'; rescue; nil; ensure; i; end
+        break i * 10 if i == 3
+      end
+  assert_equal 30, v
+end

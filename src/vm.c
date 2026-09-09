@@ -3563,7 +3563,8 @@ RETRY_TRY_BLOCK:
         RAISE_LIT(mrb, E_TYPE_ERROR, "class or module required for rescue clause");
       }
       ec = mrb_class_ptr(e);
-      regs[b] = mrb_bool_value(mrb_obj_is_kind_of(mrb, exc, ec));
+      /* A break unwinding through an ensure has no class to ask. */
+      regs[b] = mrb_bool_value(!mrb_break_p(exc) && mrb_obj_is_kind_of(mrb, exc, ec));
       NEXT;
     }
 

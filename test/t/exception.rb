@@ -505,6 +505,170 @@ assert('$! names the exception a rescue clause is running') do
   assert_nil $!
 end
 
+assert('$! names the exception a rescue modifier is running') do
+  # The modifier is a begin with one StandardError clause, so `$!` names the
+  # exception in the rescue expression and is put back afterwards.
+  assert_equal 'a', (raise('a') rescue $!.message)
+  assert_nil $!
+  assert_equal TypeError, ((raise TypeError, 't') rescue $!.class)
+  assert_nil $!
+  x = raise('b') rescue "#{$!.message}!"
+  assert_equal 'b!', x
+  assert_nil $!
+
+  # the value lands where the expression's own would have
+  assert_equal 42, 1 + (raise('a') rescue 41)
+  assert_equal ['a', 2], [(raise('a') rescue $!.message), 2]
+  assert_equal [1, nil], [(1 rescue $!), $!]
+
+  # a nested modifier puts back what the outer clause set
+  outer = begin
+            raise 'outer'
+          rescue
+            inner = (raise('inner') rescue $!.message)
+            [inner, $!.message]
+          end
+  assert_equal ['inner', 'outer'], outer
+  assert_nil $!
+
+  # an exception the modifier does not catch carries on with the name untouched
+  assert_equal 'big', (begin; raise Exception, 'big' rescue nil; rescue Exception; $!.message; end)
+  assert_nil $!
+
+  # a rescue expression left by return, break or a raise of its own is left restored
+  def self.__bang_mod_ret; raise('r') rescue return($!.message); end
+  assert_equal 'r', __bang_mod_ret
+  assert_nil $!
+  assert_equal 5, [1, 2].each { raise('x') rescue break 5 }
+  assert_nil $!
+  assert_equal 'ab', ((raise('a') rescue raise($!.message + 'b')) rescue $!.message)
+  assert_nil $!
+  outer = begin
+            raise 'outer'
+          rescue
+            begin; raise('a') rescue raise('b'); rescue; inner = $!.message; end
+            [inner, $!.message]
+          end
+  assert_equal ['b', 'outer'], outer
+  assert_nil $!
+
+  # so a bare raise in the rescue expression re-raises it
+  assert_raise_with_message(RuntimeError, 'a') { raise('a') rescue raise }
+  assert_nil $!
+end
+
+assert('$! names the exception an ensure is unwinding') do
+  # An ensure entered by an exception names it for as long as the ensure
+  # runs, and puts back what `$!` held before on the way out.
+  seen = nil
+  caught = begin
+             begin; raise 'e'; ensure; seen = $!; end
+           rescue => e
+             e
+           end
+  assert_true seen.equal?(caught)
+  assert_nil $!
+
+  # an ensure entered normally, or after a clause of its own begin ran,
+  # leaves the name alone
+  seen = :unset
+  begin; 1; ensure; seen = $!; end
+  assert_nil seen
+  seen = :unset
+  begin; raise 'e'; rescue; nil; ensure; seen = $!; end
+  assert_nil seen
+  assert_nil $!
+  outer = begin
+            raise 'outer'
+          rescue
+            seen = :unset
+            begin; 1; ensure; seen = $!.message; end
+            [seen, $!.message]
+          end
+  assert_equal ['outer', 'outer'], outer
+
+  # so does one entered by return or break
+  def self.__bang_ens_ret(s); begin; return 1; ensure; s << $!; end; end
+  s = []
+  assert_equal 1, __bang_ens_ret(s)
+  assert_equal [nil], s
+  s = []
+  while true
+    begin; break; ensure; s << $!; end
+  end
+  assert_equal [nil], s
+  assert_nil $!
+
+  # a nested raise names its own exception in its ensure and the outer clause
+  # gets its own back
+  outer = begin
+            raise 'outer'
+          rescue
+            seen = nil
+            begin
+              begin; raise 'inner'; ensure; seen = $!.message; end
+            rescue
+            end
+            [seen, $!.message]
+          end
+  assert_equal ['inner', 'outer'], outer
+  assert_nil $!
+
+  # an ensure left by return, break or a raise of its own is left restored
+  def self.__bang_ens_raise_ret; begin; raise 'e'; ensure; return $!.message; end; end
+  assert_equal 'e', __bang_ens_raise_ret
+  assert_nil $!
+  v = while true
+        begin; raise 'e'; ensure; break $!.message; end
+      end
+  assert_equal 'e', v
+  assert_nil $!
+  assert_equal ['f', 'f'], (begin; begin; raise 'e'; ensure; raise 'f'; end; rescue => e; [e.message, $!.message]; end)
+  assert_nil $!
+  outer = begin
+            raise 'outer'
+          rescue
+            begin; begin; 1; ensure; raise 'f'; end; rescue; inner = $!.message; end
+            [inner, $!.message]
+          end
+  assert_equal ['f', 'outer'], outer
+  assert_nil $!
+
+  # a method body's ensure is the same, and one entered by a raise of the
+  # method's own rescue clause names that
+  def self.__bang_def_ens(s); raise 'd'; rescue; s << $!.message; ensure; s << $!; end
+  s = []
+  __bang_def_ens(s)
+  assert_equal ['d', nil], s
+  assert_nil $!
+  def self.__bang_def_ens_raise(s); raise 'a'; rescue; raise 'b'; ensure; s << $!.message; end
+  s = []
+  assert_raise_with_message(RuntimeError, 'b') { __bang_def_ens_raise(s) }
+  assert_equal ['b'], s
+  assert_nil $!
+
+  # so a bare raise in the ensure re-raises the exception it is unwinding
+  assert_raise_with_message(RuntimeError, 'e') { begin; raise 'e'; ensure; raise; end }
+  assert_nil $!
+
+  # an exception that is not a StandardError is named too
+  s = []
+  hard = Class.new(Exception)
+  begin; begin; raise hard; ensure; s << $!.class; end; rescue hard; end
+  assert_equal [hard], s
+  assert_nil $!
+
+  # the class the ensure asks about is `::Exception`, whatever the scope names
+  module BangEnsureShadow
+    Exception = Class.new(StandardError)
+    def self.run(s); begin; raise 'e'; ensure; s << $!.message; end; end
+  end
+  s = []
+  assert_raise_with_message(RuntimeError, 'e') { BangEnsureShadow.run(s) }
+  assert_equal ['e'], s
+  assert_nil $!
+end
+
 assert('raise without arguments re-raises the exception being rescued') do
   # Inside a rescue clause it is that exception, which `$!` names, and so
   # it works across a method boundary too.
