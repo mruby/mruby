@@ -848,3 +848,28 @@ assert 'eval a `super` and a `yield` at the width of the forwarding level' do
   assert_equal :ok, eval(yielder.call(15))
   assert_raise(SyntaxError) { eval(yielder.call(16)) }
 end
+
+assert 'eval a `super` and a `yield` at the width of the forwarded layout' do
+  # The rest of that operand holds `ainfo`, the layout of the arguments being
+  # forwarded, whose mandatory and optional parameters share a field of six
+  # bits that only twelve bits of room are left for.  The compiler allows 31
+  # of each, so 32 counted together is where the layout runs into the level.
+  params = lambda do |ma, oa|
+    ((1..ma).map { |i| "a#{i}" } + (1..oa).map { |i| "b#{i} = #{i}" }).join(', ')
+  end
+
+  zsuper = lambda do |ma, oa|
+    "class EvalWideParent; def m(#{params.call(ma, oa)}) a1 end end\n" \
+    "class EvalWideChild < EvalWideParent; def m(#{params.call(ma, oa)}) super end end\n" \
+    "EvalWideChild.new.m(#{(1..ma).to_a.join(', ')})"
+  end
+  assert_equal 1, eval(zsuper.call(16, 15))
+  assert_raise(SyntaxError) { eval(zsuper.call(16, 16)) }
+
+  yielder = lambda do |ma, oa|
+    "def eval_wide_yielder(#{params.call(ma, oa)}) yield a1 end\n" \
+    "eval_wide_yielder(#{(1..ma).to_a.join(', ')}) { |v| v }"
+  end
+  assert_equal 1, eval(yielder.call(16, 15))
+  assert_raise(SyntaxError) { eval(yielder.call(16, 16)) }
+end

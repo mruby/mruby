@@ -1606,13 +1606,18 @@ gen_blkmove(mrc_codegen_scope *s, const struct mscope *m)
   gen_mscope_lvar(s, m, m1+r+m2+kd+1);
 }
 
-/* The operand `OP_ARGARY` and `OP_BLKPUSH` reach the method scope by.  Only
-   four bits are left for the level once `ainfo` has taken the rest, so a
-   `super` or a `yield` further down than that cannot name the frame it means
-   and has to be refused rather than sent to another one. */
+/* The operand `OP_ARGARY` and `OP_BLKPUSH` reach the method scope by.  It has
+   sixteen bits for both the layout of the arguments to forward and the level
+   the method scope is at, four of them the level, and neither the mandatory
+   and optional parameters counted together nor the level is bounded anywhere
+   else.  A `super` or a `yield` that outgrows either is refused rather than
+   sent to a frame it did not mean. */
 static uint16_t
 mscope_operand(mrc_codegen_scope *s, const struct mscope *m)
 {
+  if (m->ainfo > 0xfff) {
+    codegen_error(s, "too many formal arguments");
+  }
   if (m->lv > 0xf) {
     codegen_error(s, "too many nested blocks/methods");
   }
