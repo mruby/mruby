@@ -639,6 +639,16 @@ assert('multiple assignment (rest+post)') do
   assert_equal 2, b
   assert_equal [], c
   assert_equal 3, d
+
+  # each post target takes the next value left after the rest, and nil once
+  # they run out; the counter that walks them stood still, so every post
+  # target after the first took the value of the one before it
+  e, f, *g, h, i = 1, 2, 3
+  assert_equal [1, 2, [], 3, nil], [e, f, g, h, i]
+  e, f, *g, h, i = 1, 2, 3, 4
+  assert_equal [1, 2, [], 3, 4], [e, f, g, h, i]
+  e, f, *g, h, i = 1, 2, 3, 4, 5
+  assert_equal [1, 2, [3], 4, 5], [e, f, g, h, i]
 end
 
 assert('multiple assignment (nosplat array rhs)') do
