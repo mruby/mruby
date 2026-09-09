@@ -25,7 +25,13 @@ host_os = case host_os
 zig_host = "#{host_arch}-#{host_os}"
 zig_machine = zig_target ? zig_target.split('-')[0, 2].join('-') : zig_host
 
-if zig_machine != zig_host && zig_runner.nil?
+# Only what runs the binaries needs a runner, so a build asked for on its own
+# is left alone: cross compiling without one is what this config is for. Rake
+# has read its command line by the time a config is, so what it was asked for
+# is what decides.
+wants_run = Rake.application.top_level_tasks.any? {|t| t == 'test' || t.start_with?('test:') }
+
+if wants_run && zig_machine != zig_host && zig_runner.nil?
   abort "build_config/zig.rb: #{zig_machine} binaries do not run on #{zig_host}; " \
         "name the program that runs them in ZIG_TEST_RUNNER (qemu-aarch64-static, wine, ...)"
 end
