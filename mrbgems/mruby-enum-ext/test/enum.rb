@@ -188,6 +188,19 @@ assert("Enumerable#to_h") do
   assert_equal({1=>4,3=>8}, c.new.to_h{|k,v|[k,v*2]})
 end
 
+assert("Enumerable#to_h with a multi-value yield") do
+  c = Class.new {
+    include Enumerable
+    def each
+      yield 1, 2
+      yield 3, 4
+    end
+  }
+  assert_equal({2=>1, 4=>3}, c.new.to_h{|k,v|[v,k]})
+  assert_equal({1=>4, 3=>8}, c.new.to_h(&->(k, v) { [k, v*2] }))
+  assert_equal({0=>1, 1=>2}, [1, 2].each_with_index.to_h{|x,i|[i,x]})
+end
+
 assert("Enumerable#filter_map") do
   assert_equal [4, 8, 12, 16, 20], (1..10).filter_map{|i| i * 2 if i%2==0}
 end
