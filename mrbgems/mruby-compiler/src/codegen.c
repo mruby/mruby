@@ -2728,30 +2728,75 @@ gen_call(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int recv_ready
   }
 }
 
+/* The index OP_AREF reads an element with is the third operand of a BBB
+   instruction, and OP_EXT1 to OP_EXT3 widen only the first two, so a list of
+   more than 256 elements cannot name its later ones. Every 255 elements the
+   array is rebased on the ones not read yet and the index starts over.
+   Dropping what has already been read leaves the groups that follow anchored
+   where they were, so a rest and its post targets still choose the same
+   elements. `scratch` is a register reserved for the whole walk by
+   gen_aref_scratch(); `base` is what the index counts from now, and what this
+   returns is what it counts from next. */
+static int
+gen_aref_rebase(mrc_codegen_scope *s, int base, int scratch)
+{
+  if (base != scratch) {
+    gen_move(s, scratch, base, 0);
+  }
+  genop_3(s, OP_APOST, scratch, 255, 0);
+  return scratch;
+}
+
+/* The register gen_aref_rebase() rebases into, or -1 when `len` elements are
+   few enough to be read without one. */
+static int
+gen_aref_scratch(mrc_codegen_scope *s, int len)
+{
+  if (len <= 255) return -1;
+  int scratch = cursp();
+  push();
+  return scratch;
+}
+
 static void
 gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val)
 {
   CAST(multi_write);
   int n = cast->lefts.size, post = cast->rights.size;
   int has_rest = cast->rest && nint(cast->rest) != PM_IMPLICIT_REST_NODE;
+  int base = rhs; /* the array the index below counts from */
+  int idx = 0;    /* how far into `base` the pre targets have come */
+  int scratch;
 
+  /* The post count is the third operand of OP_APOST and cannot be rebased
+     away: whether the post targets are filled from the front or from the back
+     depends on how long the array turns out to be, and each rebase would
+     decide that over again for the group it split off. */
+  if (255 < post) {
+    codegen_error(s, "too many post-splat assignment targets");
+  }
+  scratch = gen_aref_scratch(s, n);
   if (0 < n) { /* pre */
     for (int i = 0; i < n; i++) {
+      if (idx == 255) {
+        base = gen_aref_rebase(s, base, scratch);
+        idx = 0;
+      }
       int sp = cursp();
-      genop_3(s, OP_AREF, sp, rhs, i);
+      genop_3(s, OP_AREF, sp, base, idx++);
       push();
       gen_assignment(s, cast->lefts.nodes[i], NULL, sp, NOVAL);
       pop();
     }
   }
   if (has_rest || 0 < post) {
-    gen_move(s, cursp(), rhs, val);
+    gen_move(s, cursp(), base, val);
     int sp = cursp();
     /* OP_APOST fills sp..sp+post, and the targets keep being read from there
        while they are assigned: a call or index target assigns through a send
        built from cursp() up, so those registers have to be reserved first */
     push_n(post+1);
-    genop_3(s, OP_APOST, sp, n, post);
+    genop_3(s, OP_APOST, sp, idx, post);
     if (has_rest) { /* rest */
       pm_node_t *rest_expr = ((pm_splat_node_t *)cast->rest)->expression;
       if (rest_expr) {
@@ -2762,9 +2807,16 @@ gen_massignment(mrc_codegen_scope *s, mrc_node *tree, int rhs, int val)
       gen_assignment(s, cast->rights.nodes[i], NULL, sp+i+1, NOVAL);
     }
     pop_n(post+1);
+    if (0 <= scratch) { /* the value is the original array, not a rebased one */
+      pop();
+      scratch = -1;
+    }
     if (val) {
       gen_move(s, cursp(), rhs, 0);
     }
+  }
+  if (0 <= scratch) {
+    pop();
   }
 }
 
@@ -3139,15 +3191,26 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
         }
 
         /* Match pre-rest elements using AREF */
-        for (i = 0; i < pre_len; i++) {
-          /* Get arr[i] using AREF */
-          int sp = cursp();
-          genop_3(s, OP_AREF, sp, arr_reg, i);
-          push();
-          /* Element is now at sp */
-          /* Match element pattern (elements are not known arrays) */
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
-          pop();
+        {
+          int base = arr_reg, idx = 0;
+          int scratch = gen_aref_scratch(s, pre_len);
+          for (i = 0; i < pre_len; i++) {
+            if (idx == 255) {
+              base = gen_aref_rebase(s, base, scratch);
+              idx = 0;
+            }
+            /* Get arr[i] using AREF */
+            int sp = cursp();
+            genop_3(s, OP_AREF, sp, base, idx++);
+            push();
+            /* Element is now at sp */
+            /* Match element pattern (elements are not known arrays) */
+            codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
+            pop();
+          }
+          if (0 <= scratch) {
+            pop();
+          }
         }
 
         /* Bind rest elements if rest is a variable */
@@ -3215,12 +3278,23 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
         }
 
         /* Match pre-rest elements */
-        for (i = 0; i < pre_len; i++) {
-          int sp = cursp();
-          genop_3(s, OP_AREF, sp, arr_reg, i);
-          push();
-          codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
-          pop();
+        {
+          int base = arr_reg, idx = 0;
+          int scratch = gen_aref_scratch(s, pre_len);
+          for (i = 0; i < pre_len; i++) {
+            if (idx == 255) {
+              base = gen_aref_rebase(s, base, scratch);
+              idx = 0;
+            }
+            int sp = cursp();
+            genop_3(s, OP_AREF, sp, base, idx++);
+            push();
+            codegen_pattern(s, pat_arr->requireds.nodes[i], sp, fail_pos, -1, 0);
+            pop();
+          }
+          if (0 <= scratch) {
+            pop();
+          }
         }
 
         /* Bind rest elements if rest is a variable */
