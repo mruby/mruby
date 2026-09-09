@@ -565,18 +565,24 @@ module MRuby
     end
 
     # What an answer about +source+ is kept under: everything that goes into
-    # the compile, the extension included.
+    # the compile, the extension and the directory it runs from included. The
+    # answers are kept for the whole run, which builds every target of a
+    # config, and a relative name in the flags stands for a file of the
+    # directory the compile runs from.
     def probe_key(source)
-      [build.filename(command), compile_options, source_exts.first, all_flags(compiled: true), source]
+      [build.filename(command), compile_options, source_exts.first,
+       build.compile_dir, all_flags(compiled: true), source]
     end
 
     # Compile +source+ and answer whether it compiled.  The source and the
     # object are named inside a directory that is removed on the way out; the
     # compiler is run from the directory a compile runs from, which is what a
     # relative path in the flags is written against.  A block is given the
-    # directory, the object and the options the compiler ran with, while the
-    # directory is still there, and its answer stands for an object that
-    # compiled.
+    # directory, the object and the options that keep the output out of the
+    # way, while the directory is still there, and its answer stands for an
+    # object that compiled.  The directory the compile ran from is not among
+    # them, since it is the compiler's own and what the block runs is not a
+    # compile.
     def run_compile_probe(source)
       Dir.mktmpdir("mruby-probe") do |dir|
         infile = "#{dir}/probe#{source_exts.first || '.c'}"
@@ -588,10 +594,10 @@ module MRuby
         # The build directory is made here where a probe is the first thing
         # the build runs from it.
         mkdir_p build.compile_dir
-        opts = {out: File::NULL, err: File::NULL, chdir: build.compile_dir}
+        opts = {out: File::NULL, err: File::NULL}
         # `system` answers nil where the command is not there to run at all,
         # which is an answer of no like any other failure to compile.
-        compiled = !!system("#{build.filename(command)} #{options}", **opts)
+        compiled = !!system("#{build.filename(command)} #{options}", **opts, chdir: build.compile_dir)
         compiled && block_given? ? yield(dir, outfile, opts) : compiled
       end
     end
@@ -732,7 +738,12 @@ module MRuby
 
     # Link the one +objfile+ into +outfile+, with +params+ from `link_params`,
     # and answer whether it linked, saying nothing either way.  +opts+ are
-    # `system`'s, as the compile probe ran with them.
+    # `system`'s, the ones that keep the output out of the way.
+    #
+    # The link runs where `run` links from, and not where the probe compiled:
+    # a relative path a config writes in `library_paths` is written against
+    # the tree and reaches the link line as it is, so a link run from the
+    # build directory would ask about a directory no link of the build names.
     def run_probe(outfile, objfile, params, **opts)
       options = link_options % params.merge(:outfile => filename(outfile), :objs => %Q["#{filename(objfile)}"])
       !!system("#{build.filename(command)} #{options}", **opts)
