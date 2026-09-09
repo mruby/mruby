@@ -2536,7 +2536,7 @@ vm_op_argary(mrb_state *mrb, uint32_t a, uint16_t b)
   else {
     struct REnv *e = uvenv(mrb, lv-1);
     if (!e) goto L_NOSUPER;
-    if (MRB_ENV_LEN(e) <= m1+r+m2+1)
+    if (MRB_ENV_LEN(e) <= m1+r+m2+kd+1)
       goto L_NOSUPER;
     stack = e->stack + 1;
   }
