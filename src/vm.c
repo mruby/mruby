@@ -1326,11 +1326,29 @@ mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
   return mrb_funcall_argv(mrb, self, mid, argc, argv);
 }
 
+/* The register the caller left the keyword dictionary in.  A frame that has
+   run its `OP_ENTER` moved the dictionary elsewhere; `enter_kwpos()` answers
+   where. */
 static mrb_int
 mrb_ci_kidx(const mrb_callinfo *ci)
 {
   if (!ci->kw) return -1;
   return (ci->n == CALL_MAXARGS) ? 2 : ci->n + 1;
+}
+
+/* The register the frame's own `OP_ENTER` put the keyword dictionary in.
+   `ci->n` names it directly, except for a method that declares 15 or more
+   positional parameters: the field is 4 bits wide, so `vm_op_enter()` can
+   only saturate it there and the layout is read back off the `OP_ENTER`
+   operand instead, the way `mrb_proc_arity()` reads it. */
+static mrb_int
+enter_kwpos(const mrb_callinfo *ci, const mrb_irep *irep)
+{
+  if (mrb_likely(ci->n < CALL_MAXARGS)) return ci->n + 1;
+  mrb_assert(irep->ilen > 0 && irep->iseq[0] == OP_ENTER);
+  uint32_t aspec = PEEK_W(irep->iseq+1);
+  return MRB_ASPEC_REQ(aspec) + MRB_ASPEC_OPT(aspec)
+       + MRB_ASPEC_REST(aspec) + MRB_ASPEC_POST(aspec) + 1;
 }
 
 static inline mrb_int
@@ -2733,8 +2751,12 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
     ci->kw = TRUE;
   }
 
-  /* format arguments for generated code */
-  ci->n = (uint8_t)len;
+  /* format arguments for generated code.  The field is 4 bits wide, so 15 or
+     more positional parameters saturate it rather than wrap around into a
+     count the frame does not have; `enter_kwpos()` reads the layout of such a
+     frame back off this `OP_ENTER`, and `mrb_ci_nregs()` answers the irep's
+     own register count for it. */
+  ci->n = (uint8_t)(len < CALL_MAXARGS ? len : CALL_MAXARGS);
 
   /* clear local (but non-argument) variables */
   if (irep->nlocals-blk_pos-1 > 0) {
@@ -3895,10 +3917,10 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_KARG, BB) {
       mrb_value k = mrb_symbol_value(irep->syms[b]);
-      mrb_int kidx = mrb_ci_kidx(ci);
+      mrb_int kidx = enter_kwpos(ci, irep);
       mrb_value kdict, v;
 
-      if (kidx < 0 || !mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
+      if (!mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "missing keyword: %v", k);
       }
 
@@ -3910,11 +3932,11 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_KEY_P, BB) {
       mrb_value k = mrb_symbol_value(irep->syms[b]);
-      mrb_int kidx = mrb_ci_kidx(ci);
+      mrb_int kidx = enter_kwpos(ci, irep);
       mrb_value kdict;
       mrb_bool key_p = FALSE;
 
-      if (kidx >= 0 && mrb_hash_p(kdict=regs[kidx])) {
+      if (mrb_hash_p(kdict=regs[kidx])) {
         key_p = mrb_hash_key_p(mrb, kdict, k);
         ci = mrb->c->ci;
       }
@@ -3923,10 +3945,10 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_KEYEND, Z) {
-      mrb_int kidx = mrb_ci_kidx(ci);
+      mrb_int kidx = enter_kwpos(ci, irep);
       mrb_value kdict;
 
-      if (kidx >= 0 && mrb_hash_p(kdict=regs[kidx]) && !mrb_hash_empty_p(mrb, kdict)) {
+      if (mrb_hash_p(kdict=regs[kidx]) && !mrb_hash_empty_p(mrb, kdict)) {
         mrb_value key1 = mrb_hash_first_key(mrb, kdict);
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", key1);
       }
