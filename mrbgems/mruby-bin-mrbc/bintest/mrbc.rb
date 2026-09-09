@@ -22,6 +22,24 @@ assert('parsing function with void argument') do
   assert_equal 0, status.exitstatus
 end
 
+assert('too many local variables are rejected') do
+  compile = lambda do |count|
+    source = Tempfile.new(['many-locals', '.rb'])
+    count.times { |i| source.puts("local_#{i} = nil") }
+    source.flush
+    Open3.capture2e(*(cmd_list('mrbc') + ['-c', source.path]))
+  end
+
+  result, status = compile.call(254)
+  assert_true status.success?, result
+
+  [255, 65_536].each do |count|
+    result, status = compile.call(count)
+    assert_equal 1, status.exitstatus
+    assert_include result, 'too many local variables'
+  end
+end
+
 assert('embedded document with invalid terminator') do
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write("=begin\n=endx\n")
