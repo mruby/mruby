@@ -262,6 +262,218 @@ assert("$~ - a match made in a block survives the method's escape") do
   assert_equal "wb", backref_scope_block_writes.call
 end
 
+def backref_scope_dm_read
+  "outer" =~ /(ou)ter/
+  k = Class.new { define_method(:reader) { [$~ && $~[0], $&, $1] } }
+  [k.new.reader, $~ && $~[0]]
+end
+
+assert("$~ - a define_method body reads the scope it was written in") do
+  # `define_method` marks the block it installs a scope so that a `def` in
+  # it lands on the right class, but the block keeps the env it was made
+  # with: what it reads is the scope it was written in, the way its locals
+  # are, and the way CRuby's leaves its ep alone.
+  assert_equal [["outer", "outer", "ou"], "outer"], backref_scope_dm_read
+end
+
+def backref_scope_dm_write
+  "outer" =~ /outer/
+  k = Class.new { define_method(:writer) { "inner" =~ /(in)ner/ } }
+  k.new.writer
+  [$~ && $~[0], $1]
+end
+
+assert("$~ - a define_method body publishes into the scope it was written in") do
+  assert_equal ["inner", "in"], backref_scope_dm_write
+end
+
+def backref_scope_dm_mk
+  "written" =~ /written/
+  Class.new { define_method(:writer) { "inner" =~ /inner/ } }
+end
+
+def backref_scope_dm_caller
+  k = backref_scope_dm_mk
+  "caller" =~ /caller/
+  k.new.writer
+  $~ && $~[0]
+end
+
+assert("$~ - a define_method body leaves the scope that calls it alone") do
+  # the body publishes into the scope it was written in, which has
+  # returned: the write lands in the slot that scope's env carries, where
+  # the caller cannot see it
+  assert_equal "caller", backref_scope_dm_caller
+end
+
+def backref_scope_dm_nil
+  "outer" =~ /outer/
+  k = Class.new { define_method(:clearer) { $~ = nil } }
+  k.new.clearer
+  $~
+end
+
+assert("$~ - an assignment inside a define_method body clears the same scope") do
+  assert_nil backref_scope_dm_nil
+end
+
+def backref_scope_dm_nested
+  "outer" =~ /(ou)ter/
+  inner = Class.new do
+    define_method(:outer_body) do
+      Class.new { define_method(:inner_body) { [$&, $1] } }.new.inner_body
+    end
+  end
+  inner.new.outer_body
+end
+
+assert("$~ - a define_method body nested in another reaches the method scope") do
+  # the walk of svar_scope_env() crosses the outer body the way it crosses
+  # a block, so both bodies answer the one scope they were written in
+  assert_equal ["outer", "ou"], backref_scope_dm_nested
+end
+
+def backref_scope_dm_block
+  "outer" =~ /(ou)ter/
+  k = Class.new { define_method(:reader) { [1].map { [$&, $1] }.first } }
+  k.new.reader
+end
+
+assert("$~ - a block inside a define_method body reaches the same scope") do
+  assert_equal ["outer", "ou"], backref_scope_dm_block
+end
+
+def backref_scope_dm_def
+  "outer" =~ /(ou)ter/
+  k = Class.new { define_method(:reader) { self.class.written_by_def } }
+  k.singleton_class.class_eval { def written_by_def; [$&, $1]; end }
+  k.new.reader
+end
+
+assert("$~ - a def written inside a define_method body owns its scope") do
+  assert_equal [nil, nil], backref_scope_dm_def
+end
+
+def backref_scope_dm_pair
+  "outer" =~ /(ou)ter/
+  Class.new do
+    define_method(:reader) { $~ && $~[0] }
+    define_method(:writer) { "inner" =~ /inner/ }
+  end
+end
+
+assert("$~ - two define_method bodies of one dead scope share its slot") do
+  # the scope has returned, so both resolve into the slot its env carries
+  o = backref_scope_dm_pair.new
+  assert_equal "outer", o.reader
+  o.writer
+  assert_equal "inner", o.reader
+end
+
+def backref_scope_dm_twice
+  "outer" =~ /outer/
+  k = Class.new { define_method(:writer) { |s| s =~ /#{s}/; $~ && $~[0] } }
+  o = k.new
+  [o.writer("p"), o.writer("q"), $~ && $~[0]]
+end
+
+assert("$~ - two calls of one define_method body share the same slot") do
+  assert_equal ["p", "q", "q"], backref_scope_dm_twice
+end
+
+def backref_scope_dm_last_match
+  "outer" =~ /(ou)ter/
+  k = Class.new { define_method(:reader) { Regexp.last_match && Regexp.last_match(1) } }
+  k.new.reader
+end
+
+assert("Regexp.last_match reads the scope a define_method body was written in") do
+  assert_equal "ou", backref_scope_dm_last_match
+end
+
+def backref_scope_dm_singleton
+  "outer" =~ /(ou)ter/
+  o = Object.new
+  o.define_singleton_method(:reader) { [$&, $1] }
+  o.reader
+end
+
+assert("$~ - a define_singleton_method body reads the same scope") do
+  skip unless Object.new.respond_to?(:define_singleton_method)
+  assert_equal ["outer", "ou"], backref_scope_dm_singleton
+end
+
+def backref_scope_dm_lambda
+  "outer" =~ /(ou)ter/
+  body = -> { [$&, $1] }
+  k = Class.new { define_method(:reader, body) }
+  k.new.reader
+end
+
+assert("$~ - a lambda installed as a method reads where it was written") do
+  assert_equal ["outer", "ou"], backref_scope_dm_lambda
+end
+
+def backref_scope_dm_fiber
+  "outer" =~ /(ou)ter/
+  k = Class.new { define_method(:reader) { [$&, $1] } }
+  [Fiber.new { k.new.reader }.resume, k.new.reader]
+end
+
+assert("$~ - a define_method body called in a fiber reads the fiber's slot") do
+  # resolution lands on the scope the fiber's own root block was defined
+  # in, which is handed the fiber's root slot instead, the way it is for
+  # any other block; outside the fiber the same body reads the scope again
+  skip unless Object.const_defined?(:Fiber)
+  assert_equal [[nil, nil], ["outer", "ou"]], backref_scope_dm_fiber
+end
+
+assert("$~ - a define_method body written at the top level reads that scope") do
+  "top-level" =~ /(top)-level/
+  k = Class.new { define_method(:reader) { [$&, $1] } }
+  assert_equal ["top-level", "top"], k.new.reader
+  assert_equal "top-level", $~ && $~[0]
+end
+
+def backref_scope_dm_locals
+  "outer" =~ /outer/
+  held = :held
+  k = Class.new { define_method(:reader) { [held, $&] } }
+  k.new.reader
+end
+
+assert("$~ - a define_method body keeps reading its scope's locals") do
+  # the same condition answers both walks (MRB_PROC_LVAR_BOUNDARY_P in
+  # mruby/proc.h and svar_own_scope_p in vm.c), so pin the locals here too
+  assert_equal [:held, "outer"], backref_scope_dm_locals
+end
+
+"class-body-outer" =~ /outer/
+class BackrefScopeClassBody
+  AT_ENTRY = $~ && $~[0]
+  "class-body" =~ /(class)-body/
+  READ = [$&, $1]
+  define_method(:reader) { [$&, $1] }
+end
+BACKREF_SCOPE_AFTER_CLASS_BODY = $~ && $~[0]
+
+assert("$~ - a class body owns its scope") do
+  # the body captured no env, so it is a scope in its own right: it starts
+  # with nothing behind the name and its match stays inside
+  assert_nil BackrefScopeClassBody::AT_ENTRY
+  assert_equal ["class-body", "class"], BackrefScopeClassBody::READ
+  assert_equal "outer", BACKREF_SCOPE_AFTER_CLASS_BODY
+end
+
+assert("$~ - a define_method body written in a class body reads that body") do
+  # the ordinary spelling of the whole thing: the scope the block was
+  # written in is the class body, and the caller of the method it became
+  # keeps its own match
+  "outer" =~ /outer/
+  assert_equal ["class-body", "class"], BackrefScopeClassBody.new.reader
+  assert_equal "outer", $~ && $~[0]
+end
+
 assert("$~ - accepts a MatchData and nil, refuses the rest") do
   m = /a/.match("a")
   $~ = m
@@ -785,6 +997,20 @@ end
 
 assert("svar - an escaped proc reads both keys of its dead scope") do
   assert_equal ["captured", "captured"], svar_container_escape.call
+end
+
+def svar_container_dm
+  __svar_lastline_set("outer")
+  "outer" =~ /outer/
+  k = Class.new { define_method(:g) { [__svar_lastline, $~ && $~[0], __svar_container?] } }
+  [k.new.g, __svar_lastline]
+end
+
+assert("svar - a define_method body reaches both keys of its defining scope") do
+  # owner resolution is what the body crosses, not anything `$~` has of its
+  # own, so the second key follows; `__svar_container?` reports on the body's
+  # own frame, which owns no container because it is not the owner
+  assert_equal [["outer", "outer", false], "outer"], svar_container_dm
 end
 
 def svar_container_immediates
