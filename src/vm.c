@@ -431,8 +431,10 @@ svar_scopeless_frame_p(const mrb_callinfo *ci)
 {
   const struct RProc *p = ci->proc;
 
+  /* `svar_scope_env()` answers NULL for exactly the procs that captured
+     nothing, so the walk it makes is not one this question needs. */
   return p && !MRB_PROC_CFUNC_P(p) &&
-         !MRB_PROC_SCOPE_P(p) && svar_scope_env(p) == NULL;
+         !MRB_PROC_SCOPE_P(p) && !MRB_PROC_ENV_P(p);
 }
 
 /* An escaped scope's slot (MRB_ENV_SVAR_SLOT in internal.h):
