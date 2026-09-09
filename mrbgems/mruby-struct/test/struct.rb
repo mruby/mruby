@@ -194,6 +194,15 @@ assert('Struct#to_h') do
   assert_equal({:white => 'ruuko', :red => 'yuzuki', :green => 'hitoe'}) { s.to_h }
 end
 
+assert('Struct#to_h with a block') do
+  s = Struct.new(:white, :red).new('ruuko', 'yuzuki')
+  assert_equal({'white' => 'ruuko', 'red' => 'yuzuki'}, s.to_h { |k, v| [k.to_s, v] })
+  assert_equal({:white => 'ruuko', :red => 'yuzuki'}, s.to_h(&->(k, v) { [k, v] }))
+  assert_equal :stopped, s.to_h { |k, v| break :stopped }
+  assert_raise(TypeError)     { s.to_h { |k, v| k } }
+  assert_raise(ArgumentError) { s.to_h { |k, v| [k, v, 1] } }
+end
+
 assert('Struct#values_at') do
   a = Struct.new(:blue, :purple).new('aki', 'io')
   assert_equal ['aki'], a.values_at(0)
