@@ -199,6 +199,15 @@ assert("Hash#to_h") do
   assert_equal h, h.to_h
 end
 
+assert("Hash#to_h with a block") do
+  h = { "a" => 100, "b" => 200 }
+  assert_equal({ 100 => "a", 200 => "b" }, h.to_h { |k, v| [v, k] })
+  assert_equal({ "a" => 1, "b" => 1 }, h.to_h(&->(k, v) { [k, 1] }))
+  assert_equal :stopped, h.to_h { |k, v| break :stopped }
+  assert_raise(TypeError)     { h.to_h { |k, v| k } }
+  assert_raise(ArgumentError) { h.to_h { |k, v| [k, v, 1] } }
+end
+
 assert('Hash#<') do
   h1 = {a:1, b:2}
   h2 = {a:1, b:2, c:3}

@@ -208,13 +208,26 @@ class Hash
 
   ##
   #  call-seq:
-  #     hsh.to_h     -> hsh or new_hash
+  #     hsh.to_h                 -> hsh
+  #     hsh.to_h {|k, v| ... }   -> new_hash
   #
-  #  Returns `self`. If called on a subclass of Hash, converts
-  #  the receiver to a Hash object.
+  #  Returns `self`. If a block is given, it is called with each
+  #  key and value, and it should return a `[key, value]` pair to
+  #  construct a new hash.
   #
-  def to_h
-    self
+  #     {a: 1}.to_h{|k, v| [v, k]}
+  #       # => {1 => :a}
+  #
+  def to_h(&blk)
+    return self unless blk
+    h = {}
+    self.each do |k, v|
+      pair = blk.call(k, v)
+      raise TypeError, "wrong element type #{pair.class} (expected Array)" unless Array === pair
+      raise ArgumentError, "element has wrong array length (expected 2, was #{pair.size})" if pair.size != 2
+      h[pair[0]] = pair[1]
+    end
+    h
   end
 
   ##
