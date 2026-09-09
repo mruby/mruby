@@ -1609,6 +1609,24 @@ gen_blkmove(mrc_codegen_scope *s, const struct mscope *m)
   gen_mscope_lvar(s, m, m1+r+m2+kd+1);
 }
 
+/* The operand `OP_ARGARY` and `OP_BLKPUSH` reach the method scope by.  It has
+   sixteen bits for both the layout of the arguments to forward and the level
+   the method scope is at, four of them the level, and neither the mandatory
+   and optional parameters counted together nor the level is bounded anywhere
+   else.  A `super` or a `yield` that outgrows either is refused rather than
+   sent to a frame it did not mean. */
+static uint16_t
+mscope_operand(mrc_codegen_scope *s, const struct mscope *m)
+{
+  if (m->ainfo > 0xfff) {
+    codegen_error(s, "too many formal arguments");
+  }
+  if (m->lv > 0xf) {
+    codegen_error(s, "too many nested blocks/methods");
+  }
+  return (uint16_t)((m->ainfo<<4)|m->lv);
+}
+
 static mrc_sym nsym(mrc_parser_state *p, const uint8_t *start, size_t length);
 
 /* The name of the method's local in register `reg`, as a symbol of this
@@ -6615,7 +6633,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       if (m.ainfo > 0) {
         mrc_bool blk_lost = FALSE;
 
-        genop_2S(s, OP_ARGARY, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
+        genop_2S(s, OP_ARGARY, cursp(), mscope_operand(s, &m));
         push(); push(); push();   /* ARGARY pushes 3 values at most */
         pop(); pop(); pop();
         /* keyword arguments */
@@ -6703,7 +6721,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       push(); pop(); /* space for a block */
       pop_n(st+1);
-      genop_2S(s, OP_BLKPUSH, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
+      genop_2S(s, OP_BLKPUSH, cursp(), mscope_operand(s, &m));
       if (nk == 0 && n < 15) {
         /* fast path: direct block call without method dispatch */
         genop_2(s, OP_BLKCALL, cursp(), n);

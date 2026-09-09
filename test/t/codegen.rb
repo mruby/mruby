@@ -449,3 +449,33 @@ assert('a rescue modifier in a loop body leaves the registers balanced') do
       end
   assert_equal 30, v
 end
+
+assert('super and yield at fifteen nested blocks') do
+  # `OP_ARGARY` and `OP_BLKPUSH` reach the method scope through a level of
+  # four bits, so fifteen is the deepest nesting either can still name the
+  # frame it forwards from.
+  class CodegenLevelParent
+    def m(a) [a, :parent] end
+  end
+  class CodegenLevelChild < CodegenLevelParent
+    def m(a)
+      [1].each { [1].each { [1].each { [1].each { [1].each {
+      [1].each { [1].each { [1].each { [1].each { [1].each {
+      [1].each { [1].each { [1].each { [1].each { [1].each {
+        $codegen_level = super
+      } } } } } } } } } } } } } } }
+      $codegen_level
+    end
+  end
+  assert_equal [1, :parent], CodegenLevelChild.new.m(1)
+
+  def codegen_level_yield
+    [1].each { [1].each { [1].each { [1].each { [1].each {
+    [1].each { [1].each { [1].each { [1].each { [1].each {
+    [1].each { [1].each { [1].each { [1].each { [1].each {
+      $codegen_level = yield
+    } } } } } } } } } } } } } } }
+    $codegen_level
+  end
+  assert_equal :ok, codegen_level_yield { :ok }
+end
