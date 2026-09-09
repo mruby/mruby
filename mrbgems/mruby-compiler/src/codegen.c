@@ -1606,6 +1606,19 @@ gen_blkmove(mrc_codegen_scope *s, const struct mscope *m)
   gen_mscope_lvar(s, m, m1+r+m2+kd+1);
 }
 
+/* The operand `OP_ARGARY` and `OP_BLKPUSH` reach the method scope by.  Only
+   four bits are left for the level once `ainfo` has taken the rest, so a
+   `super` or a `yield` further down than that cannot name the frame it means
+   and has to be refused rather than sent to another one. */
+static uint16_t
+mscope_operand(mrc_codegen_scope *s, const struct mscope *m)
+{
+  if (m->lv > 0xf) {
+    codegen_error(s, "too many nested blocks/methods");
+  }
+  return (uint16_t)((m->ainfo<<4)|m->lv);
+}
+
 static mrc_sym nsym(mrc_parser_state *p, const uint8_t *start, size_t length);
 
 /* The name of the method's local in register `reg`, as a symbol of this
@@ -6612,7 +6625,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       if (m.ainfo > 0) {
         mrc_bool blk_lost = FALSE;
 
-        genop_2S(s, OP_ARGARY, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
+        genop_2S(s, OP_ARGARY, cursp(), mscope_operand(s, &m));
         push(); push(); push();   /* ARGARY pushes 3 values at most */
         pop(); pop(); pop();
         /* keyword arguments */
@@ -6700,7 +6713,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       push(); pop(); /* space for a block */
       pop_n(st+1);
-      genop_2S(s, OP_BLKPUSH, cursp(), (m.ainfo<<4)|(m.lv & 0xf));
+      genop_2S(s, OP_BLKPUSH, cursp(), mscope_operand(s, &m));
       if (nk == 0 && n < 15) {
         /* fast path: direct block call without method dispatch */
         genop_2(s, OP_BLKCALL, cursp(), n);

@@ -825,3 +825,26 @@ assert('eval of a nesting Prism would recurse through') do
   assert_equal 2, eval("[1].map { |v| eval('[[[2]]]')[0][0][0] }[0]")
   assert_equal [1, 2], eval("q = [1, 2]; q => [a, b]; [a, b]")
 end
+
+assert 'eval a `super` and a `yield` at the width of the forwarding level' do
+  # `OP_ARGARY` and `OP_BLKPUSH` carry the level between the asker and its
+  # method scope in four bits of their operand, so fifteen nested blocks is
+  # the deepest either can still name the frame it forwards from.  Deeper
+  # than that the level wrapped and the pair read another frame's registers.
+  zsuper = lambda do |depth|
+    "class EvalLevelParent; def m(a) [a, :parent] end end\n" \
+    "class EvalLevelChild < EvalLevelParent; def m(a)\n" +
+    "[1].each { " * depth + "$eval_level = super" + " }" * depth +
+    "\n$eval_level\nend end\nEvalLevelChild.new.m(1)"
+  end
+  assert_equal [1, :parent], eval(zsuper.call(15))
+  assert_raise(SyntaxError) { eval(zsuper.call(16)) }
+
+  yielder = lambda do |depth|
+    "def eval_level_yielder\n" +
+    "[1].each { " * depth + "$eval_level = yield" + " }" * depth +
+    "\n$eval_level\nend\neval_level_yielder { :ok }"
+  end
+  assert_equal :ok, eval(yielder.call(15))
+  assert_raise(SyntaxError) { eval(yielder.call(16)) }
+end
