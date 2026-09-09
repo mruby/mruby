@@ -707,7 +707,7 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, d, MRB_SYM_Q(eql),           mrb_data_eql,        MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, d, MRB_SYM(with),           mrb_data_with,       MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, d, MRB_SYM(to_h),            mrb_data_to_h,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(__to_h),          mrb_data_to_h,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(deconstruct),     mrb_data_deconstruct, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(deconstruct_keys), mrb_data_deconstruct_keys, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, d, MRB_SYM(to_s),            mrb_data_to_s,       MRB_ARGS_NONE());
