@@ -117,6 +117,31 @@ assert('super forwards the keyword arguments at their current values') do
   assert_equal [1, {c: 2}], anon.new.rest(a: 1, c: 2)
 end
 
+assert('super forwards from a scope that has closed') do
+  # A block that outlives its method reads the method's locals through an
+  # env moved off the stack when the frame popped, holding exactly the
+  # locals the scope declared.  The argument slots, the keyword dictionary
+  # and the block all reach `super` through that copy, so what it was sized
+  # for is what a `super` running this late can forward.
+  base = Class.new do
+    def kw(a, k: 1); [a, k, block_given? ? yield : nil]; end
+    def rest(a:, **o); [a, o]; end
+    def post(a, *r, z, k: 1); [a, r, z, k]; end
+  end
+  sub = Class.new(base) do
+    def kw(a, k: 1); -> { super }; end
+    def rest(a:, **o); -> { super }; end
+    def post(a, *r, z, k: 1); -> { super }; end
+  end
+
+  fwd = sub.new.kw(1, k: 2) { :caller }
+  assert_equal [1, 2, :caller], fwd.call
+  assert_equal [1, 2, :caller], fwd.call
+  assert_equal [9, 1, :caller], sub.new.kw(9) { :caller }.call
+  assert_equal [1, {c: 2}], sub.new.rest(a: 1, c: 2).call
+  assert_equal [1, [2, 3], 4, 5], sub.new.post(1, 2, 3, 4, k: 5).call
+end
+
 assert('yield', '11.3.5') do
 # it's syntax error now
 #  assert_raise LocalJumpError do
