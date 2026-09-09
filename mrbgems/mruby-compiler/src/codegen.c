@@ -493,6 +493,9 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
     }
   }
   else {
+    if (nlv->size >= UINT8_MAX) {
+      codegen_error(s, "too many local variables");
+    }
     s->lv = nlv;
     s->sp += nlv->size + 1; /* add self */
     s->nlocals = s->nregs = s->sp;
