@@ -1110,6 +1110,54 @@ assert 'keyword arguments' do
   assert_equal([:a, nil, :c], m(a: :a, c: :c))
 end
 
+assert('keyword arguments with fifteen or more positional parameters') do
+  # 15 is the mark for arguments packed into an array in the 4 bits that carry
+  # the positional count, so a method this wide cannot be asked which register
+  # its keyword dictionary was left in
+  a14 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+  a15 = a14 + [15]
+  a16 = a15 + [16]
+
+  def m14(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14, k: 1) [p14, k] end
+  assert_equal([14, 7], m14(*a14, k: 7))
+
+  def m15(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1) [p15, k] end
+  assert_equal([15, 7], m15(*a15, k: 7))
+  assert_equal([15, 1], m15(*a15))
+  assert_raise(ArgumentError) { m15(*a15, z: 9) }
+
+  def m16(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16, k: 1) [p16, k] end
+  assert_equal([16, 7], m16(*a16, k: 7))
+
+  def m15r(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k:) k end
+  assert_equal(7, m15r(*a15, k: 7))
+  assert_raise(ArgumentError) { m15r(*a15) }
+
+  # a declared keyword is taken out of the rest of them
+  def m15k(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1, **o) [k, o] end
+  assert_equal([7, {x: 8}], m15k(*a15, k: 7, x: 8))
+
+  # 14 mandatory parameters and a rest count 15 as well
+  def m14s(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14, *rest, k: 1) [rest, k] end
+  assert_equal([[15], 7], m14s(*a15, k: 7))
+
+  # a lambda and a block are entered the same way
+  l = ->(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1) { [p15, k] }
+  assert_equal([15, 7], l.call(*a15, k: 7))
+  def m15y(*a, **k) yield(*a, **k) end
+  result = m15y(*a15, k: 7) {|p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1| [p15, k] }
+  assert_equal([15, 7], result)
+
+  # and `super` forwards them
+  class KeywordWideParent
+    def m(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1) [p15, k] end
+  end
+  class KeywordWideChild < KeywordWideParent
+    def m(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15, k: 1) super end
+  end
+  assert_equal([15, 7], KeywordWideChild.new.m(*a15, k: 7))
+end
+
 assert('numbered parameters') do
   assert_equal(15, [1,2,3,4,5].reduce {_1+_2})
   assert_equal(45, Proc.new do _1 + _2 + _3 + _4 + _5 + _6 + _7 + _8 + _9 end.call(*[1, 2, 3, 4, 5, 6, 7, 8, 9]))
