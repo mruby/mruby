@@ -12,19 +12,12 @@ To compile mruby out of the source code you need the following tools:
 - C Compiler (e.g. `gcc` or `clang`)
 - Linker (e.g. `gcc` or `clang`)
 - Archive utility (e.g. `ar`)
-- Ruby 2.5 or later (e.g. `ruby` or `jruby`)
+- Ruby 2.7 or later (e.g. `ruby` or `jruby`)
 
 Optional:
 
 - Git (to update mruby source and integrate mrbgems easier)
 - C++ compiler (to use mrbgems which include `*.cpp`, `*.cxx`, `*.cc`)
-- Bison (to compile `mrbgems/mruby-compiler/core/parse.y`)
-- gperf (to compile `mrbgems/mruby-compiler/core/keywords`)
-
-Note that `bison` bundled with macOS is too old to compile `mruby`.
-Try `brew install bison` and follow the instruction shown to update
-the `$PATH` to compile `mruby`. We also encourage you to upgrade `ruby`
-on macOS in similar manner.
 
 ## Build
 
@@ -33,48 +26,12 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
-Every target has a `compile_commands.json` of its own compiles in its build
-directory, for editors and clang tools, written out of the rules it compiles
-by. A rule says everything a compile is before it runs, so
-`rake compile_commands.json` writes the database without building anything:
-a fresh checkout has one before its first compile, and no tracer such as
-`bear` is involved. A build writes it again as it ends, since the sources a
-build generates join the database once they are there, and so does what the
-build compiled that no rule declares, the test driver `rake test` loads for
-one, out of the command lines recorded beside its objects. A target says
-`conf.disable_compile_commands` to keep none.
-
-A database in a build directory is what `clangd --compile-commands-dir` and
-its like are pointed at, so reading the tree as a cross target is one option
-away. What a tool finds without being pointed anywhere is the copy at the
-source root, and that one describes a single target: the one whose
-configuration has a target named `host`, or failing that the first target the
-configuration declares. `MRUBY_CDB_TARGET` names another for one run.
-
-A configuration with several targets says which of them it means by declaring
-that one first. Where the order is fixed for another reason,
-`conf.enable_compile_commands default: true` names the target instead; no
-configuration in this tree needs it.
-
-A source no build in the tree compiles, one of a gem the configuration leaves
-out for instance, has no entry; `compile_flags.txt` and `.clangd` at the
-source root are what answer for those.
-
-Every target also leaves a `size.json` in its build directory: the byte
-counts of `libmruby.a` and the executables, text, data and bss sections and
-all, each with the object files it is made of, so that two builds can be
-subtracted down to the object that grew. The file names the commit it was
-built from, and `rake size.json` is the build asked for by that name;
-`rake size` builds and then prints the file's artifacts as a table, one
-per target, as CI does after each build. The
-`size` program is found by the C compiler's prefix, or named with
-`conf.size = "arm-none-eabi-size"`; a build whose objects none can read
-keeps its file sizes and carries `null` sections.
-
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used. The default
-configuration is defined in the `build_config/default.rb` file.
+configuration is defined in the `build_config/default.rb` file, or in
+`build_config.rb` of the current directory when `rake` runs outside the
+source root.
 
 Those build configuration files contain the build configuration of mruby, for
 example:
@@ -99,6 +56,8 @@ configured based on your environment.
 
 The mruby build system already contains a set of toolchain templates which
 configure the build environment for specific compiler infrastructures.
+`conf.toolchain` without a name picks one from `CC`, the platform and the
+Visual Studio environment.
 
 #### GCC
 
@@ -117,10 +76,10 @@ GCC toolchain.
 conf.toolchain :clang
 ```
 
-#### Visual Studio 2010, 2012 and 2013
+#### Visual Studio
 
 Toolchain configuration for Visual Studio on Windows. If you use the
-[Visual Studio Command Prompt](<https://msdn.microsoft.com/en-us/library/ms229859(v=vs.110).aspx>),
+[Developer Command Prompt](https://learn.microsoft.com/en-us/visualstudio/ide/reference/command-prompt-powershell),
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
 
 ```ruby
@@ -135,8 +94,39 @@ Toolchain configuration for Android.
 conf.toolchain :android
 ```
 
-Requires the custom standalone Android NDK and the toolchain path
-in `ANDROID_STANDALONE_TOOLCHAIN`.
+Requires the Android NDK, found through `ANDROID_NDK_HOME` or the
+`ndk_home:` parameter. The architecture comes from the `arch:` parameter or
+`ANDROID_ARCH`, and is `armeabi-v7a` by default.
+
+#### Emscripten
+
+Toolchain configuration for Emscripten. Based on the clang toolchain, with
+`emcc`, `em++` and `emar` on the `PATH`.
+
+```ruby
+conf.toolchain :emscripten
+```
+
+#### WASI
+
+Toolchain configuration for the WASI SDK, 26 or later. Based on the clang
+toolchain.
+
+```ruby
+conf.toolchain :wasi, target: 'wasm32-wasip1'
+```
+
+The SDK is found in `WASI_SDK_PATH`, or `/opt/wasi-sdk`.
+
+#### OpenWrt
+
+Toolchain configuration for the OpenWrt build system. The compilers and
+flags come from its `TARGET_CC`, `TARGET_CFLAGS`, `TARGET_CXX`,
+`TARGET_CXXFLAGS`, `TARGET_LDFLAGS` and `TARGET_AR` variables.
+
+```ruby
+conf.toolchain :openwrt
+```
 
 ### Binaries
 
@@ -236,61 +226,25 @@ def conf.cc.header_search_paths
 end
 ```
 
-The header searcher answers whether a file is there, which is not the same
-question as whether the compiler will accept it: it looks the name up in the
-search paths, and the flags this build compiles with are no part of that
-lookup. Where a build passes `-m32`, a `--sysroot`, or anything else that
-moves the compiler's idea of its target, ask the compiler instead.
+The header searcher checks only that the file exists. To ask the compiler
+itself, see the `Compiler checks` section.
 
-#### Asking the compiler
+### Compiler checks
 
-`check_header` compiles `#include <name>` with the flags this build compiles
-with, and answers whether that compiled. It is how a build settles a question
-the preprocessor cannot answer on its own: finding out whether a header is
-there means reading it, so a `#if` guarding the `#include` runs too late to
-help.
+To ask the compiler whether a header or a function is available, use
+`check_header` and `check_func` from a `spec.build_settings` block:
 
 ```ruby
-# `<sys/resource.h>` is an XSI extension, not part of base POSIX, so a host
-# either has it or does not and only the compiler knows which.
 spec.build_settings do |spec|
   spec.cc.defines << 'HAVE_SYS_RESOURCE_H' if spec.cc.check_header('sys/resource.h')
-end
-```
-
-`check_func` asks whether a name is there to be called once a header is
-included: declared there, or a macro spelled that way, and defined by
-something the build links every binary with, which is the question on a host
-whose headers declare a function its C library does not define:
-
-```ruby
-spec.build_settings do |spec|
   spec.cc.defines << 'HAVE_GETRUSAGE' if spec.cc.check_func('getrusage', header: 'sys/resource.h')
 end
 ```
 
-A name that a library of the gem's own defines is asked for with the gem's
-linker, `link: spec.linker`, and that linker's libraries and flags are linked
-as they are into the gem's binary; a gem adds them in its `build_settings`
-block, which is where a gem that has one writes them. `link: false` asks
-about the declaration alone, which is the question for a name C++ overloads,
-since an overload set has no one address to hand a link. A macro answers yes
-on its declaration alone either way, there being no one symbol to ask after.
+`check_func` links a test program. Pass `link: spec.linker` to link the
+gem's own libraries too, or `link: false` to check the declaration only.
 
-A build that cannot link a program, one that makes libmruby for another
-program to link and has no startup files or C library on its own link line,
-is answered about declarations alone throughout, since a link that fails
-there says nothing about the name. Whether it can is asked once, with a
-program that names `strlen`.
-
-A gem asks from a `spec.build_settings` block, as both of those do. It runs
-after every gem's `mrbgem.rake` body and before the rules are defined, which
-is what lets the defines an answer is turned into reach the compile.
-
-`try_compile` takes the source itself, for a question neither of the two
-spells, and `try_link` takes it and links it into a program as well. A build
-configuration asks its own compiler where it stands, having no gem lifecycle
-to wait on:
+`try_compile` and `try_link` take a source string instead:
 
 ```ruby
 conf.cc.defines << 'HAVE_BUILTIN_CLZ' if conf.cc.try_compile(<<~SOURCE)
@@ -299,51 +253,8 @@ conf.cc.defines << 'HAVE_BUILTIN_CLZ' if conf.cc.try_compile(<<~SOURCE)
 SOURCE
 ```
 
-`check_header` and `try_compile` compile and never link, so a target with no
-library to link against answers them as any other does.
-
-Each answer is kept for the life of the `rake` process, keyed by everything
-that goes into the compile: the command, the option string and the source
-extension it is spelled with, the flags, and the source, and for a link the
-link line's parts besides the object and the output. The extension is what
-tells a compiler whether it is reading C or C++, and can be all that separates
-two of a build's compilers, a toolchain being free to give them one command
-and one set of flags.
-
-An answer holds for the compiler that gave it. `rake amalgam` embeds the
-defines a gem writes to its own `cc` into the generated `mruby.h`, so an
-amalgam carries the answers the build that generated it got, the way it
-already carries every other define a gem writes.
-
-#### The define log
-
-`rake defines` prints, one table per target, every define the build will
-compile with and the file and line that wrote it:
-
-```console
-Defines of 'host':
-  HAVE_SYS_RESOURCE_H  mruby-process cc    mrbgems/mruby-process/mrbgem.rake:37
-  MRB_DEBUG            compilers internal  build_config/host-debug.rb:5 (via enable_debug)
-  MRB_USE_BIGINT       conf                mrbgems/mruby-bigint/mrbgem.rake:5
-```
-
-The middle column says who carries the define: `conf` is `conf.defines`, a
-compiler name is that compiler's own list (`compilers` when every compiler
-carries it, `internal` for what the build added from one of its own
-switches), and a gem name is the gem's own compiler. An add made through a
-switch such as `enable_debug` is charged to the configuration line that asked
-for it. The mechanical `MRBGEM_*_VERSION` defines are left out.
-
-When one name is held with two values, the losing rows are marked with what
-beats them: the last `-D` of a name on a compile line is the one in effect,
-and `conf.defines` comes after the compilers' lists. An unmarked row is what
-its objects compile with; `[FOO=1 wins]` on a row says `FOO=1` is in effect
-wherever that row would apply, and `[FOO=1 wins for mruby-x cc]` says the row
-loses only there, the gem's own compiler having redefined a build-wide name.
-
-A build says nothing of this by default, mruby being built from inside other
-projects' builds. A configuration that says `conf.define_log` opens its build
-output with the same tables.
+Answers are cached for the `rake` process. `rake amalgam` embeds the defines
+a gem adds to `spec.cc` into the generated `mruby.h`.
 
 ### Linker
 
@@ -374,28 +285,6 @@ conf.archiver do |archiver|
 end
 ```
 
-### Parser Generator
-
-Configuration of the Parser Generator binary and flags.
-
-```ruby
-conf.yacc do |yacc|
-  yacc.command = ...
-  yacc.compile_options = ...
-end
-```
-
-### GPerf
-
-Configuration of the GPerf binary and flags.
-
-```ruby
-conf.gperf do |gperf|
-  gperf.command = ...
-  gperf.compile_options = ...
-end
-```
-
 ### File Extensions
 
 ```ruby
@@ -411,6 +300,9 @@ end
 Preallocated symbols are always enabled. Symbol IDs used in C source code
 (via `MRB_SYM()` etc.) are resolved to compile-time constants during the
 build process.
+
+Objects are shared between configs up to the first gem they name differently.
+Only `src/symbol.c` follows the whole config (see `doc/guides/symbol.md`).
 
 ### Mrbgems
 
@@ -440,21 +332,17 @@ conf.gems.delete "mruby-socket"
 A GemBox is a set of Gems defined in `mrbgems/default.gembox` for example.
 It's just a set of `mrbgem` configurations.
 
-`conf.gems.delete` removes a Gem the configuration has already added, so a
-build can say "this GemBox, minus one" without restating the box. It has to
-come after the `gembox` line that brought the Gem in, and naming a Gem that
-is not in the build fails, so a misspelled name does not pass for a build
-that quietly keeps the Gem. `conf.gems.reject!` takes a block instead and
-removes every Gem it matches, returning `nil` when it matches none.
+#### Removing a Gem
 
-A Gem that another Gem in the build declares as a dependency cannot be
-removed this way: dependency resolution loads it again, and reports
+To take a Gem out of a GemBox, call `conf.gems.delete` after the `gembox`
+line. An unknown name raises an error. `conf.gems.reject!` takes a block
+instead.
+
+A Gem that another Gem depends on is loaded again, with a warning:
 
 ```
 gem 'mruby-string-ext' can't be removed; mruby-regexp depends on it
 ```
-
-Removing the Gem that depends on it as well is what makes it go.
 
 There is a `RubyGem` (gem for CRuby) named `mgem` that help you to
 manage `mrbgems`. Try `gem install mgem`. `mgem` can show you the list
@@ -533,58 +421,41 @@ When debugging mode is enabled
   - Because `-g` flag would be added to `mrbc` runner.
     - You can have better backtrace of mruby scripts with this.
 
+### Define log
+
+To list every define the build compiles with, and where each came from:
+
+```console
+$ rake defines
+Defines of 'host':
+  HAVE_SYS_RESOURCE_H  mruby-process cc    mrbgems/mruby-process/mrbgem.rake:37
+  MRB_DEBUG            compilers internal  build_config/host-debug.rb:5 (via enable_debug)
+  MRB_USE_BIGINT       conf                mrbgems/mruby-bigint/mrbgem.rake:5
+```
+
+The middle column is `conf` for `conf.defines`, a compiler name for that
+compiler's own list, or a gem name for the gem's own compiler. A define set
+twice is marked `[FOO=1 wins]` on the losing row.
+
+To print the same tables at the start of every build:
+
+```ruby
+conf.define_log
+```
+
 ### File prefix map
 
-Where the mruby tree and the build directory sit would reach what a build
-compiles: `__FILE__`, which is what `mrb_assert` reports through `assert`, the
-debug information that the `-g` of the `gcc` and `clang` toolchains writes, and
-the file names `mrbc` records for the backtrace of an mruby script under
-`enable_debug`. Every build keeps them out of it on its own.
+Every build keeps the paths of this machine out of what it compiles, writing
+the tree as `.` and the build directory as `build`. Two build directories at
+the same depth compile the same thing, and `ccache` can share the objects.
 
-It runs the compilers from the build directory and compiles by the names the
-sources and the generated files have from there, `../src/vm.c` and
-`host/src/symbol.c`, not the path of the checkout. The build directory is
-written as `build`, the place it takes when nothing moves it, so that a build
-with `MRUBY_BUILD_DIR` pointing anywhere else compiles what a build inside the
-tree compiles: the tree is then written as `..`, the name it has from there.
-The names are written with `-ffile-prefix-map`, except for the directory a
-compiler records as the one it compiled in, which `clang` is told by
-`-ffile-compilation-dir`.
-
-Two builds of the same commit in two checkouts or in two build directories
-therefore compile the same thing, as long as the build directories sit at the
-same depth, and a compiler cache keyed on the command line, `ccache` or
-`sccache`, answers for one from what it learned of the other with nothing
-configured for it on the machine.
-
-The same holds across configs that name different gems, for the objects of
-the parts of the build the two configs agree on up to that point. The
-preallocated symbols (see `doc/guides/symbol.md`) are numbered by the part of the build
-that brings them, the core first and then each gem in the order the config
-names them, and a source sees the numbers as macros, of which only the ones
-it uses reach what the compiler compiles. A core source therefore compiles
-to the same object whatever gems the config adds, a gem's sources stay as
-they are while the gems named before it do, and a gem added at the end of
-the config leaves every object of the others as it was. `src/symbol.c`,
-which carries the table, is the one object that follows the whole config.
-
-An edit to the config file alone rebuilds nothing by itself: an object is
-compiled again when its flags change, which the build compares against a
-record kept beside it, or when a source or header it read does.
-
-To write the two names yourself:
+To choose the two names yourself:
 
 ```ruby
 conf.enable_file_prefix_map source: "mruby", build: "mruby/build"
 ```
 
-A name other than `.` for the tree is one no name from the tree carries, so
-such a build compiles with the paths as they are and writes the names through
-the map alone. A cache has nothing to carry from one checkout to another
-there, and a debugger looks for the sources under the name that was asked for.
-
-Any other directory is mapped one at a time, which is how the path of a
-toolchain or of a gem outside the tree is written:
+To map another directory, such as a toolchain or a gem outside the tree:
 
 ```ruby
 conf.file_prefix_map "/opt/toolchain", "toolchain"
@@ -596,25 +467,35 @@ To compile with the paths as they are:
 conf.disable_file_prefix_map
 ```
 
-which is what a build to be debugged from outside the mruby tree wants: a
-debugger looks for the sources under the names the build wrote, and finds them
-only from the tree they are named against. Either tell the debugger where they
-are (`set substitute-path build /path/to/build` in gdb), run it from the tree
-with the build directory in its place, or take the names off this way.
+Do this for a build to be debugged from outside the tree, or tell the
+debugger where the sources are (`set substitute-path build /path/to/build`
+in gdb). A compiler without `-ffile-prefix-map` (`cl`, GCC before 8, clang
+before 10) is not given it.
 
-Note that
+### Compilation database
 
-- A compiler that takes neither option, which `cl` and every compiler older
-  than GCC 8 or clang 10 are, still compiles by the names of the tree, and the
-  directory it records as the one it compiled in stays as it is. The build asks
-  the compiler before it writes either option and leaves it out where the
-  answer is no.
-- The flags a build exports in `libmruby.flags.mak` name every directory in
-  full: they are read where the package was installed, which is not where it
-  was built, and whoever compiles against it rewrites them.
-- A directory the build cannot name from the build directory, a gem outside
-  the tree, reaches the compiler as this machine spells it, and is written
-  through the map.
+Every target writes a `compile_commands.json` into its build directory. To
+skip it:
+
+```ruby
+conf.disable_compile_commands
+```
+
+The copy at the source root is the `host` target's, or the first target's.
+To choose another target:
+
+```ruby
+conf.enable_compile_commands default: true
+```
+
+### Size program
+
+The `size` program that fills `size.json` is found by the C compiler's
+prefix. To name it:
+
+```ruby
+conf.size = "arm-none-eabi-size"
+```
 
 ## Cross-Compilation
 
@@ -675,6 +556,10 @@ root directory. The structure of this directory will look like this:
         +- mrblib       <- Compilation result from mrblib
         |
         +- src          <- Compilation result from C sources
+        |
+        +- compile_commands.json  <- Compilation database
+        |
+        +- size.json    <- Sizes of the artifacts
 ```
 
 The compilation workflow will look like this:
@@ -691,11 +576,14 @@ The compilation workflow will look like this:
 - create binary commands according to binary gems (e.g. `mirb` and `mruby`)
 - copy binaries under `build/host/bin` to `bin` directory
 
+An object is compiled again when its flags or a file it read change. An
+edit to the config file alone rebuilds nothing.
+
 ```
- _____    _____    ______    ____    ____    _____    _____    ____
-| CC  |->|GEN  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
-| *.c |  |y.tab|  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
- -----    -----    ------    ----    ----    -----    -----    ----
+ _____    ______    ____    ____    _____    _____    ____
+| CC  |->|AR    |->|CC  |->|CC  |->|AR   |->|CC   |->|CC  |
+| *.c |  |core.a|  |mrbc|  |*.rb|  |lib.a|  |mruby|  |mirb|
+ -----    ------    ----    ----    -----    -----    ----
 ```
 
 ### Cross-Compilation
@@ -711,6 +599,8 @@ like this:
     |   +- bin           <- Native Binaries
     |   |
     |   +- lib           <- Native Libraries
+    |   |
+    |   +- mrbc          <- Minimal mrbc place
     |   |
     |   +- mrbgems
     |   |
@@ -735,27 +625,27 @@ An extra directory is created for the target platform. In case you
 compile for `i386` a directory called `i386` is created under the
 build directory.
 
-The cross compilation workflow starts in the same way as the normal
-compilation by compiling all _native_ libraries and binaries, except
-for we don't have `host/mrbc` directory (`host` directory itself works
-as placeholder for `mrbc`). Afterwards the cross compilation process
-proceeds like this:
+The cross-compilation workflow starts in the same way as the normal
+compilation by compiling all _native_ libraries and binaries. The target
+borrows the native `mrbc` of `host` when the two builds define the same
+things for it, and otherwise gets a native `mrbc` of its own under
+`build/mrbc/`. Afterwards the cross-compilation process proceeds like this:
 
 - cross-compile all files under `src` and store result in `build/i386/src`
-- create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with native `build/host/bin/mrbc`
+- create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with the native `mrbc` chosen above
 - cross-compile `build/i386/mrblib/mrblib.c` to `build/i386/mrblib/mrblib.o`
 - create `build/i386/lib/libmruby.a` from object files from gems and from `src`
 - create binary commands according to binary gems (e.g. `mirb` and `mruby`)
 - copy binaries under `build/host/bin` to `bin` directory
 
 ```
- _______________________________________________________________
-|              Native Compilation for Host System               |
-|  _____      ______      _____      ____      ____      _____  |
-| | CC  | -> |AR    | -> |GEN  | -> |CC  | -> |CC  | -> |AR   | |
-| | *.c |    |core.a|    |y.tab|    |mrbc|    |*.rb|    |lib.a| |
-|  -----      ------      -----      ----      ----      -----  |
- ---------------------------------------------------------------
+ ______________________________________________________________
+|              Native Compilation for Host System             |
+|      _____      ______      ____      ____      _____       |
+|     | CC  | -> |AR    | -> |CC  | -> |CC  | -> |AR   |      |
+|     | *.c |    |core.a|    |mrbc|    |*.rb|    |lib.a|      |
+|      -----      ------      ----      ----      -----       |
+ --------------------------------------------------------------
                                 ||
                                \||/
                                 \/
@@ -766,6 +656,30 @@ proceeds like this:
 | | *.c |    |lib.a|    |mruby|    |mirb|    |core.a|    |mrbc | |
 |  -----      -----      -----      ----      ------      -----  |
  ----------------------------------------------------------------
+```
+
+### compile_commands.json
+
+Every target writes a `compile_commands.json` of its compiles, for editors
+and clang tools. To write it without building:
+
+```console
+$ rake compile_commands.json
+```
+
+Point `clangd --compile-commands-dir` at a build directory to read the tree
+as that target. The copy at the source root is the `host` target's;
+`MRUBY_CDB_TARGET` names another for one run. Sources no build compiles are
+covered by `compile_flags.txt` at the source root.
+
+### size.json
+
+Every target writes a `size.json` of its artifacts: the sizes of `libmruby.a`
+and the executables, with their sections and object files.
+
+```console
+$ rake size.json    # write the file
+$ rake size         # print it as a table, one per target
 ```
 
 ## Build Configuration Examples
@@ -806,8 +720,14 @@ convenience. `mruby-config` command prints the configuration used for `libmruby.
 $ mruby-config --help
 Usage: mruby-config [switches]
   switches:
-  --cc                        print compiler name
-  --cflags                    print flags passed to compiler
+  --cc                        print C compiler name
+  --cflags                    print flags passed to C compiler
+  --cxx                       print C++ compiler name
+  --cxxflags                  print flags passed to C++ compiler
+  --as                        print assembler name
+  --asflags                   print flags passed to assembler
+  --objc                      print Objective C compiler name
+  --objcflags                 print flags passed to Objective C compiler
   --ld                        print linker name
   --ldflags                   print flags passed to linker
   --ldflags-before-libs       print flags passed to linker before linked libraries
