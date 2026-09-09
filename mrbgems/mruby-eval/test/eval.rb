@@ -809,3 +809,19 @@ assert('eval of a pattern deeper than the compiler walks') do
   assert_equal [1, 2], eval("q = [1, 2]; q => [a, b]; [a, b]")
   assert_true eval("({k: 1} in {k:})")
 end
+
+assert('eval of a nesting Prism would recurse through') do
+  # Prism refuses to parse deeper than PRISM_DEPTH_MAXIMUM where it parses an
+  # expression, but the walk over a pattern carries the count without ever
+  # reading it, so a pattern nested as deep as it is written recursed until
+  # the C stack ran out. The brackets the lexer opens are counted instead,
+  # and the one past the limit is given to the parser as the end of input.
+  assert_raise(SyntaxError) { eval("case 1\nin " + "[" * 100000 + "1" + "]" * 100000 + " then 1\nend") }
+  assert_raise(SyntaxError) { eval("case 1\nin " + "{a: " * 100000 + "1" + "}" * 100000 + " then 1\nend") }
+  # a nesting Prism accepts is parsed as before, and the count is per compile
+  a = eval("[" * 250 + "1" + "]" * 250)
+  250.times { a = a[0] }
+  assert_equal 1, a
+  assert_equal 2, eval("[1].map { |v| eval('[[[2]]]')[0][0][0] }[0]")
+  assert_equal [1, 2], eval("q = [1, 2]; q => [a, b]; [a, b]")
+end

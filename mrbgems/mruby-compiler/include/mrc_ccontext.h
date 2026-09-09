@@ -68,6 +68,10 @@ typedef struct mrc_ccontext {
      prism_xallocator.h for what the arena is for. */
   void *prism_arena;
   void *prism_arena_outer;
+
+  /* How deep the brackets stand where the lexer is, so that a nesting Prism
+     would recurse through is refused instead. See src/compile.c. */
+  uint32_t nesting;
 } mrc_ccontext;                 /* compiler context */
 
 #ifdef MRC_TARGET_MRUBY
