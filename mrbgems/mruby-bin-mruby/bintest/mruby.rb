@@ -21,6 +21,12 @@ assert('regression for #1564') do
   assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<-])
 end
 
+assert('a construct the generator refuses is named on standard error') do
+  # The generator writes its own message; the diagnostic list it also fills is
+  # read by `mrbc`, not here.
+  assert_mruby("", "-e:1: END not supported\n", false, ['-e', 'END { }'])
+end
+
 assert('OP_CALL on a receiver that is not a Proc is refused') do
   # OP_CALL reads ci->stack[0] as an RProc*. No compiled program contains the
   # instruction (the only iseq holding one is call_iseq in src/proc.c, entered
