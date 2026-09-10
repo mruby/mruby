@@ -135,6 +135,7 @@ typedef struct scope {
   struct loopinfo *loop;
   const char *filename;
   uint16_t lineno;
+  const uint8_t *loc;           /* start of the node being compiled */
 
   mrc_code *iseq;
   uint16_t *lines;
@@ -167,7 +168,7 @@ codegen_error(mrc_codegen_scope *s, const char *message)
   if (!s) return;
   s->c->capture_errors = TRUE;
 
-  mrc_diagnostic_list_append(s->c, 0, message, MRC_GENERATOR_ERROR);
+  mrc_diagnostic_list_append(s->c, s->loc, message, MRC_GENERATOR_ERROR);
 
 #ifndef MRC_NO_STDIO
   if (!s->c->quiet_errors) {
@@ -466,6 +467,11 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
   s->prev = prev;
   s->ainfo = 0;
   s->mscope = 0;
+  /* inherited before the first check that can fail, so that a scope refused
+     here is still named on standard error */
+  s->filename = prev->filename;
+  s->lineno = prev->lineno;
+  s->loc = prev->loc;
 
   scope_add_irep(s);
 
@@ -513,11 +519,9 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
 
   int ai = mrc_gc_arena_save(c);
   s->ai = ai;
-  s->filename = prev->filename;
   if (s->filename) {
     s->lines = (uint16_t *)mrc_malloc(c, sizeof(uint16_t)*s->icapa);
   }
-  s->lineno = prev->lineno;
 
   /* degug info */
   s->debug_start_pos = 0;
@@ -4959,6 +4963,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
   int nt = nint(tree);
 
   s->lineno = node_lineno(s->c, tree);
+  s->loc = tree->location.start;
 
   switch (nt) {
     case PM_PROGRAM_NODE: {

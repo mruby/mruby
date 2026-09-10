@@ -49,6 +49,31 @@ assert('too many local variables are rejected') do
   #   mrbc -c many-locals.rb
 end
 
+assert('a scope refused for its local variables is named with its position') do
+  source = Tempfile.new(['many-locals', '.rb'])
+  source.puts("x = 1")
+  source.puts("def big")
+  255.times { |i| source.puts("  local_#{i} = nil") }
+  source.puts("end")
+  source.flush
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', source.path]))
+  assert_equal 1, status.exitstatus
+  assert_include result, "#{source.path}:2: too many local variables"
+end
+
+assert('a generator error carries its position into the diagnostic list') do
+  # The list is what `mrbc` prints and what `eval` builds its SyntaxError from.
+  # Every entry in it used to read 0:0, since the generator recorded no
+  # position; the parser's entries have always carried one.
+  source = Tempfile.new(['end-block', '.rb'])
+  source.puts("x = 1")
+  source.puts("END { }")
+  source.flush
+  result, status = Open3.capture2e(*(cmd_list('mrbc') + ['-c', source.path]))
+  assert_equal 1, status.exitstatus
+  assert_include result, "#{source.path}:2:1: generator error, END not supported"
+end
+
 assert('embedded document with invalid terminator') do
   a, out = Tempfile.new('a.rb'), Tempfile.new('out.mrb')
   a.write("=begin\n=endx\n")
