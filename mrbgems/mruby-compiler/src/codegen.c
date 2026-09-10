@@ -4948,8 +4948,13 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
 
   if (s->filename_index+1 < s->c->filename_table_length) {
     if (s->c->filename_table[s->filename_index+1].start <= token_pos) {
-      mrc_debug_info_append_file(s->c, s->irep->debug_info,
-                                s->filename, s->lines, s->debug_start_pos, s->pc);
+      /* The scope generate_code() starts in emits nothing and has no irep to
+         attribute a range to. It still has to move to the file the node is
+         in, which is the file it hands to the top-level scope below it. */
+      if (s->irep) {
+        mrc_debug_info_append_file(s->c, s->irep->debug_info,
+                                  s->filename, s->lines, s->debug_start_pos, s->pc);
+      }
       s->debug_start_pos = s->pc;
       s->filename_index++;
       s->filename = (const char *)s->c->filename_table[s->filename_index].filename;
