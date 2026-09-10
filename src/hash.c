@@ -175,10 +175,23 @@ DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht
        entry_var < ea_end__;                                                  \
        entry_var++)
 
-#define EA_EACH(ea, size, entry_var)                                          \
+/* Visit the live count of entries, skipping deleted slots, with the skip
+   bounded by the end of the entry allocation (ea + ea_capa).  The live count
+   is read once, and a callback reached from the loop body can delete entries
+   ahead of the cursor: `size` and the slot's key are all a delete touches, so
+   H_CHECK_MODIFIED, which watches the capacity and the pointers, does not see
+   it and the count is left too high.  The bound is what keeps the iterator
+   inside the allocation then (GHSA-jfmr-44fc-gfhg and GHSA-2778-fvwg-5m8w,
+   CWE-125).  ea_capa is used rather than ea_n_used because the latter is
+   transiently inconsistent with the entry positions while a rehash that
+   raised mid-way is being observed; ea_capa always spans every entry. */
+#define EA_EACH(ea, ea_capa, size, entry_var)                                 \
   for (uint32_t ea_size__ = (size); ea_size__; ea_size__ = 0)                 \
-    for (hash_entry *entry_var = (ea);                                        \
-         ea_size__ && (entry_var = entry_skip_deleted(entry_var), TRUE);      \
+    for (hash_entry *entry_var = (ea),                                        \
+                    *ea_end__ = (entry_var) + (ea_capa);                      \
+         ea_size__ &&                                                         \
+           (entry_var = entry_skip_deleted_bounded(entry_var, ea_end__))      \
+             < ea_end__;                                                      \
          entry_var++, ea_size__--)
 
 #define IB_CYCLE_BY_KEY(mrb, h, key, it_var)                                  \
@@ -297,6 +310,12 @@ struct h_check_modified {
   void *tbl;
   uint32_t ht_ea_capa;
   hash_entry *ht_ea;
+  /* A delete touches the count and the slot's key and nothing else: it
+     reallocates nothing, so every field above it is the same afterwards
+     (GHSA-2778-fvwg-5m8w). The count is what tells such a change apart, and
+     an iteration that has read it once is left walking a hash that no longer
+     holds that many. */
+  uint32_t size;
 };
 
 #define H_CHECK_MODIFIED_FLAGS_MASK  (MRB_HASH_HT | MRB_HASH_IB_BIT_MASK | MRB_HASH_AR_EA_CAPA_MASK)
@@ -311,6 +330,7 @@ h_check_modified_init(mrb_state *mrb, struct RHash *h)
   checker.tbl = h->hsh.ht;
   checker.ht_ea_capa = (H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h)) ? ht_ea_capa(h) : 0;
   checker.ht_ea = (H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h)) ? ht_ea(h) : NULL;
+  checker.size = h_size(h);
   return checker;
 }
 
@@ -322,7 +342,8 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
       ((H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h)) &&
        checker->ht_ea_capa != ht_ea_capa(h)) ||
       ((H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h)) &&
-       checker->ht_ea != ht_ea(h))) {
+       checker->ht_ea != ht_ea(h)) ||
+      checker->size != h_size(h)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
   }
 }
@@ -448,18 +469,10 @@ entry_delete(hash_entry* entry)
   entry->key = mrb_undef_value();
 }
 
-static hash_entry*
-entry_skip_deleted(hash_entry *e)
-{
-  for (; entry_deleted_p(e); e++)
-    ;
-  return e;
-}
-
-/* Like entry_skip_deleted, but never advances past `end` (one past the last
-   allocated entry slot). H_EACH uses this so that a callback which deletes
-   entries ahead of the cursor mid-iteration cannot walk the iterator off the
-   end of the allocation (GHSA-jfmr-44fc-gfhg, CWE-125). A realloc-causing
+/* Skip deleted slots without ever advancing past `end`, one past the last
+   allocated entry slot, so that a callback which deletes entries ahead of the
+   cursor mid-iteration cannot walk the iterator off the end of the allocation
+   (GHSA-jfmr-44fc-gfhg and GHSA-2778-fvwg-5m8w, CWE-125). A realloc-causing
    mutation is still caught separately by H_CHECK_MODIFIED in the loop body. */
 static hash_entry*
 entry_skip_deleted_bounded(hash_entry *e, const hash_entry *end)
@@ -542,10 +555,10 @@ ea_dup(mrb_state *mrb, const hash_entry *ea, uint32_t capa)
 }
 
 static hash_entry*
-ea_get_by_key(mrb_state *mrb, hash_entry *ea, uint32_t size, mrb_value key,
-              struct RHash *h)
+ea_get_by_key(mrb_state *mrb, hash_entry *ea, uint32_t ea_capa, uint32_t size,
+              mrb_value key, struct RHash *h)
 {
-  EA_EACH(ea, size, entry) {
+  EA_EACH(ea, ea_capa, size, entry) {
     if (obj_eql(mrb, key, entry->key, h)) return entry;
   }
   return NULL;
@@ -602,7 +615,7 @@ ar_compress(mrb_state *mrb, struct RHash *h)
 static mrb_bool
 ar_get(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value *valp)
 {
-  EA_EACH(ar_ea(h), ar_size(h), entry) {
+  EA_EACH(ar_ea(h), ar_ea_capa(h), ar_size(h), entry) {
     if (!obj_eql(mrb, key, entry->key, h)) continue;
     *valp = entry->val;
     return TRUE;
@@ -615,7 +628,7 @@ ar_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 {
   uint32_t size = ar_size(h);
   hash_entry *entry;
-  if ((entry = ea_get_by_key(mrb, ar_ea(h), size, key, h))) {
+  if ((entry = ea_get_by_key(mrb, ar_ea(h), ar_ea_capa(h), size, key, h))) {
     entry->val = val;
   }
   else {
@@ -646,7 +659,7 @@ ar_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 static mrb_bool
 ar_delete(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value *valp)
 {
-  hash_entry *entry = ea_get_by_key(mrb, ar_ea(h), ar_size(h), key, h);
+  hash_entry *entry = ea_get_by_key(mrb, ar_ea(h), ar_ea_capa(h), ar_size(h), key, h);
   if (!entry) return FALSE;
   *valp = entry->val;
   entry_delete(entry);
@@ -658,7 +671,7 @@ static void
 ar_shift(mrb_state *mrb, struct RHash *h, mrb_value *keyp, mrb_value *valp)
 {
   uint32_t size = ar_size(h);
-  EA_EACH(ar_ea(h), size, entry) {
+  EA_EACH(ar_ea(h), ar_ea_capa(h), size, entry) {
     *keyp = entry->key;
     *valp = entry->val;
     entry_delete(entry);
@@ -673,8 +686,8 @@ ar_rehash(mrb_state *mrb, struct RHash *h)
   /* see comments in `h_rehash` */
   uint32_t size = ar_size(h), w_size = 0, ea_capa = ar_ea_capa(h);
   hash_entry *ea = ar_ea(h), *w_entry;
-  EA_EACH(ea, size, r_entry) {
-    if ((w_entry = ea_get_by_key(mrb, ea, w_size, r_entry->key, h))) {
+  EA_EACH(ea, ea_capa, size, r_entry) {
+    if ((w_entry = ea_get_by_key(mrb, ea, ea_capa, w_size, r_entry->key, h))) {
       w_entry->val = r_entry->val;
       ar_set_size(h, --size);
       entry_delete(r_entry);
@@ -1027,7 +1040,7 @@ static void
 ht_shift(mrb_state *mrb, struct RHash *h, mrb_value *keyp, mrb_value *valp)
 {
   hash_entry *ea = ht_ea(h);
-  EA_EACH(ea, ht_size(h), entry) {
+  EA_EACH(ea, ht_ea_capa(h), ht_size(h), entry) {
     IB_CYCLE_BY_KEY(mrb, h, entry->key, it) {
       if (ib_it_get(it) != U32(entry - ea)) continue;
       *keyp = entry->key;
@@ -1055,7 +1068,7 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
   ht_init(mrb, h, 0, ea, ea_capa, h_ht(h), ib_bit_for(size));
   ht_set_size(h, size);
   ht_set_ea_n_used(h, ht_ea_n_used(h));
-  EA_EACH(ea, size, r_entry) {
+  EA_EACH(ea, ea_capa, size, r_entry) {
     IB_CYCLE_BY_KEY(mrb, h, r_entry->key, it) {
       if (ib_it_active_p(it)) {
         if (!obj_eql(mrb, r_entry->key, ib_it_entry(it)->key, h)) continue;

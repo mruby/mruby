@@ -980,6 +980,61 @@ assert('Hash iteration with entries deleted ahead of the cursor') do
   assert_predicate(g, :empty?)
 end
 
+assert('Hash lookup with entries deleted by an eql? callback') do
+  # Regression for GHSA-2778-fvwg-5m8w: a delete touches the count and the
+  # slot's key and nothing else, so it reallocates nothing and the reentry
+  # guard, which watched the capacity and the pointers, did not see it. A
+  # lookup that had already read the count then walked past the end of the
+  # entry array and handed what it found there to eql? as a key. Each entry
+  # below has to answer with the exception, never by reading out of bounds.
+  evil = Class.new do
+    def initialize(h, keys) @h, @keys = h, keys end
+    def eql?(other) @keys.each { |k| @h.delete(k) }; false end
+    def hash; 0 end
+  end
+  ar = lambda { {"k0" => 0, "k1" => 1, "k2" => 2, "k3" => 3, "k4" => 4} }
+  ar_keys = ["k1", "k2", "k3", "k4"]
+
+  # Hash#[], and the two that reach the same scan through it.
+  h = ar.call
+  assert_raise(RuntimeError) { h[evil.new(h, ar_keys)] }
+  h3 = ar.call
+  assert_raise(RuntimeError) { h3.key?(evil.new(h3, ar_keys)) }
+
+  # A store reads the array the same way before it writes.
+  h4 = ar.call
+  assert_raise(RuntimeError) { h4[evil.new(h4, ar_keys)] = 9 }
+
+  # An HT-form hash reaches it too.
+  t = {}
+  20.times { |i| t["h#{i}"] = i }
+  assert_raise(RuntimeError) { t[evil.new(t, (1...20).map { |i| "h#{i}" })] }
+
+  # A delete and an add together leave the count where it was, which is what
+  # the guard reads, so the bound on the entry array is what has to answer for
+  # this one. Whether the add also moves the array, and so is seen by the
+  # guard after all, is up to the allocator, so the lookup is asked only to
+  # finish: either it raises or it answers, never reads past the end.
+  swapper = Class.new do
+    def initialize(h) @h = h end
+    def eql?(other) @h.delete("k1"); @h["zz"] = 99; false end
+    def hash; 0 end
+  end
+  m = ar.call
+  begin
+    assert_nil(m[swapper.new(m)])
+  rescue RuntimeError
+    # the guard saw the array move; either way nothing was read out of bounds
+  end
+  assert_true(m.size >= 4)
+
+  # A hash nothing touched during the lookup still answers.
+  q = {"a" => 1, "b" => 2}
+  assert_equal(1, q["a"])
+  assert_equal(2, q.size)
+  assert_equal(2, q.rehash.size)
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))
