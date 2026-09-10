@@ -171,6 +171,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   src += sizeof(uint16_t);
   nregs = bin_to_uint16(src);
   src += sizeof(uint16_t);
+  /* The VM sizes a frame's registers by nregs and reaches for locals within
+     it, so a record claiming more locals than registers describes a frame
+     that cannot exist: OP_ENTER would clear nlocals slots of an nregs-sized
+     stack. The compiler never emits one, and nothing downstream asks again,
+     so the invariant is stated here, where the numbers arrive. */
+  if (nlocals > nregs) return FALSE;
   rlen = bin_to_uint16(src);
   src += sizeof(uint16_t);
 
