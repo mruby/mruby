@@ -3870,6 +3870,17 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_CALL, Z) {
+      /* The receiver is whatever the frame was entered with, and this reads
+         it as a proc. No compiled program contains OP_CALL: the compiler never
+         emits it, and the only iseq that holds one is `call_iseq` in
+         src/proc.c, entered where a proc has just been put in place. The check
+         therefore answers for an irep that arrived by another road, whose
+         bytes would otherwise be used as an RProc* (an immediate becomes a
+         misaligned pointer, a heap object lends its own contents). OP_BLKCALL
+         below asks the same of the same kind of value. */
+      if (mrb_unlikely(!mrb_proc_p(ci->stack[0]))) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", ci->stack[0]);
+      }
       const struct RProc *p = mrb_proc_ptr(ci->stack[0]);
       int r = vm_call_proc(mrb, p, ci_bidx(ci)+1, &irep, ai);
       ci = mrb->c->ci;
