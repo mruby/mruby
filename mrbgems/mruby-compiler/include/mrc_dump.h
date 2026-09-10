@@ -9,10 +9,11 @@ MRC_BEGIN_DECL
 #define MRC_DUMP_DEBUG_INFO 1
 #define MRC_DUMP_STATIC 2
 
+int mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
+
 #ifndef MRC_NO_STDIO
 int mrc_dump_irep_cfunc(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, FILE *fp, const char *initname);
 int mrc_dump_irep_binary(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, FILE* fp);
-int mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #endif
 
 /* dump/load error code

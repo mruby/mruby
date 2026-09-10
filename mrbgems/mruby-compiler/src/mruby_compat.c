@@ -15,14 +15,10 @@
 #include "../include/mrc_ccontext.h"
 #include "../include/mrc_compile.h"
 #include "../include/mrc_diagnostic.h"
+#include "../include/mrc_dump.h"
 #include "../include/mrc_irep.h"
 #include "../include/mrc_parser_util.h"
 #include "../include/mrc_pool.h"
-
-#define MRC_COMPAT_DUMP_OK 0
-#define MRC_COMPAT_DUMP_DEBUG_INFO 1
-
-int mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 
 static void
 copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
@@ -462,12 +458,12 @@ mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p)
   /* Always carry debug info across the dump/reload that turns the mrc_irep
      into an mrb_irep: without it runtime backtraces lose the file name and
      line number, and mruby reports those even when compiled without -g. */
-  uint8_t flags = MRC_COMPAT_DUMP_DEBUG_INFO;
+  uint8_t flags = MRC_DUMP_DEBUG_INFO;
 
   if (!p || !p->tree || p->nerr) return NULL;
   mc = (mrc_ccontext*)p->ylval;
   irep = (mrc_irep*)p->tree;
-  if (mrc_dump_irep(mc, irep, flags, &bin, &bin_size) != MRC_COMPAT_DUMP_OK) {
+  if (mrc_dump_irep(mc, irep, flags, &bin, &bin_size) != MRC_DUMP_OK) {
     report_roundtrip_error(mc, "irep dump error");
     return NULL;
   }

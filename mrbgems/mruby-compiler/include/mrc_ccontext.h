@@ -54,12 +54,15 @@ typedef struct mrc_ccontext {
   // For PICOIRB
   uint16_t scope_sp;
 
-#ifndef MRC_NO_STDIO
-  mrc_pool *pool; // for codedump
-
+  /* Where in the joined source each of the files given to this context
+     begins, so that a position can be told which file it came from. The
+     codegen and the diagnostics both read it, whether or not stdio is in. */
   mrc_filename_table *filename_table;
   uint16_t filename_table_length;
   uint16_t current_filename_index;
+
+#ifndef MRC_NO_STDIO
+  mrc_pool *pool; // for codedump
 #endif
 
   /* The arena everything Prism allocates for this context is taken from, and
