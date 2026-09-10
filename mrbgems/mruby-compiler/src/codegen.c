@@ -466,6 +466,10 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
   s->prev = prev;
   s->ainfo = 0;
   s->mscope = 0;
+  /* inherited before the first check that can fail, so that a scope refused
+     here is still named on standard error */
+  s->filename = prev->filename;
+  s->lineno = prev->lineno;
 
   scope_add_irep(s);
 
@@ -513,11 +517,9 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
 
   int ai = mrc_gc_arena_save(c);
   s->ai = ai;
-  s->filename = prev->filename;
   if (s->filename) {
     s->lines = (uint16_t *)mrc_malloc(c, sizeof(uint16_t)*s->icapa);
   }
-  s->lineno = prev->lineno;
 
   /* degug info */
   s->debug_start_pos = 0;
