@@ -178,10 +178,17 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
 
   mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
 
-  /* Item available - return it */
+  /* Item available - return it.
+   *
+   * The item is put on the arena while the array still holds it. Taking it
+   * out first would leave it owned by this C local alone, which the GC does
+   * not scan, and mrb_gc_protect() can collect before it protects: it grows
+   * the arena through mrb_realloc(), whose failure path runs a full GC
+   * (GHSA-f3mm-x76x-jmcv). */
   if (RARRAY_LEN(items) > 0) {
-    mrb_value item = mrb_ary_shift(mrb, items);
+    mrb_value item = RARRAY_PTR(items)[0];
     mrb_gc_protect(mrb, item);
+    mrb_ary_shift(mrb, items);
     if (RARRAY_LEN(items) == 0) {
       mrb_ary_clear(mrb, items);
     }

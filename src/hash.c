@@ -674,6 +674,13 @@ ar_shift(mrb_state *mrb, struct RHash *h, mrb_value *keyp, mrb_value *valp)
   EA_EACH(ar_ea(h), ar_ea_capa(h), size, entry) {
     *keyp = entry->key;
     *valp = entry->val;
+    /* On the arena before the entry goes: once it is deleted the pair is
+       owned by the caller's C locals alone, which the GC does not scan, and
+       mrb_gc_protect() can collect before it protects, since it grows the
+       arena through mrb_realloc() whose failure path runs a full GC
+       (GHSA-f3mm-x76x-jmcv). */
+    mrb_gc_protect(mrb, *keyp);
+    mrb_gc_protect(mrb, *valp);
     entry_delete(entry);
     ar_set_size(h, --size);
     return;
@@ -1045,6 +1052,9 @@ ht_shift(mrb_state *mrb, struct RHash *h, mrb_value *keyp, mrb_value *valp)
       if (ib_it_get(it) != U32(entry - ea)) continue;
       *keyp = entry->key;
       *valp = entry->val;
+      /* see ar_shift */
+      mrb_gc_protect(mrb, *keyp);
+      mrb_gc_protect(mrb, *valp);
       ib_it_delete(it);
       entry_delete(entry);
       ht_dec_size(h);
@@ -1792,8 +1802,6 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
   else {
     mrb_value del_key, del_val;
     h_shift(mrb, h, &del_key, &del_val);
-    mrb_gc_protect(mrb, del_key);
-    mrb_gc_protect(mrb, del_val);
     return mrb_assoc_new(mrb, del_key, del_val);
   }
 }

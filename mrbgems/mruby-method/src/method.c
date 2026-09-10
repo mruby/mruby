@@ -25,7 +25,13 @@ args_shift(mrb_state *mrb)
     return obj;
   }
   else if (RARRAY_LEN(*argv) > 0) {
-    return mrb_ary_shift(mrb, *argv);
+    /* On the arena while the array still holds it: taken out first it would
+       be owned by this C local alone, which the GC does not scan, and the
+       caller's mrb_gc_protect() can collect before it protects. */
+    mrb_value obj = RARRAY_PTR(*argv)[0];
+    mrb_gc_protect(mrb, obj);
+    mrb_ary_shift(mrb, *argv);
+    return obj;
   }
   else {
   argerr:
