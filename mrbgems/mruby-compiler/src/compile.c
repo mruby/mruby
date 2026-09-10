@@ -244,6 +244,61 @@ mrc_pm_parser_init(mrc_parser_state *p, uint8_t **source, size_t size, mrc_ccont
   }
 }
 
+static mrc_node *
+mrc_pm_parse(mrc_ccontext *cc)
+{
+  mrc_node *node = pm_parse(cc->p);
+
+#if defined(PICORB_VM_MRUBYC)
+  // Workaround: save top-level locals for PicoRuby(mruby/c) IRB
+  pm_program_node_t *program = (pm_program_node_t *)node;
+  uint32_t nlocals = program->locals.size;
+  pm_options_t *options = (pm_options_t *)mrc_malloc(cc, sizeof(pm_options_t));
+  memset(options, 0, sizeof(pm_options_t));
+  pm_string_t *encoding = &options->encoding;
+  pm_string_constant_init(encoding, "UTF-8", 5);
+  pm_options_scopes_init(options, 1);
+  pm_options_scope_t *options_scope = &options->scopes[0];
+  pm_options_scope_init(options_scope, nlocals);
+  pm_constant_id_t id;
+  pm_constant_t *local;
+  pm_string_t *scope_local;
+  char *allocated;
+  for (int i = 0; i < nlocals; i++) {
+    scope_local = &options_scope->locals[i];
+    id = program->locals.ids[i];
+    local = pm_constant_pool_id_to_constant(&cc->p->constant_pool, id);
+    allocated = (char *)mrc_malloc(cc, local->length);
+    memcpy(allocated, local->start, local->length);
+    pm_string_constant_init(scope_local, (const char *)allocated, local->length);
+  }
+  if (cc->options && cc->options->scopes) {
+    for (int i = 0; i < cc->options->scopes[0].locals_count; i++) {
+      mrc_free(cc, (void *)cc->options->scopes[0].locals[i].source);
+    }
+    mrc_free(cc, cc->options);
+  }
+  cc->options = options;
+#endif
+
+  return node;
+}
+
+/* Give back the tree.  Where the arena is in use nothing is done here: the
+   parser is still holding what it allocated from the same arena, and the
+   whole of it is given back at mrc_ccontext_free() instead.  Where the arena
+   is not in use, which is a build with its own allocator, the tree is walked
+   as prism walks it. */
+static void
+mrc_prism_release_tree(mrc_ccontext *c, mrc_node *root)
+{
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+  (void)c; (void)root;
+#else
+  if (root) pm_node_destroy(c->p, root);
+#endif
+}
+
 #ifndef MRC_NO_STDIO
 
 #define INITIAL_BUF_SIZE 1024
@@ -390,47 +445,6 @@ read_input_files(mrc_ccontext *c, const char **filenames, uint8_t **source, mrc_
 }
 
 static mrc_node *
-mrc_pm_parse(mrc_ccontext *cc)
-{
-  mrc_node *node = pm_parse(cc->p);
-
-#if defined(PICORB_VM_MRUBYC)
-  // Workaround: save top-level locals for PicoRuby(mruby/c) IRB
-  pm_program_node_t *program = (pm_program_node_t *)node;
-  uint32_t nlocals = program->locals.size;
-  pm_options_t *options = (pm_options_t *)mrc_malloc(cc, sizeof(pm_options_t));
-  memset(options, 0, sizeof(pm_options_t));
-  pm_string_t *encoding = &options->encoding;
-  pm_string_constant_init(encoding, "UTF-8", 5);
-  pm_options_scopes_init(options, 1);
-  pm_options_scope_t *options_scope = &options->scopes[0];
-  pm_options_scope_init(options_scope, nlocals);
-  pm_constant_id_t id;
-  pm_constant_t *local;
-  pm_string_t *scope_local;
-  char *allocated;
-  for (int i = 0; i < nlocals; i++) {
-    scope_local = &options_scope->locals[i];
-    id = program->locals.ids[i];
-    local = pm_constant_pool_id_to_constant(&cc->p->constant_pool, id);
-    allocated = (char *)mrc_malloc(cc, local->length);
-    memcpy(allocated, local->start, local->length);
-    pm_string_constant_init(scope_local, (const char *)allocated, local->length);
-  }
-  if (cc->options && cc->options->scopes) {
-    for (int i = 0; i < cc->options->scopes[0].locals_count; i++) {
-      mrc_free(cc, (void *)cc->options->scopes[0].locals[i].source);
-    }
-    mrc_free(cc, cc->options);
-  }
-  cc->options = options;
-#endif
-
-  return node;
-}
-
-
-static mrc_node *
 mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 {
   size_t filecount = 0;
@@ -451,21 +465,6 @@ mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
   }
   mrc_pm_parser_init(c->p, source, length, c);
   return mrc_pm_parse(c);
-}
-
-/* Give back the tree.  Where the arena is in use nothing is done here: the
-   parser is still holding what it allocated from the same arena, and the
-   whole of it is given back at mrc_ccontext_free() instead.  Where the arena
-   is not in use, which is a build with its own allocator, the tree is walked
-   as prism walks it. */
-static void
-mrc_prism_release_tree(mrc_ccontext *c, mrc_node *root)
-{
-#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
-  (void)c; (void)root;
-#else
-  if (root) pm_node_destroy(c->p, root);
-#endif
 }
 
 MRC_API mrc_irep *

@@ -64,7 +64,6 @@ mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, cons
   mrc_diagnostic_list *list = (mrc_diagnostic_list *)mrc_calloc(c, 1, sizeof(mrc_diagnostic_list));
   const uint8_t *file_start = c->p->start;
   list->filename = NULL;
-#ifndef MRC_NO_STDIO
   if (c->filename_table && 0 < c->filename_table_length && location_start) {
     uint32_t offset = (uint32_t)(location_start - c->p->start);
     int file_idx = 0;
@@ -75,7 +74,6 @@ mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, cons
     list->filename = c->filename_table[file_idx].filename;
     file_start = c->p->start + c->filename_table[file_idx].start;
   }
-#endif
   line_and_column_by_start_and_offset(file_start, location_start, &list->line, &list->column);
   char buf[256];
   const char *diagnostic_code_str = mrc_diagnostic_code_to_string(code);

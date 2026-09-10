@@ -9,6 +9,8 @@
 #include "../include/mrc_irep_pool_type.h"
 #include <inttypes.h>
 
+#ifndef MRC_NO_STDIO
+
 const char *
 mrc_sym_dump(mrc_ccontext *c, mrc_sym sym)
 {
@@ -44,7 +46,6 @@ mrc_irep_catch_handler_table(const mrc_irep *irep)
   }
 }
 
-#ifndef MRC_NO_STDIO
 /* An anonymous local (a rest or block placeholder) is a pool entry with an
    empty name here, where mruby leaves the symbol unset, so the name has to be
    looked at rather than just the symbol. */
