@@ -7082,7 +7082,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     }
     case PM_POST_EXECUTION_NODE:
     {
-      mrc_diagnostic_list_append(s->c, tree->location.start, "END not supported", MRC_GENERATOR_ERROR);
+      codegen_error(s, "END not supported");
       break;
     }
     case PM_RANGE_NODE:
