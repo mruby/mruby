@@ -54,6 +54,19 @@ assert 'eval syntax error' do
   end
 end
 
+assert 'eval names the line a generator error is on' do
+  # eval reads the diagnostic list, and the generator's entries in it used to
+  # carry no position at all, so every one of them read as line 0.
+  assert_raise_with_message(SyntaxError,
+                            "file (eval) line 2: generator error, END not supported") do
+    eval("p 1\nEND { }")
+  end
+  assert_raise_with_message(SyntaxError,
+                            "file (eval) line 3: generator error, END not supported") do
+    eval("p 1\np 2\nEND { }")
+  end
+end
+
 assert 'eval deeply nested input does not crash the parser' do
   # The recursive-descent parser must hit its nesting cap and report an error
   # rather than overflowing the C stack on pathologically nested source.
