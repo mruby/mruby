@@ -21,6 +21,38 @@ assert('regression for #1564') do
   assert_mruby("", /\A-e:1:\d+: syntax error,/, false, %w[-e <<-])
 end
 
+assert('an irep record claiming more locals than registers is refused') do
+  # The VM sizes a frame's registers by nregs and reaches for locals within
+  # it, so a record with nlocals > nregs describes a frame that cannot exist:
+  # OP_ENTER cleared nlocals slots of an nregs-sized stack and wrote past it.
+  # The compiler never emits such a record, so the loader states the invariant.
+  script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
+  File.write script.path, "def m(a); a; end\nm(1)\n"
+  # --remove-lv: the LVAR section names nlocals-1 symbols, so leaving it in
+  # would have the record refused for that instead of for what is tested here.
+  assert_run('mrbc', '--remove-lv', '-o', bin.path, script.path)
+  image = File.binread(bin.path)
+
+  # The record of the method body is the one after the top-level record.
+  irep = image.index('IREP')
+  first = irep + 12
+  second = first + image[first, 4].unpack1('N')
+  nlocals, nregs = image[second + 4, 4].unpack('nn')
+  assert_true nlocals <= nregs, "compiler emitted nlocals=#{nlocals} nregs=#{nregs}"
+
+  forged = image.dup
+  forged[second + 4, 2] = [nregs + 1].pack('n')
+  forged_file = Tempfile.new('forged.mrb')
+  File.binwrite(forged_file.path, forged)
+  o, s = Open3.capture2e(*(cmd_list(MRUBY_BIN) + ['-b', forged_file.path]))
+  assert_false s.success?, o
+  assert_include o, 'irep load error'
+
+  # The image it was forged from still runs.
+  o, s = Open3.capture2e(*(cmd_list(MRUBY_BIN) + ['-b', bin.path]))
+  assert_true s.success?, o
+end
+
 assert('regression for #1572') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p "ok"'
