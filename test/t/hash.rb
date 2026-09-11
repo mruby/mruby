@@ -1035,6 +1035,47 @@ assert('Hash lookup with entries deleted by an eql? callback') do
   assert_equal(2, q.rehash.size)
 end
 
+assert('Hash lookup with the matched entry vacated by an eql? callback') do
+  # A companion to the case above, with the callback returning true. It deletes
+  # the very entry the search matched and inserts another, which puts the count
+  # back: the guard watches the count and the pointers and so sees nothing, and
+  # the slot the search is standing on has been vacated all the same. Answering
+  # from it hands #[] the value of an entry the collector no longer keeps and
+  # lets #delete take it a second time, dropping the count below the entries the
+  # table still holds. Each operation has to report the change, not answer from
+  # the vacated slot.
+  swapper = Class.new do
+    def initialize(h) @h, @fired = h, false end
+    def eql?(other)
+      unless @fired
+        @fired = true
+        @h.delete(other)
+        @h[:added] = :added_value
+      end
+      true
+    end
+    def hash; 42 end
+  end
+  # The indexed (HT) shape, and the AR shape with a leading hole: word boxing
+  # reads an AR hash's first slot as the pointer the guard watches, so only a
+  # hole ahead of that slot exposes the AR path the way HT is already exposed.
+  ht = lambda { h = {}; 20.times { |i| h[i] = i }; h }
+  ar = lambda { h = {}; 12.times { |i| h[i] = i }; h.delete(0); h }
+
+  [ht, ar].each do |build|
+    [ lambda { |h, k| h.delete(k) },
+      lambda { |h, k| h[k] },
+      lambda { |h, k| h[k] = :stored },
+      lambda { |h, k| h.key?(k) } ].each do |op|
+      h = build.call
+      assert_raise(RuntimeError) { op.call(h, swapper.new(h)) }
+      # What the table can find and what it iterates stay the same entries.
+      h.keys.each { |k| assert_true(h.key?(k)) }
+      assert_equal(h.key?(:added), h.keys.include?(:added))
+    end
+  end
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))

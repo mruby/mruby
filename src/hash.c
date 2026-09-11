@@ -457,6 +457,31 @@ obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
   }
 }
 
+/*
+ * The comparison every keyed lookup makes against the entry it is standing on.
+ * A key that is not a String, Symbol, Integer or Float answers `eql?` itself,
+ * and that call can delete this very entry and insert another: a delete and an
+ * insert that put the size back move no pointer and no capacity, so
+ * H_CHECK_MODIFIED (which watches those and the size) does not report it, and
+ * the entry the search matched has been vacated all the same. Reading its
+ * value or deleting it a second time then works from an entry the table no
+ * longer holds, and once its value has been collected, from freed memory
+ * (CWE-416). So the entry is read again once the comparison says yes, and a
+ * match is answered only while it still holds the key that was compared; a
+ * reallocation that would leave `entry` dangling has already been reported by
+ * the comparison above (it moves the pointer H_CHECK_MODIFIED watches).
+ */
+static mrb_bool
+entry_key_eql(mrb_state *mrb, struct RHash *h, hash_entry *entry, mrb_value key)
+{
+  mrb_value stored = entry->key;
+  if (!obj_eql(mrb, key, stored, h)) return FALSE;
+  if (!mrb_obj_eq(mrb, entry->key, stored)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
+  }
+  return TRUE;
+}
+
 static inline mrb_bool
 entry_deleted_p(const hash_entry* entry)
 {
@@ -559,7 +584,7 @@ ea_get_by_key(mrb_state *mrb, hash_entry *ea, uint32_t ea_capa, uint32_t size,
               mrb_value key, struct RHash *h)
 {
   EA_EACH(ea, ea_capa, size, entry) {
-    if (obj_eql(mrb, key, entry->key, h)) return entry;
+    if (entry_key_eql(mrb, h, entry, key)) return entry;
   }
   return NULL;
 }
@@ -616,7 +641,7 @@ static mrb_bool
 ar_get(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value *valp)
 {
   EA_EACH(ar_ea(h), ar_ea_capa(h), ar_size(h), entry) {
-    if (!obj_eql(mrb, key, entry->key, h)) continue;
+    if (!entry_key_eql(mrb, h, entry, key)) continue;
     *valp = entry->val;
     return TRUE;
   }
@@ -810,7 +835,7 @@ ib_it_find_by_key(mrb_state *mrb, index_buckets_iter *it, mrb_value key)
     ib_it_next(it);
     if (ib_it_empty_p(it)) return FALSE;
     if (!ib_it_deleted_p(it) &&
-        obj_eql(mrb, key, ib_it_entry(it)->key, it->h)) {
+        entry_key_eql(mrb, it->h, ib_it_entry(it), key)) {
       return TRUE;
     }
   }
@@ -1006,7 +1031,7 @@ ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
   mrb_assert(ht_size(h) < ib_bit_to_capa(ib_bit(h)));
   IB_CYCLE_BY_KEY(mrb, h, key, it) {
     if (ib_it_active_p(it)) {
-      if (!obj_eql(mrb, key, ib_it_entry(it)->key, h)) continue;
+      if (!entry_key_eql(mrb, h, ib_it_entry(it), key)) continue;
       ib_it_entry(it)->val = val;
     }
     else if (ib_it_deleted_p(it)) {
