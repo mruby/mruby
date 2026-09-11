@@ -539,7 +539,10 @@ assert('String character ranges treat a backslash endpoint literally') do
 end
 
 assert('String character patterns handle long offsets and receiver aliases') do
-  assert_equal 'y', 'z'.tr('a' * 65536 + 'z', 'x' * 65536 + 'y')
+  # A pattern is capped at 65535 ranges. Within the cap a high offset resolves;
+  # over it the pattern is refused, the same way on every platform.
+  assert_equal 'y', 'z'.tr('a' * 65534 + 'z', 'x' * 65534 + 'y')
+  assert_raise(ArgumentError) { 'z'.tr('a' * 65536 + 'z', 'x' * 65536 + 'y') }
   s = 'abc'
   assert_same s, s.tr!(s, 'xyz')
   assert_equal 'xyz', s

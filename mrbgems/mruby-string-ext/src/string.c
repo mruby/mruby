@@ -290,8 +290,11 @@ str_end_with(mrb_state *mrb, mrb_value self)
 }
 
 /* Store character ranges without expanding them, including literal characters
- * as one-element ranges. The backing string is GC-managed so parse errors and
- * allocation failures do not leak partially compiled patterns. */
+ * as one-element ranges. The backing array is GC-managed so parse errors and
+ * allocation failures do not leak partially compiled patterns. An array rather
+ * than a string, because the range table is scratch space and must not inherit
+ * the user-facing MRB_STR_LENGTH_MAX cap that a string carries on some
+ * platforms: a long pattern would otherwise raise there for its own size. */
 struct tr_range {
   mrb_int first, last;
 };
@@ -301,6 +304,12 @@ struct tr_pattern {
   uint8_t bitmap[32];
   mrb_bool reverse;
 };
+
+/* An upper bound on the number of ranges a pattern may hold, so the ranges
+ * array stays within MRB_ARY_LENGTH_MAX and the pattern is rejected the same
+ * way on every platform rather than tripping a container limit only where one
+ * is set. This is the long-standing tr limit, kept as matz asked. */
+#define TR_RANGE_MAX 65535
 
 static void
 tr_validate(mrb_state *mrb, mrb_value str)
@@ -341,7 +350,7 @@ tr_parse_pattern(mrb_state *mrb, mrb_value str, mrb_bool reverse)
   tr_validate(mrb, str);
   struct tr_pattern pat;
   memset(pat.bitmap, 0, sizeof(pat.bitmap));
-  pat.ranges = mrb_str_new(mrb, NULL, 0);
+  pat.ranges = mrb_ary_new(mrb);
   const char *p = RSTRING_PTR(str), *end = p + RSTRING_LEN(str);
   mrb_bool binary = RSTR_BINARY_P(mrb_str_ptr(str));
   pat.reverse = reverse && end - p > 1 && *p == '^';
@@ -363,10 +372,14 @@ tr_parse_pattern(mrb_state *mrb, mrb_value str, mrb_bool reverse)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "tr pattern too long");
     }
     total += n;
+    if (RARRAY_LEN(pat.ranges) >= TR_RANGE_MAX * 2) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "tr pattern too long (max 65535)");
+    }
     for (mrb_int ch = range.first; ch <= range.last && ch < 256; ch++) {
       pat.bitmap[ch / 8] |= 1u << (ch % 8);
     }
-    mrb_str_cat(mrb, pat.ranges, (const char*)&range, sizeof(range));
+    mrb_ary_push(mrb, pat.ranges, mrb_fixnum_value(range.first));
+    mrb_ary_push(mrb, pat.ranges, mrb_fixnum_value(range.last));
   }
   return pat;
 }
@@ -374,14 +387,12 @@ tr_parse_pattern(mrb_state *mrb, mrb_value str, mrb_bool reverse)
 static mrb_int
 tr_find_character(const struct tr_pattern *pat, mrb_int ch)
 {
-  const char *p = RSTRING_PTR(pat->ranges), *end = p + RSTRING_LEN(pat->ranges);
-  mrb_int found = -1, offset = 0;
-  while (p < end) {
-    struct tr_range range;
-    memcpy(&range, p, sizeof(range));
-    if (range.first <= ch && ch <= range.last) found = offset + (ch - range.first);
-    offset += range.last - range.first + 1;
-    p += sizeof(range);
+  const mrb_value *r = RARRAY_PTR(pat->ranges);
+  mrb_int len = RARRAY_LEN(pat->ranges), found = -1, offset = 0;
+  for (mrb_int i = 0; i < len; i += 2) {
+    mrb_int first = mrb_integer(r[i]), last = mrb_integer(r[i+1]);
+    if (first <= ch && ch <= last) found = offset + (ch - first);
+    offset += last - first + 1;
   }
   return pat->reverse ? (found < 0 ? MRB_INT_MAX : -1) : found;
 }
@@ -401,16 +412,14 @@ tr_matches(const struct tr_pattern *pat, mrb_int ch)
 static mrb_int
 tr_get_character(const struct tr_pattern *pat, mrb_int index)
 {
-  const char *p = RSTRING_PTR(pat->ranges), *end = p + RSTRING_LEN(pat->ranges);
-  mrb_int last = -1;
-  while (p < end) {
-    struct tr_range range;
-    memcpy(&range, p, sizeof(range));
-    mrb_int n = range.last - range.first + 1;
-    if (index < n) return range.first + index;
+  const mrb_value *r = RARRAY_PTR(pat->ranges);
+  mrb_int len = RARRAY_LEN(pat->ranges), last = -1;
+  for (mrb_int i = 0; i < len; i += 2) {
+    mrb_int first = mrb_integer(r[i]), rlast = mrb_integer(r[i+1]);
+    mrb_int n = rlast - first + 1;
+    if (index < n) return first + index;
     index -= n;
-    last = range.last;
-    p += sizeof(range);
+    last = rlast;
   }
   return last;
 }
