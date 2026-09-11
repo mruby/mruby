@@ -9,6 +9,9 @@ mrb_adc_m_init(mrb_state *mrb, mrb_value self)
 {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
+  if (pin < 0 || pin > UINT8_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid ADC pin");
+  }
   int input = mrb_adc_init((uint8_t)pin);
   if (input < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid ADC pin");
