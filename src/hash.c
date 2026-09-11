@@ -471,14 +471,20 @@ obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
  * reallocation that would leave `entry` dangling has already been reported by
  * the comparison above (it moves the pointer H_CHECK_MODIFIED watches).
  */
+static void
+entry_check_vacated(mrb_state *mrb, const hash_entry *entry, mrb_value stored)
+{
+  if (!mrb_obj_eq(mrb, entry->key, stored)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
+  }
+}
+
 static mrb_bool
 entry_key_eql(mrb_state *mrb, struct RHash *h, hash_entry *entry, mrb_value key)
 {
   mrb_value stored = entry->key;
   if (!obj_eql(mrb, key, stored, h)) return FALSE;
-  if (!mrb_obj_eq(mrb, entry->key, stored)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
-  }
+  entry_check_vacated(mrb, entry, stored);
   return TRUE;
 }
 
@@ -2304,8 +2310,11 @@ mrb_hash_assoc(mrb_state *mrb, mrb_value hash)
   mrb_value key = mrb_get_arg1(mrb);
   struct RHash *h = mrb_hash_ptr(hash);
   H_EACH(h, entry) {
-    if (obj_eql(mrb, entry->key, key, h)) {
-      return mrb_assoc_new(mrb, entry->key, entry->val);
+    /* the stored key answers eql? here, and can vacate its own slot */
+    mrb_value stored = entry->key;
+    if (obj_eql(mrb, stored, key, h)) {
+      entry_check_vacated(mrb, entry, stored);
+      return mrb_assoc_new(mrb, stored, entry->val);
     }
   }
   return mrb_nil_value();
@@ -2329,8 +2338,10 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
   mrb_value value = mrb_get_arg1(mrb);
   struct RHash *h = mrb_hash_ptr(hash);
   H_EACH(h, entry) {
+    mrb_value stored = entry->key;
     if (obj_eql(mrb, entry->val, value, h)) {
-      return mrb_assoc_new(mrb, entry->key, entry->val);
+      entry_check_vacated(mrb, entry, stored);
+      return mrb_assoc_new(mrb, stored, entry->val);
     }
   }
   return mrb_nil_value();
@@ -2361,14 +2372,17 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
 
   H_EACH(h1, entry) {
     mrb_value val2;
+    mrb_value stored = entry->key;
     mrb_bool found;
 
     H_CHECK_MODIFIED(mrb, h1) {
-      found = h_get(mrb, h2, entry->key, &val2);
+      found = h_get(mrb, h2, stored, &val2);
     }
     if (!found) {
       return mrb_false_value();
     }
+    /* the lookup's eql? can vacate this slot of h1 without moving its size */
+    entry_check_vacated(mrb, entry, stored);
     H_CHECK_MODIFIED(mrb, h1) {
       if (!mrb_equal(mrb, entry->val, val2)) {
         return mrb_false_value();
@@ -2410,14 +2424,17 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
 
   H_EACH(h1, entry) {
     mrb_value val2;
+    mrb_value stored = entry->key;
     mrb_bool found;
 
     H_CHECK_MODIFIED(mrb, h1) {
-      found = h_get(mrb, h2, entry->key, &val2);
+      found = h_get(mrb, h2, stored, &val2);
     }
     if (!found) {
       return mrb_false_value();
     }
+    /* the lookup's eql? can vacate this slot of h1 without moving its size */
+    entry_check_vacated(mrb, entry, stored);
     H_CHECK_MODIFIED(mrb, h1) {
       if (!mrb_eql(mrb, entry->val, val2)) {
         return mrb_false_value();

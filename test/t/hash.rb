@@ -1076,6 +1076,56 @@ assert('Hash lookup with the matched entry vacated by an eql? callback') do
   end
 end
 
+assert('Hash scans with the matched entry vacated by an eql? callback') do
+  # The same delete-and-reinsert from eql?, reached from the scans that read
+  # the entry after the comparison: #assoc and #rassoc build a pair from it,
+  # #== and #eql? compare its value. In #assoc the STORED key answers eql?,
+  # in #rassoc the stored value does, and in #== / #eql? the key of the
+  # receiver hash does while it is looked up in the other hash.
+  swapper = Class.new do
+    attr_accessor :armed
+    def initialize(h, key) @h, @key, @armed = h, key, false end
+    def eql?(other)
+      if @armed
+        @armed = false
+        @h.delete(@key || self)
+        @h[:added] = :added_value
+      end
+      other.class == self.class
+    end
+    def hash; 42 end
+  end
+
+  h = {}
+  20.times { |i| h[i] = i }
+  k = swapper.new(h, nil)
+  h[k] = "value"
+  k.armed = true
+  assert_raise(RuntimeError) { h.assoc(swapper.new(h, nil)) }
+  h.keys.each { |x| assert_true(h.key?(x)) }
+
+  h = {}
+  20.times { |i| h[i] = i }
+  v = swapper.new(h, :k)
+  h[:k] = v
+  v.armed = true
+  assert_raise(RuntimeError) { h.rassoc(swapper.new(h, nil)) }
+  h.keys.each { |x| assert_true(h.key?(x)) }
+
+  [:==, :eql?].each do |op|
+    h1 = {}
+    20.times { |i| h1[i] = i }
+    k = swapper.new(h1, nil)
+    h1[k] = "value"
+    h2 = {}
+    20.times { |i| h2[i] = i }
+    h2[swapper.new(h2, nil)] = "value"
+    k.armed = true
+    assert_raise(RuntimeError) { h1.__send__(op, h2) }
+    h1.keys.each { |x| assert_true(h1.key?(x)) }
+  end
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))
