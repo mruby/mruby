@@ -1636,6 +1636,58 @@ assert('String#-@') do
   assert_true(a.frozen?)
 end
 
+assert('String#+@ and String#-@ keep the class of the receiver') do
+  cls = Class.new(String)
+
+  s = cls.new("abc")
+  assert_same(s, +s)
+  m = -s
+  assert_equal(cls, m.class)
+  assert_true(m.frozen?)
+  assert_equal("abc", m)
+  assert_not_same(s, m)
+
+  f = cls.new("abc").freeze
+  assert_same(f, -f)
+  u = +f
+  assert_equal(cls, u.class)
+  assert_false(u.frozen?)
+  assert_equal("abc", u)
+  assert_not_same(f, u)
+
+  # Too long to embed, so the copy shares the receiver's buffer.
+  long = "x" * 1000
+  s = cls.new(long)
+  assert_equal(cls, (-s).class)
+  assert_equal(long, -s)
+
+  f = cls.new(long).freeze
+  assert_equal(cls, (+f).class)
+  assert_equal(long, +f)
+end
+
+assert('String#+@ and String#-@ copy without the singleton class') do
+  # The copy is made in C, so a redefined `initialize_copy` stays unused.
+  cls = Class.new(String) do
+    def initialize_copy(other)
+      raise "initialize_copy called"
+    end
+  end
+
+  s = cls.new("abc")
+  def s.tagged?
+    true
+  end
+  assert_false((-s).respond_to?(:tagged?))
+
+  f = cls.new("abc")
+  def f.tagged?
+    true
+  end
+  f.freeze
+  assert_false((+f).respond_to?(:tagged?))
+end
+
 assert('String#scrub default replacement (U+FFFD)') do
   # scrub has UTF-8 semantics; on builds without MRB_UTF8_STRING it
   # degrades to a no-op (verified separately below).
