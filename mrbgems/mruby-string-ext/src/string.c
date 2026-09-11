@@ -1628,19 +1628,31 @@ str_lines(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/* `mrb_str_dup()` keeping the receiver's class but not its singleton class,
+   and without calling `initialize_copy`, as the unary operators copy in CRuby.
+   The copy is fresh, so storing the class needs no write barrier. */
+static mrb_value
+str_copy_with_class(mrb_state *mrb, mrb_value str)
+{
+  mrb_value copy = mrb_str_dup(mrb, str);
+
+  mrb_obj_ptr(copy)->c = mrb_obj_class(mrb, str);
+  return copy;
+}
+
 /*
  * call-seq:
  *   +string -> new_string or self
  *
  * Returns `self` if `self` is not frozen.
  *
- * Otherwise returns `self.dup`, which is not frozen.
+ * Otherwise returns an unfrozen copy of `self`, of the same class.
  */
 static mrb_value
 str_uplus(mrb_state *mrb, mrb_value str)
 {
   if (mrb_frozen_p(mrb_obj_ptr(str))) {
-    return mrb_str_dup(mrb, str);
+    return str_copy_with_class(mrb, str);
   }
   else {
     return str;
@@ -1651,8 +1663,9 @@ str_uplus(mrb_state *mrb, mrb_value str)
  * call-seq:
  *   -string -> frozen_string
  *
- * Returns a frozen, possibly pre-existing copy of the string.
+ * Returns `self` if `self` is already frozen.
  *
+ * Otherwise returns a frozen copy of `self`, of the same class.
  */
 static mrb_value
 str_uminus(mrb_state *mrb, mrb_value str)
@@ -1660,7 +1673,7 @@ str_uminus(mrb_state *mrb, mrb_value str)
   if (mrb_frozen_p(mrb_obj_ptr(str))) {
     return str;
   }
-  return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
+  return mrb_obj_freeze(mrb, str_copy_with_class(mrb, str));
 }
 
 /* Internal helper for String#ascii_only? - checks if string contains only ASCII characters */
