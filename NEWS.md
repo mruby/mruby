@@ -195,6 +195,10 @@ any of those needs updating.
 - Double free during GC sweep ([#6316](https://github.com/mruby/mruby/issues/6316))
 - Undefined behaviour in `mpn_zero` from Montgomery modpow squaring ([#6849](https://github.com/mruby/mruby/issues/6849))
 - `ary_make_shared()` operator precedence in its allocation size ([#7422](https://github.com/mruby/mruby/issues/7422))
+- hash.c: see a delete made from inside an eql? callback ([4663fef](https://github.com/mruby/mruby/commit/4663fef))
+- gc: put a value on the arena before letting go of what owned it ([859288c](https://github.com/mruby/mruby/commit/859288c))
+- load.c: refuse an irep record with more locals than registers ([0aa9b98](https://github.com/mruby/mruby/commit/0aa9b98))
+- vm.c: ask OP_CALL whether its receiver is a proc ([cdc2918](https://github.com/mruby/mruby/commit/cdc2918))
 
 # Fixed GitHub Issues
 
