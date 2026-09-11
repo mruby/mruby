@@ -504,6 +504,145 @@ assert('String#delete!') do
   assert_nil s.delete!("lz")
 end
 
+assert('String character patterns include range endpoints and escapes') do
+  assert_equal '', 'az'.delete('a-z')
+  assert_equal 2, 'az'.count('a-z')
+  assert_equal 'az', 'aazz'.squeeze('a-z')
+  assert_equal '-^', '-^a'.delete('a')
+  assert_equal 'a', '-^a'.delete('\\-\\^')
+  assert_equal 2, '-^a'.count('\\-\\^')
+  assert_equal 'xxa', '-^a'.tr('\\-\\^', 'x')
+  assert_equal 'a', 'a\\'.delete('\\')
+  assert_equal 'zxz', 'axa'.tr_s('a', 'z')
+  assert_equal 'zy', 'aab'.tr_s('ab', 'zy')
+  assert_equal 'yz', 'ab'.tr('aab', 'xyz')
+  assert_equal "a\x00", "aa\x00\x00".squeeze
+  [:delete, :count, :squeeze].each do |method|
+    assert_raise(ArgumentError) { 'abc'.__send__(method, 'z-a') }
+  end
+  assert_raise(ArgumentError) { 'abc'.tr('a-z', 'z-a') }
+end
+
+assert('String character ranges treat a backslash endpoint literally') do
+  pattern = "A-\\z"
+  assert_equal 'abcxy*', 'abcxyz'.tr(pattern, '*')
+  assert_equal 'abcxy*', 'abcxyz'.tr!(pattern, '*')
+  assert_equal 'abcxy*', 'abcxyzz'.tr_s(pattern, '*')
+  assert_equal 'abcxy*', 'abcxyzz'.tr_s!(pattern, '*')
+  assert_equal 'abcxy', 'abcxyz'.delete(pattern)
+  assert_equal 'abcxy', 'abcxyz'.delete!(pattern)
+  assert_equal 1, 'abcxyz'.count(pattern)
+  assert_equal 'aabbz', 'aabbzz'.squeeze(pattern)
+  assert_equal 'aabbz', 'aabbzz'.squeeze!(pattern)
+  assert_equal 'ABC', 'abc'.tr('a-c', pattern)
+  assert_equal '**z', "A\\z".tr("A-\\", '*')
+end
+
+assert('String character patterns handle long offsets and receiver aliases') do
+  assert_equal 'y', 'z'.tr('a' * 65536 + 'z', 'x' * 65536 + 'y')
+  s = 'abc'
+  assert_same s, s.tr!(s, 'xyz')
+  assert_equal 'xyz', s
+  s = 'abc'
+  assert_same s, s.tr!('cba', s)
+  assert_equal 'cba', s
+  s = 'aabb'
+  assert_same s, s.squeeze!(s)
+  assert_equal 'ab', s
+  s = 'abc'
+  assert_same s, s.delete!(s)
+  assert_equal '', s
+  [:delete!, :squeeze!].each do |method|
+    assert_nil 'abc'.__send__(method, 'x')
+    assert_raise(FrozenError) { 'abc'.freeze.__send__(method, 'x') }
+  end
+  assert_raise(FrozenError) { 'abc'.freeze.tr!('x', 'y') }
+end
+
+assert('String character patterns with binary bytes') do
+  assert_equal "\xFF\x80".b, "\x80\xFF".b.tr("\x80\xFF".b, "\xFF\x80".b)
+  assert_equal 2, "\x80\xFF".b.count("\x80-\xFF".b)
+  assert_equal ''.b, "\x80\xFF".b.delete("\x80-\xFF".b)
+  assert_equal "\xFF".b, "\xFF\xFF".b.squeeze
+end
+
+if UTF8STRING
+  assert('String#tr translates Unicode characters and ranges') do
+    assert_equal '１２３', '123'.tr('123', '１２３')
+    assert_equal '１２３', '123'.tr('1-3', '１-３')
+    assert_equal '123', '１２３'.tr('１-３', '1-3')
+    assert_equal '123', '１２３'.tr('０-９', '0-9')
+    assert_equal 'xxx', 'あいう'.tr('あ-う', 'x')
+    assert_equal 'アイウエオ', 'あいうえお'.tr('あ-お', 'ア-オ')
+    assert_equal '日本日本日', 'ababa'.tr_s('ab', '日本')
+    assert_equal '日日日', '123'.tr('123', '日')
+    assert_equal '日あ日', '1あ2'.tr('^あ', '日')
+    assert_equal 'あ', '日あ本'.tr('日本', '')
+    assert_equal '😀😁😂', '123'.tr('1-3', '😀-😂')
+    assert_equal '123', '😀😁😂'.tr('😀-😂', '1-3')
+    s = '123'
+    copy = s.dup
+    assert_same s, s.tr!('1-3', '１-３')
+    assert_equal '１２３', s
+    assert_equal 3, s.length
+    assert_equal '123', copy
+    assert_nil s.tr!('a', 'あ')
+    assert_same s, s.tr!('１-３', '1-3')
+    assert_equal '123', s
+  end
+
+  assert('String#tr_s squeezes only adjacent translated characters') do
+    assert_equal '☆', 'ああいい'.tr_s('あい', '☆')
+    assert_equal '日あ日', '11あ22'.tr_s('12', '日')
+    assert_equal '日あ日', '日日あ日日'.tr_s('日', '日')
+    assert_equal '日日', '日11'.tr_s('1', '日')
+    assert_equal '日', '1122'.tr_s('12', '日')
+    s = 'ああいい'
+    assert_same s, s.tr_s!('あい', '日本')
+    assert_equal '日本', s
+    assert_nil s.tr_s!('あい', '日本')
+  end
+
+  assert('String#delete, #count and #squeeze use Unicode character sets') do
+    assert_equal '日語', '日本語'.delete('本')
+    assert_equal '日本', '日本abc'.delete('^日本')
+    assert_equal 'あい', 'ああいい'.squeeze
+    assert_equal 4, '日本日本'.count('日本')
+    assert_equal 'あいう', 'ああいいうう'.squeeze
+    assert_equal 'あいうう', 'ああいいうう'.squeeze('あ-い')
+    assert_equal 'ああいう', 'ああいいうう'.squeeze('^あ')
+    assert_equal 'あう', 'あいう'.delete('い')
+    assert_equal 'い', 'あいう'.delete('^い')
+    assert_equal '', '１２３'.delete('１-３')
+    assert_equal 3, '１２３'.count('１-３')
+    assert_equal 2, 'あいう'.count('^い')
+    assert_equal 0, 'あいう'.count('')
+    assert_equal '😀', '😀😀'.squeeze
+    assert_equal 2, '😀😁'.count('😀-😁')
+    s = 'あいう'
+    assert_same s, s.delete!('い')
+    assert_equal 'あう', s
+    assert_equal 2, s.length
+    assert_nil s.delete!('い')
+    s = 'ああい'
+    assert_same s, s.squeeze!('あ')
+    assert_equal 'あい', s
+    assert_nil s.squeeze!
+  end
+
+  assert('String character patterns reject invalid UTF-8 before mutation') do
+    [:delete, :count, :squeeze].each do |method|
+      assert_raise(ArgumentError) { 'あ'.__send__(method, "\xFF") }
+      assert_raise(ArgumentError) { "\xFF".__send__(method, 'あ') }
+    end
+    s = 'あいう'
+    assert_raise(ArgumentError) { s.tr!('あ', "\xFF") }
+    assert_equal 'あいう', s
+    assert_raise(ArgumentError) { s.delete!('う-あ') }
+    assert_equal 'あいう', s
+  end
+end
+
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
