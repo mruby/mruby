@@ -915,3 +915,15 @@ assert('eval of a local variable whose name is too long for a symbol') do
   short = "lv_just_fits_" + "x" * (0xfffe - "lv_just_fits_".size)
   assert_equal 1, eval("#{short} = 1; #{short}")
 end
+
+assert('eval with a filename too long for a symbol') do
+  # The filename is interned too. Without a binding it was already refused
+  # before anything was allocated; with one, the binding pass parsed first and
+  # the parser raised from under itself, leaking its state.
+  # The message tells the two apart: "symbol length too long" is the parser
+  # raising from under itself, "filename too long" is eval refusing up front.
+  file = "f" * 0x10000
+  assert_raise_with_message(ArgumentError, "filename too long") { eval("1", nil, file) }
+  assert_raise_with_message(ArgumentError, "filename too long") { eval("1", binding, file) }
+  assert_equal 1, eval("1", binding, "f" * 0xfffe)
+end
