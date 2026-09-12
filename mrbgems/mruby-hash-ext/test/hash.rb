@@ -193,6 +193,116 @@ assert("Hash#key") do
   assert_equal 'nil', h.key(nil)
 end
 
+assert("Hash#key keeps the key it answers with across the comparison") do
+  # The scan hands the value to `==`, and the Ruby there can delete the pair it
+  # is standing on. The key the scan would answer with is then held by the scan
+  # in C, which the collector does not scan, so the collection the same Ruby
+  # sets off takes it.
+  thief = Class.new do
+    def initialize(h, k) @h, @k = h, k end
+    def ==(other)
+      if @h
+        h, k, @h, @k = @h, @k, nil, nil
+        h.delete(k)
+        h[:added] = :added_value
+        GC.start
+      end
+      true
+    end
+    # Built here and not in the assertion so that returning drops the stored
+    # key from the arena: what holds it from then on is the entry alone. An
+    # unfrozen String key is stored as a frozen copy, which is the object the
+    # entry holds and the delete below takes away.
+    def self.armed_hash
+      h = {}
+      20.times { |i| h[i] = i }
+      k = "the key only that entry holds"
+      h[k] = new(h, k)
+      h
+    end
+  end
+
+  assert_equal("the key only that entry holds", thief.armed_hash.key(:target))
+end
+
+assert("Hash#slice keeps the value it carries across the set") do
+  # Reading the pair out asks the key for its hash code, and storing it in the
+  # result asks a second time. The Ruby answering that second ask can delete
+  # the pair out of the receiver, and what holds the value then is the C local
+  # carrying it, which the collector does not scan.
+  thief = Class.new do
+    attr_reader :fired
+    def initialize(h) @h, @asks = h, 0 end
+    def arm(n) @fire_at, @asks, @fired = n, 0, false end
+    def hash
+      @asks += 1
+      if @asks == @fire_at
+        @fired = true
+        h, @h = @h, nil
+        h.delete(self)
+        h[:added] = :added_value
+        GC.start
+      end
+      42
+    end
+    def eql?(other) equal?(other) end
+    def self.armed_hash
+      h = {}
+      20.times { |i| h[i] = i }
+      k = new(h)
+      h[k] = "the value only that entry holds"
+      [h, k]
+    end
+  end
+
+  h, k = thief.armed_hash
+  # A result asks for a hash code only once it has an index of its own, which
+  # is what the keys ahead of this one are for. The second ask is the set, so
+  # having fired says the value below is answered from the path being covered.
+  keys = (0...17).to_a
+  keys.push(k)
+  k.arm(2)
+  sliced = h.slice(*keys)
+  assert_true(k.fired)
+  assert_equal("the value only that entry holds", sliced[k])
+end
+
+assert("Hash#slice! keeps the value it removed across the set") do
+  # The delete takes the pair out of the receiver, and the set that files it
+  # under the same key asks that key for its hash code. Anything the Ruby
+  # answering that allocates can collect the value on the way, since what
+  # holds it between the two calls is the C local carrying it.
+  collector = Class.new do
+    attr_reader :asks
+    def initialize; @asks = 0 end
+    def arm; @asks = 0 end
+    def hash
+      @asks += 1
+      GC.start
+      7
+    end
+    def eql?(other) equal?(other) end
+    def self.armed_hash
+      h = {}
+      20.times { |i| h[i] = i }
+      k = new
+      h[k] = "the value only that entry holds"
+      k.arm
+      [h, k]
+    end
+  end
+
+  h, k = collector.armed_hash
+  removed = h.slice!(0)
+  # Two asks and no more: the delete and the set into the result. The scan for
+  # the keys to keep asks nothing, since one key to keep is a hash in list
+  # shape, which compares with `eql?` alone. A result too small to be indexed
+  # would not ask either, and the value below would be answered from a walk
+  # that never ran Ruby.
+  assert_equal(2, k.asks)
+  assert_equal("the value only that entry holds", removed[k])
+end
+
 assert("Hash#to_h") do
   h = { "a" => 100, "b" => 200 }
   assert_equal Hash, h.to_h.class
