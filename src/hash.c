@@ -2103,10 +2103,20 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 
   if (h1 == h2) return;
   if (h_size(h2) == 0) return;
+  int ai = mrb_gc_arena_save(mrb);
   H_EACH(h2, entry) {
-    H_CHECK_MODIFIED(mrb, h2) {h_set(mrb, h1, entry->key, entry->val);}
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->key);
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->val);
+    mrb_value key = entry->key, val = entry->val;
+    /* On the arena before the set: it asks the key for its hash code and its
+       eql?, and Ruby there can delete this pair from `h2`, after which the
+       pair is owned by this frame's C locals alone, which the GC does not
+       scan (see `ar_shift`). The slot it came from is no place to read it
+       back from either, deleted or filled with another pair by then. */
+    mrb_gc_protect(mrb, key);
+    mrb_gc_protect(mrb, val);
+    H_CHECK_MODIFIED(mrb, h2) {h_set(mrb, h1, key, val);}
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, key);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, val);
+    mrb_gc_arena_restore(mrb, ai);
   }
 }
 
@@ -2244,7 +2254,13 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
       }
     }
     if (!found) {
-      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, stored, entry->val);}
+      /* On the arena for the same reason as in `mrb_hash_merge`: the set asks
+         the key for its hash code and its eql?, and Ruby there can delete the
+         pair from `hash`. */
+      mrb_value val = entry->val;
+      mrb_gc_protect(mrb, stored);
+      mrb_gc_protect(mrb, val);
+      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, stored, val);}
     }
     mrb_gc_arena_restore(mrb, ai);
   }

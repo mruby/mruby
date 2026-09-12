@@ -1193,6 +1193,55 @@ assert('Hash scans that read the entry back after a callback') do
   assert_true(h.key?(:added))
 end
 
+assert('Hash scans that carry a pair into a set the hash no longer holds') do
+  # A scan that stores the pair it is standing on somewhere else hands it to a
+  # set, and the set asks the key for its hash code before it stores anything.
+  # Ruby there can take the pair out of the hash the scan is reading, and the
+  # only reference left is the one the scan holds in C, which the collector
+  # does not scan. The pair has to survive the set that is carrying it.
+  thief = Class.new do
+    attr_accessor :armed
+    def initialize(h) @h, @armed = h, false end
+    def hash
+      if @armed
+        @armed = false
+        @h.delete(self)
+        @h[:added] = :added_value
+        GC.start
+      end
+      42
+    end
+    def eql?(other) equal?(other) end
+    # The value is built here and not in the assertion so that returning drops
+    # it from the arena: what keeps it alive from then on is the entry alone,
+    # which is what the callback takes away.
+    def self.armed_hash
+      h = {}
+      20.times { |i| h[i] = i }
+      k = new(h)
+      h[k] = "the value only that entry holds"
+      k.armed = true
+      [h, k]
+    end
+  end
+
+  # The hash being written into holds enough entries to be indexed, which is
+  # what asks a key for its hash code in the first place. `armed` goes back
+  # down when the callback has run, so the assertion says the set reached it
+  # and the value is not being answered from a walk that never ran Ruby.
+  h2, k = thief.armed_hash
+  h1 = {}
+  20.times { |i| h1[i + 100] = i }
+  merged = h1.merge(h2)
+  assert_false(k.armed)
+  assert_equal("the value only that entry holds", merged[k])
+
+  h, k = thief.armed_hash
+  excepted = h.__except([:absent])
+  assert_false(k.armed)
+  assert_equal("the value only that entry holds", excepted[k])
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))
