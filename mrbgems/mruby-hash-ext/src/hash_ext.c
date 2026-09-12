@@ -58,14 +58,20 @@ hash_slice(mrb_state *mrb, mrb_value hash)
   mrb_get_args(mrb, "*", &argv, &argc);
   mrb_value result = mrb_hash_new_capa(mrb, argc);
   if (argc == 0) return result; /* empty hash */
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value key = argv[i];
     mrb_value val;
 
     val = mrb_hash_fetch(mrb, hash, key, mrb_undef_value());
     if (!mrb_undef_p(val)) {
+      /* On the arena for the set: it asks the key for its hash code, and Ruby
+         there can delete the pair out of `hash`, after which the value is held
+         by this frame alone, which the GC does not scan. */
+      mrb_gc_protect(mrb, val);
       mrb_hash_set(mrb, result, key, val);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
   return result;
 }
@@ -93,9 +99,16 @@ static int
 slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
 {
   struct slice_bang_i_arg *args = (struct slice_bang_i_arg *)data;
+  int ai = mrb_gc_arena_save(mrb);
+  /* On the arena for the lookup: it asks the key for its hash code and its
+     eql?, and Ruby there can delete this pair from the hash being walked. The
+     push then allocates, so the key has to stay reachable until the array
+     holds it, and this frame is all that holds it in between. */
+  mrb_gc_protect(mrb, key);
   if (!mrb_hash_key_p(mrb, args->keep_keys, key)) {
     mrb_ary_push(mrb, args->keys_to_remove, key);
   }
+  mrb_gc_arena_restore(mrb, ai);
   return 0; /* Continue iteration */
 }
 
@@ -129,10 +142,15 @@ hash_slice_bang(mrb_state *mrb, mrb_value self)
 
   mrb_int len = RARRAY_LEN(args.keys_to_remove);
   mrb_value removed_hash = mrb_hash_new_capa(mrb, len);
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < len; i++) {
     mrb_value key = mrb_ary_ref(mrb, args.keys_to_remove, i);
     mrb_value val = mrb_hash_delete_key(mrb, self, key);
+    /* the delete has taken the pair out of `self`, so this frame is what holds
+       the value while the set asks the key for its hash code */
+    mrb_gc_protect(mrb, val);
     mrb_hash_set(mrb, removed_hash, key, val);
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return removed_hash;
@@ -294,11 +312,18 @@ static int
 hash_key_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
 {
   struct key_search *search = (struct key_search*)data;
+  int ai = mrb_gc_arena_save(mrb);
+  /* On the arena for the comparison: the `==` below runs Ruby, and it can
+     delete this pair from the hash being walked, after which the key is held
+     by this frame alone, which the GC does not scan. A match leaves it on the
+     arena, since what carries it from here is the answer in C. */
+  mrb_gc_protect(mrb, key);
   if (mrb_equal(mrb, val, search->target)) {
     search->result = key;
     search->found = TRUE;
     return 1; /* Stop iteration */
   }
+  mrb_gc_arena_restore(mrb, ai);
   return 0; /* Continue iteration */
 }
 

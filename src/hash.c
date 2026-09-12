@@ -725,14 +725,20 @@ ar_rehash(mrb_state *mrb, struct RHash *h)
   uint32_t size = ar_size(h), w_size = 0, ea_capa = ar_ea_capa(h);
   hash_entry *ea = ar_ea(h), *w_entry;
   EA_EACH(ea, ea_capa, size, r_entry) {
-    if ((w_entry = ea_get_by_key(mrb, ea, ea_capa, w_size, r_entry->key, h))) {
+    /* the search carries this entry's own key, and the keys already written
+       answer #eql?: Ruby there can vacate the slot the pair is still to be
+       read from */
+    mrb_value key = r_entry->key;
+    w_entry = ea_get_by_key(mrb, ea, ea_capa, w_size, key, h);
+    entry_check_vacated(mrb, r_entry, key);
+    if (w_entry) {
       w_entry->val = r_entry->val;
       ar_set_size(h, --size);
       entry_delete(r_entry);
     }
     else {
       if (w_size != U32(r_entry - ea)) {
-        ea_set(ea, w_size, r_entry->key, r_entry->val);
+        ea_set(ea, w_size, key, r_entry->val);
         entry_delete(r_entry);
       }
       w_size++;
@@ -1110,16 +1116,22 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
   ht_set_size(h, size);
   ht_set_ea_n_used(h, ht_ea_n_used(h));
   EA_EACH(ea, ea_capa, size, r_entry) {
-    IB_CYCLE_BY_KEY(mrb, h, r_entry->key, it) {
+    /* the cycle asks this entry's own key for its hash code, and the key it
+       meets answers #eql?: Ruby in either can vacate the slot the pair is
+       still to be read from, or move the pair out of it with a compress */
+    mrb_value key = r_entry->key;
+    IB_CYCLE_BY_KEY(mrb, h, key, it) {
       if (ib_it_active_p(it)) {
-        if (!obj_eql(mrb, r_entry->key, ib_it_entry(it)->key, h)) continue;
+        if (!entry_key_eql(mrb, h, ib_it_entry(it), key)) continue;
+        entry_check_vacated(mrb, r_entry, key);
         ib_it_entry(it)->val = r_entry->val;
         ht_set_size(h, --size);
         entry_delete(r_entry);
       }
       else {
+        entry_check_vacated(mrb, r_entry, key);
         if (w_size != U32(r_entry - ea)) {
-          ea_set(ea, w_size, r_entry->key, r_entry->val);
+          ea_set(ea, w_size, key, r_entry->val);
           entry_delete(r_entry);
         }
         ib_it_set(it, w_size++);
@@ -2091,10 +2103,20 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 
   if (h1 == h2) return;
   if (h_size(h2) == 0) return;
+  int ai = mrb_gc_arena_save(mrb);
   H_EACH(h2, entry) {
-    H_CHECK_MODIFIED(mrb, h2) {h_set(mrb, h1, entry->key, entry->val);}
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->key);
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->val);
+    mrb_value key = entry->key, val = entry->val;
+    /* On the arena before the set: it asks the key for its hash code and its
+       eql?, and Ruby there can delete this pair from `h2`, after which the
+       pair is owned by this frame's C locals alone, which the GC does not
+       scan (see `ar_shift`). The slot it came from is no place to read it
+       back from either, deleted or filled with another pair by then. */
+    mrb_gc_protect(mrb, key);
+    mrb_gc_protect(mrb, val);
+    H_CHECK_MODIFIED(mrb, h2) {h_set(mrb, h1, key, val);}
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, key);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, val);
+    mrb_gc_arena_restore(mrb, ai);
   }
 }
 
@@ -2219,17 +2241,26 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
      afresh each time, and it can rehash `hash` out from under H_EACH, which
      is what H_CHECK_MODIFIED refuses. */
   H_EACH(h, entry) {
+    mrb_value stored = entry->key;
     mrb_bool found = FALSE;
     for (mrb_int i = 0; i < klen && i < RARRAY_LEN(keys); i++) {
       mrb_bool eq = FALSE;
-      H_CHECK_MODIFIED(mrb, h) {eq = mrb_equal(mrb, entry->key, RARRAY_PTR(keys)[i]);}
+      H_CHECK_MODIFIED(mrb, h) {eq = mrb_equal(mrb, stored, RARRAY_PTR(keys)[i]);}
+      /* the key answers #== here, and can vacate its own slot */
+      entry_check_vacated(mrb, entry, stored);
       if (eq) {
         found = TRUE;
         break;
       }
     }
     if (!found) {
-      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, entry->key, entry->val);}
+      /* On the arena for the same reason as in `mrb_hash_merge`: the set asks
+         the key for its hash code and its eql?, and Ruby there can delete the
+         pair from `hash`. */
+      mrb_value val = entry->val;
+      mrb_gc_protect(mrb, stored);
+      mrb_gc_protect(mrb, val);
+      H_CHECK_MODIFIED(mrb, h) {mrb_hash_set(mrb, result, stored, val);}
     }
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -2257,16 +2288,20 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
   mrb_int i = 0;
   struct RHash *h = mrb_hash_ptr(self);
   H_EACH(h, entry) {
+    mrb_value stored = entry->key;
     if (i++ > 0) mrb_str_cat_lit(mrb, ret, ", ");
-    if (mrb_symbol_p(entry->key)) {
-      mrb_str_cat_str(mrb, ret, mrb_obj_as_string(mrb, entry->key));
+    if (mrb_symbol_p(stored)) {
+      mrb_str_cat_str(mrb, ret, mrb_obj_as_string(mrb, stored));
       mrb_gc_arena_restore(mrb, ai);
       mrb_str_cat_lit(mrb, ret, ": ");
     }
     else {
       H_CHECK_MODIFIED(mrb, h) {
-        mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->key));
+        mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, stored));
       }
+      /* the key's own inspect can vacate this slot, and the value below is
+         read from it */
+      entry_check_vacated(mrb, entry, stored);
       mrb_gc_arena_restore(mrb, ai);
       mrb_str_cat_lit(mrb, ret, " => ");
     }
