@@ -99,8 +99,11 @@ init_units(void)
       .unit_id = units[i],
       .ulp_mode = ADC_ULP_MODE_DISABLE,
     };
-    if (adc_oneshot_new_unit(&cfg, &adc_handles[i]) != ESP_OK)
+    if (adc_oneshot_new_unit(&cfg, &adc_handles[i]) != ESP_OK) {
+      for (int j = 0; j < i; j++)
+        adc_oneshot_del_unit(adc_handles[j]);
       return -1;
+    }
   }
   return 0;
 }
