@@ -900,3 +900,18 @@ assert('eval of a multiple assignment with more post-splat targets than fit') do
   assert_equal 255, eval(masgn.call(255) + "; @masgn_post254")
   assert_raise(SyntaxError) { eval(masgn.call(256)) }
 end
+
+assert('eval of a local variable whose name is too long for a symbol') do
+  # The lv table is dumped with a 16-bit name length, and every lv name is
+  # interned into an mrb_sym, which refuses 0xffff bytes and up. A name that
+  # long used to leave codegen as a valid irep and raise ArgumentError from the
+  # glue instead, leaking the parser it raised past; now it is a codegen error
+  # like a method name of the same length already was.
+  name = "lv_too_long_" + "x" * 0x10000
+  assert_raise(SyntaxError) { eval("#{name} = 1") }
+  assert_raise(SyntaxError) { eval("#{name} = 1", binding) }
+  assert_raise(SyntaxError) { eval("[1].each { |#{name}| }") }
+  # One byte short of the bound is an ordinary local variable.
+  short = "lv_just_fits_" + "x" * (0xfffe - "lv_just_fits_".size)
+  assert_equal 1, eval("#{short} = 1; #{short}")
+end

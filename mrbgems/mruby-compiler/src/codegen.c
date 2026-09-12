@@ -502,6 +502,16 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
     if (nlv->size >= UINT8_MAX) {
       codegen_error(s, "too many local variables");
     }
+    /* the same bound new_sym() applies: the lv record is dumped with a 16-bit
+       name length, and the glue interns every lv name into an mrb_sym, which
+       raises past the parser (leaking it) for a name this long */
+    for (size_t i = 0; i < nlv->size; i++) {
+      mrc_int nlen = 0;
+      if (nlv->ids[i] == PM_CONSTANT_ID_UNSET) continue; /* an unnamed slot */
+      if (mrc_sym_name_len(c, nlv->ids[i], &nlen) && nlen >= MRC_DUMP_NULL_SYM_LEN) {
+        codegen_error(s, "local variable name too long");
+      }
+    }
     s->lv = nlv;
     s->sp += nlv->size + 1; /* add self */
     s->nlocals = s->nregs = s->sp;
