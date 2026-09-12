@@ -1126,6 +1126,73 @@ assert('Hash scans with the matched entry vacated by an eql? callback') do
   end
 end
 
+assert('Hash scans that read the entry back after a callback') do
+  # The same delete-and-reinsert, reached from the scans that read an entry
+  # again once a callback has returned: #inspect prints the value after the
+  # key printed itself, the walk behind `**rest` stores the pair after the key
+  # answered #==, and #rehash moves the pair after the #eql? that asked
+  # whether an earlier key is the same one. A rehash reads two entries, and
+  # the #eql? can vacate either: the one it is moving, or the one it matched.
+  swapper = Class.new do
+    attr_accessor :armed
+    def initialize(h, victim) @h, @victim, @armed = h, victim, false end
+    def fire
+      return false unless @armed
+      @armed = false
+      @h.delete(@victim || self)
+      @h[:added] = :added_value
+      true
+    end
+    def inspect; fire; "swapper" end
+    def ==(other) fire; false end
+    def eql?(other)
+      return true if (@victim.nil? || @victim.equal?(other)) && fire
+      equal?(other)
+    end
+    def hash; 42 end
+  end
+
+  h = {}
+  20.times { |i| h[i] = i }
+  k = swapper.new(h, nil)
+  h[k] = "value"
+  k.armed = true
+  assert_raise(RuntimeError) { h.inspect }
+  h.keys.each { |x| assert_true(h.key?(x)) }
+
+  h = {}
+  20.times { |i| h[i] = i }
+  k = swapper.new(h, nil)
+  h[k] = "value"
+  k.armed = true
+  assert_raise(RuntimeError) { h.__except([:absent]) }
+  h.keys.each { |x| assert_true(h.key?(x)) }
+
+  # The list (AR) shape, where the duplicate is looked for by walking the
+  # entries already moved.
+  h = {first: "value"}
+  k = swapper.new(h, nil)
+  h[k] = "dup"
+  k.armed = true
+  assert_raise(RuntimeError) { h.rehash }
+  h.keys.each { |x| assert_true(h.key?(x)) }
+
+  # The indexed (HT) shape. Only an entry already moved is in the new index,
+  # so that is the one a callback can take away, and it is the entry the
+  # duplicate is about to be written into.
+  h = {}
+  20.times { |i| h[i] = i }
+  first = swapper.new(h, nil)
+  h[first] = "value"
+  k = swapper.new(h, first)
+  h[k] = "dup"
+  k.armed = true
+  assert_raise(RuntimeError) { h.rehash }
+  # What a rehash stopped part way through leaves is what it left before: the
+  # entries it had not reached yet are out of the index it is rebuilding.
+  assert_true(h.key?(:added))
+end
+
 assert('Hash#assoc, Hash#rassoc') do
   h = {foo: 0, bar: 1, baz: 2}
   assert_equal([:bar, 1], h.assoc(:bar))
