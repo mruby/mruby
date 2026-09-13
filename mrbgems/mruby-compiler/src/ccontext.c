@@ -34,7 +34,9 @@ mrb_state *global_mrb = NULL;
 
 struct mrc_prism_arena_block *mrc_prism_arena = NULL;
 
+#ifndef MRC_PRISM_ARENA_BLOCK
 #define MRC_PRISM_ARENA_BLOCK (64 * 1024)
+#endif
 
 struct arena_block {
   struct mrc_prism_arena_block head;   /* must be first: the public view */
