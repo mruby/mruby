@@ -20,9 +20,12 @@ jobs:
       max-parallel: 8
       matrix:
         include:
-          # x86-64 LP64 with signed plain `char`.
-          - {os: ubuntu-24.04, cc: gcc, cxx: g++}
-          - {os: ubuntu-24.04, cc: clang, cxx: clang++}
+          # x86-64 LP64 with signed plain `char`.  These two also run the
+          # stress tests (test/assert.rb, `stress`): what those check is
+          # neither ABI nor compiler specific, and they are the bulk of a
+          # suite's running time, many times so under MRB_GC_STRESS.
+          - {os: ubuntu-24.04, cc: gcc, cxx: g++, stress: "1"}
+          - {os: ubuntu-24.04, cc: clang, cxx: clang++, stress: "1"}
           - {os: ubuntu-22.04, cc: gcc, cxx: g++}
           - {os: ubuntu-22.04, cc: clang, cxx: clang++}
           # AArch64 LP64 with unsigned plain `char`.
@@ -67,6 +70,7 @@ jobs:
       LD: ${{ matrix.cc }}
       MRUBY_CI_EMULATED: ${{ matrix.emulated }}
       MRUBY_CI_ABI_ONLY: ${{ matrix.abi_only }}
+      MRBTEST_STRESS: ${{ matrix.stress }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

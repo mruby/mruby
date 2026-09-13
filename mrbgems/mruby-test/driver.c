@@ -243,6 +243,11 @@ mrbtest_nofree_cstr(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(valid);
 }
 
+/* Whether the stress tests run (test/assert.rb, `stress`). Every gem's suite
+   runs in a state of its own that reloads assert.rb, so the flag is kept here
+   and handed to each state as it is set up. */
+static mrb_bool mrbtest_stress = FALSE;
+
 void
 mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 {
@@ -278,6 +283,9 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
   if (verbose) {
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
   }
+  if (mrbtest_stress) {
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_stress"), mrb_true_value());
+  }
 }
 
 void
@@ -302,6 +310,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
   TEST_COUNT_PASS(kill_test);
   TEST_COUNT_PASS(warning_test);
   TEST_COUNT_PASS(skip_test);
+  TEST_COUNT_PASS(stress_test);
 
 #undef TEST_COUNT_PASS
 
@@ -339,9 +348,26 @@ main(int argc, char **argv)
   global_mrb = mrb;
 #endif
 
-  if (argc == 2 && argv[1][0] == '-' && argv[1][1] == 'v') {
+  /* -v: name each test as it runs; -s: run the stress tests as well, which
+     MRBTEST_STRESS in the environment also asks for (anything but empty or
+     "0"), so a rake invocation can turn them on without a flag of its own. */
+  const char *env = getenv("MRBTEST_STRESS");
+  if (env && env[0] != '\0' && !(env[0] == '0' && env[1] == '\0')) {
+    mrbtest_stress = TRUE;
+  }
+  for (int i = 1; i < argc; i++) {
+    if (strcmp(argv[i], "-v") == 0) {
+      verbose = TRUE;
+    }
+    else if (strcmp(argv[i], "-s") == 0) {
+      mrbtest_stress = TRUE;
+    }
+  }
+  if (verbose) {
     printf("verbose mode: enable\n\n");
-    verbose = TRUE;
+  }
+  if (mrbtest_stress) {
+    printf("stress tests: enable\n\n");
   }
 
   int ai = mrb_gc_arena_save(mrb);

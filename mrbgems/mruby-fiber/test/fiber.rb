@@ -210,6 +210,7 @@ ensure
 end
 
 assert('symbol GC keeps the symbols a suspended fiber holds') do
+  stress
   # A fiber that is not running is neither the current context nor the root
   # one, so its stack is a root of its own.
   f = Fiber.new do

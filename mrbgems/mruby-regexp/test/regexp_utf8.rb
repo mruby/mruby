@@ -832,6 +832,7 @@ assert("Regexp - /i over a class of bytes asks for no case data") do
 end
 
 assert("Regexp - large non-ASCII character class does not overflow") do
+  stress
   # a class listing tens of thousands of non-ASCII codepoints used to
   # overflow the 16-bit range capacity (32768 * 2 wrapped to 0, feeding a
   # size-0 realloc and a write through NULL). See issue #6937.

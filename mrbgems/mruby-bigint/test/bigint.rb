@@ -414,6 +414,7 @@ assert 'Bigint large integer literal' do
 end
 
 assert 'OP_LOADL does not retain a boxed Integer in the GC arena' do
+  stress
   # `OP_LOADL` boxes the pool entry afresh on every execution rather than
   # handing back a stored object: the pool holds an integer as a raw i32 or i64
   # and a big integer as its digits, and none of the three is an `mrb_value`.

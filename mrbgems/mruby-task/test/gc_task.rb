@@ -75,6 +75,7 @@ assert('GC.debt_limit= validates and round-trips') do
 end
 
 assert("GC.scheduler_driven collects during scheduler idle") do
+  stress
   origin_gen = GC.generational_mode
   origin_interval = GC.interval_ratio
   begin

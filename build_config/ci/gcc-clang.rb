@@ -20,7 +20,10 @@ STDOUT.sync = STDERR.sync = true unless Rake.application.options.always_multitas
 # The two costs are different, which is why the two switches are. Under
 # emulation what costs is running the suites: MRB_GC_STRESS collects on every
 # allocation, and full-debug's suite takes 33 to 47 seconds against one second
-# for each of the others, 319 seconds of an armhf job's 597. On the Windows
+# for each of the others, 319 seconds of an armhf job's 597. (Those figures
+# include the stress tests, which since then run only where MRBTEST_STRESS is
+# set, the two native x86-64 rows; without them full-debug's suite is a
+# quarter of that.) On the Windows
 # runners what costs is compiling: the suites there finish in under a minute
 # together while the seven builds take ten, so dropping two of them is 628
 # object files of 2204.

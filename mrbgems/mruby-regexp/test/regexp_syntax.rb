@@ -342,6 +342,7 @@ assert("Regexp - a pattern whose forks nest deeply matches") do
 end
 
 assert("Regexp - a pattern forking as often as it is long compiles") do
+  stress
   # Nothing bounds how often a pattern forks but its length, which `regexp
   # too large` puts at 65,535 instructions, and the passes that read a
   # finished program used to spend a C frame per fork they passed: the marks

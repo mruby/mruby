@@ -232,6 +232,7 @@ assert('Range#to_a') do
 end
 
 assert('symbol GC keeps the symbols a Range holds') do
+  stress
   # A Range is a container like an Array, and its ends are the only holder of
   # these two names; re-interning answers the same symbol only if the sweep
   # left them alone.

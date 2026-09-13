@@ -4,6 +4,7 @@ $ko_test = 0
 $kill_test = 0
 $warning_test = 0
 $skip_test = 0
+$stress_test = 0
 $asserts = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
@@ -118,6 +119,12 @@ def assert(str = 'assert', iso = '')
       $ok_test += 1
       t_print('.')
     end
+  rescue MRubyTestStress
+    # Held back, not skipped: the summary counts these in one line rather
+    # than naming each, since the list is the same on every run.
+    $stress_test += 1
+    $mrbtest_child_noassert[-2] += 1
+    t_print('s')
   rescue MRubyTestSkip => e
     $asserts.push(assertion_string('Skip: ', str, iso, e))
     $skip_test += 1
@@ -369,7 +376,7 @@ def report
     t_print("#{msg}\n")
   end
 
-  $total_test = $ok_test + $ko_test + $kill_test + $warning_test + $skip_test
+  $total_test = $ok_test + $ko_test + $kill_test + $warning_test + $skip_test + $stress_test
   t_print("  Total: #{$total_test}\n")
 
   t_print("     OK: #{$ok_test}\n")
@@ -377,6 +384,7 @@ def report
   t_print("  Crash: #{$kill_test}\n")
   t_print("Warning: #{$warning_test}\n")
   t_print("   Skip: #{$skip_test}\n")
+  t_print(" Stress: #{$stress_test} (not run; mrbtest -s or MRBTEST_STRESS=1)\n") if $stress_test > 0
 
   if Object.const_defined?(:Time)
     t_time = Time.now - $test_start
@@ -401,4 +409,21 @@ class MRubyTestSkip < NotImplementedError; end
 
 def skip(cause = "")
   raise MRubyTestSkip.new(cause)
+end
+
+##
+# Hold the test back unless stress tests were asked for
+#
+# A stress test is one that has to loop, recurse or allocate far past what
+# the behaviour under test needs, to reach a limit: enough dynamic symbols
+# for a symbol GC sweep, enough calls for an arena leak to show, a nesting
+# deep enough to run a recursive walk off the C stack. Each costs more than
+# the rest of its file put together, and under MRB_GC_STRESS a hundred times
+# more, while what it checks needs neither the stress collector nor the
+# other ABIs in the CI matrix. So they run on request, on the native CI
+# jobs: `mrbtest -s`, or MRBTEST_STRESS=1 in the environment.
+class MRubyTestStress < MRubyTestSkip; end
+
+def stress
+  raise MRubyTestStress.new("stress test") unless $mrbtest_stress
 end

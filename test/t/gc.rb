@@ -239,6 +239,7 @@ def with_builtin_string_aref
 end
 
 assert('OP_GETIDX does not retain its result in the GC arena') do
+  stress
   with_builtin_string_aref do
     s = "hello"
     GC.start
@@ -254,6 +255,7 @@ assert('OP_GETIDX does not retain its result in the GC arena') do
 end
 
 assert('OP_GETIDX does not retain a Hash default in the GC arena') do
+  stress
   h = Hash.new { Object.new }
   GC.start
   base = GC.stat[:live]
@@ -267,6 +269,7 @@ assert('OP_GETIDX does not retain a Hash default in the GC arena') do
 end
 
 assert('OP_GETIDX0 does not retain a String result in the GC arena') do
+  stress
   with_builtin_string_aref do
     s = "hello"
     GC.start
@@ -282,6 +285,7 @@ assert('OP_GETIDX0 does not retain a String result in the GC arena') do
 end
 
 assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
+  stress
   h = Hash.new { Object.new }
   GC.start
   base = GC.stat[:live]
@@ -295,6 +299,7 @@ assert('OP_GETIDX0 does not retain a Hash default in the GC arena') do
 end
 
 assert('OP_SETIDX does not retain a duplicated Hash key in the GC arena') do
+  stress
   h = {}
   k = "a"
   GC.start
@@ -309,6 +314,7 @@ assert('OP_SETIDX does not retain a duplicated Hash key in the GC arena') do
 end
 
 assert('OP_ENTER keeps the block alive while it lays out a short argument list') do
+  stress
   # A call that passes fewer positional arguments than the `*rest` and post
   # parameters span has its post arguments moved to the end of that span,
   # and when nothing but the required arguments came, or they came packed in
@@ -335,6 +341,7 @@ assert('OP_ENTER keeps the block alive while it lays out a short argument list')
 end
 
 assert('OP_ADD does not retain an overflowed Integer in the GC arena') do
+  stress
   # The overflow branch promotes to a big integer, so it only exists with
   # mruby-bigint.  The shift count is a variable because a constant shift is
   # folded at compile time, and a folded result out of mrb_int range makes the
@@ -374,6 +381,7 @@ end
 # of mrb_int range makes the build fail rather than raise.
 
 assert('OP_ADD does not retain a boxed Integer in the GC arena') do
+  stress
   [30, 31, 62].each do |shift|
     begin
       x = 1 << shift
@@ -395,6 +403,7 @@ assert('OP_ADD does not retain a boxed Integer in the GC arena') do
 end
 
 assert('OP_DIV does not retain a boxed Integer in the GC arena') do
+  stress
   [30, 31, 62].each do |shift|
     begin
       x = 1 << shift
@@ -415,6 +424,7 @@ assert('OP_DIV does not retain a boxed Integer in the GC arena') do
 end
 
 assert('OP_LOADI32 does not retain a boxed Integer in the GC arena') do
+  stress
   # `1073741824` is `2**30`, which fits in the operand of `OP_LOADI32` rather
   # than going to the pool, and is the first value outside the fixnum range of
   # a 32-bit host under word boxing.  That is the only configuration where this
@@ -444,6 +454,7 @@ end
 # retain nothing and the assertions hold trivially.
 
 assert('OP_MATH does not retain a boxed Float in the GC arena') do
+  stress
   skip unless Object.const_defined?(:Float)
   [1.0e100, 5.0e-324].each do |x|
     zero = 0.0
@@ -465,6 +476,7 @@ assert('OP_MATH does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_DIV does not retain a boxed Float in the GC arena') do
+  stress
   skip unless Object.const_defined?(:Float)
   # OP_DIV boxes from a helper outside the interpreter loop, so it restores to
   # its own saved arena index rather than to the frame's.
@@ -485,6 +497,7 @@ assert('OP_DIV does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_ADDI does not retain a boxed Float in the GC arena') do
+  stress
   skip unless Object.const_defined?(:Float)
   x = 1.0e100
   y = nil
@@ -505,6 +518,7 @@ assert('OP_ADDI does not retain a boxed Float in the GC arena') do
 end
 
 assert('OP_LOADL does not retain a boxed Float in the GC arena') do
+  stress
   skip unless Object.const_defined?(:Float)
   y = nil
   GC.start

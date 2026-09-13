@@ -315,6 +315,7 @@ assert('Array#join detects recursion') do
 end
 
 assert('Array#join deeply nested array does not overflow the C stack') do
+  stress
   a = []
   10000.times { a = [a] }
   # join is iterative, so a deeply nested (non-cyclic) array must not overflow

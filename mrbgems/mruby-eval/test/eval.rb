@@ -369,6 +369,7 @@ assert('alias and undef reject a dynamic symbol') do
 end
 
 assert('symbol GC keeps the names of live global variables') do
+  stress
   # The global outlives the code that set it: once that code is collected its
   # name is reachable from the global variable table alone, which is a root
   # the sweep has to walk in its own right.
@@ -808,6 +809,7 @@ assert('the constant cache forgets an irep when the irep is freed') do
 end
 
 assert('eval of a pattern deeper than the compiler walks') do
+  stress
   # A pattern is walked by a recursion of its own, which nothing bounded: a
   # pattern nested as deep as it is written ran the compiler off the C stack,
   # and the walk that gave the tree back afterwards would have too. It goes

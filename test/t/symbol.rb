@@ -90,6 +90,7 @@ assert('Symbol, empty name') do
 end
 
 assert('Symbol#to_s and Symbol#name outlive symbol GC') do
+  stress
   # Symbol GC frees the name buffer of a dynamic symbol. A returned string
   # longer than the embedded limit used to share that buffer instead of
   # copying it, so every later read of the string was a use after free.
