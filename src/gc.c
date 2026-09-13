@@ -504,7 +504,12 @@ mrb_gc_add_region(mrb_state *mrb, void *start, size_t size)
   /* align base to pointer size */
   uintptr_t align = sizeof(void*);
   uintptr_t offset = ((uintptr_t)base + align - 1) & ~(align - 1);
-  size -= (size_t)(offset - (uintptr_t)base);
+  size_t pad = (size_t)(offset - (uintptr_t)base);
+  /* A buffer smaller than the alignment padding leaves nothing behind: bail
+     out before the subtraction, which would otherwise wrap `size` and carve
+     pages out past the end of the region. */
+  if (size < pad) return 0;
+  size -= pad;
   base = (uint8_t*)offset;
 
   page_count = (uint16_t)(size / sizeof(mrb_heap_page));
