@@ -430,3 +430,39 @@ assert("closure escaping a synchronously executed proc survives GC") do
   assert_equal "sync-result", result
   $task_escaped_proc3 = nil
 end
+
+assert("an exception in a synchronously executed proc comes back as its value") do
+  # Unhandled exceptions are returned, not raised, so that the temporary
+  # task is always torn down: a longjmp past mrb_execute_proc_synchronously()
+  # used to leave that task queued with a freed stack and mrb->c pointing at
+  # it, which corrupted every later call on the root context.
+  result = TaskTest.run_sync { raise ArgumentError, "sync boom" }
+  assert_kind_of ArgumentError, result
+  assert_equal "sync boom", result.message
+  assert_equal :ok, TaskTest.run_sync { :ok }
+end
+
+assert("sleep inside a synchronously executed proc fails instead of stalling") do
+  # The temporary task of mrb_execute_proc_synchronously() has no scheduler
+  # to hand the CPU to. Parking it in sleep used to leave the caller's loop
+  # re-entering mrb_vm_exec() forever, since the VM returns at once while a
+  # task switch is pending.
+  assert_kind_of RuntimeError, TaskTest.run_sync { sleep_ms 1 }
+  assert_kind_of RuntimeError, TaskTest.run_sync { sleep }
+  assert_equal :ok, TaskTest.run_sync { :ok }
+end
+
+assert("a pending task switch does not stall a synchronous execution") do
+  # Waking a queue waiter from the root context (what a host's event
+  # callback does) leaves task.switching set until the scheduler runs
+  # again. A synchronous execution entered in that window used to return
+  # from mrb_vm_exec() before its first instruction, forever.
+  q = Task::Queue.new
+  got = []
+  Task.new { got << q.pop }
+  TaskTest.run_once
+  q.push(7)
+  assert_equal :ok, TaskTest.run_sync { :ok }
+  Task.run
+  assert_equal [7], got
+end
