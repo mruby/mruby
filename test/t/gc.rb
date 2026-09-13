@@ -35,6 +35,28 @@ assert('GC.step_ratio=') do
   end
 end
 
+assert('GC.step_ratio= / GC.interval_ratio= reject an out-of-int-range value') do
+  # The ratios are stored in a C int. A value past its range must be rejected,
+  # not truncated: truncating 2**32 to 0 leaves the incremental collector with
+  # a zero step budget and it stops making progress.
+  origin_s = GC.step_ratio
+  origin_i = GC.interval_ratio
+  begin
+    huge = 1 << 40 # fits a 64-bit mrb_int, overflows a 32-bit C int
+  rescue RangeError
+    skip 'mrb_int is not wider than a C int on this build'
+  end
+  begin
+    # On a wide mrb_int the setter's own bounds check rejects it (ArgumentError);
+    # on a narrower one the argument conversion rejects it first (RangeError).
+    assert_raise(ArgumentError, RangeError) { GC.step_ratio = huge }
+    assert_raise(ArgumentError, RangeError) { GC.interval_ratio = huge }
+  ensure
+    GC.step_ratio = origin_s
+    GC.interval_ratio = origin_i
+  end
+end
+
 assert('GC.step_limit=') do
   origin = GC.step_limit
   begin
