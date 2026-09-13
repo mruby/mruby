@@ -49,6 +49,10 @@ static int
 inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   struct inspect_i *a = (struct inspect_i*)p;
+  /* An ivar whose name Ruby cannot spell (set from C without the '@') is
+     internal state, not part of the object's picture: instance_variables
+     leaves it out, and so does inspect. */
+  if (!mrb_iv_name_sym_p(mrb, sym)) return 0;
   if (mrb_nil_p(a->str)) {
     const char *cn = mrb_obj_classname(mrb, a->obj);
     a->str = mrb_str_new_capa(mrb, 30);
@@ -66,7 +70,6 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 
   char *sp = RSTRING_PTR(a->str);
 
-  /* need not to show internal data */
   if (sp[0] == '-') { /* first element */
     sp[0] = '#';
     mrb_str_cat_lit(mrb, a->str, " ");

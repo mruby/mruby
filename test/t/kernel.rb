@@ -240,6 +240,20 @@ assert('Kernel#inspect', '15.3.1.3.17') do
   assert_equal "main", s
 end
 
+assert('Kernel#inspect leaves out an ivar Ruby cannot name') do
+  # C extensions keep private state in ivars whose names have no '@'
+  # (mrb_iv_set with a bare symbol); instance_variables already leaves them
+  # out, and inspect must not print them either.
+  o = Object.new
+  o.__iv_set_hidden(:secret, "hidden")
+  assert_not_include o.inspect, "secret"
+  assert_equal o.to_s, o.inspect
+
+  o.__iv_set_hidden(:@pub, 1)
+  assert_include o.inspect, "@pub=1"
+  assert_not_include o.inspect, "secret"
+end
+
 assert('Kernel#is_a?', '15.3.1.3.24') do
   assert_true is_a?(Kernel)
   assert_false is_a?(Array)
