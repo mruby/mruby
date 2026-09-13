@@ -15,6 +15,14 @@ assert('GC.disable') do
   end
 end
 
+# mrb_gc_add_region() must refuse a buffer too small to hold a page once its
+# base is aligned, rather than wrapping the usable size and carving a page out
+# past the buffer's end. Driven from C (mrbgems/mruby-test/gc.c) since the
+# function has no Ruby-visible face.
+assert('GC heap region smaller than the alignment padding') do
+  assert_equal 0, __gc_add_region_undersized
+end
+
 assert('GC.interval_ratio=') do
   origin = GC.interval_ratio
   begin
