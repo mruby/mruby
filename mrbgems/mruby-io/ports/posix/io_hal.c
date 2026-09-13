@@ -19,6 +19,9 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/syscall.h>
+#endif
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -482,6 +485,32 @@ mrb_hal_io_pipe(mrb_state *mrb, int fds[2])
  */
 
 #ifdef MRB_HAL_IO_HAS_SPAWN_PROCESS
+/* Close every descriptor from lowfd up, in the child between fork and exec.
+   Asking the kernel to do it in one call matters more than it looks: the
+   fallback walks up to the descriptor limit, which is 1048576 on a current
+   Linux (systemd raises the soft limit to the hard one), so a popen paid a
+   million close() calls, about a quarter of a second, before the shell even
+   started. Only async-signal-safe calls belong here. */
+static void
+close_from(int lowfd)
+{
+#if defined(__linux__) && defined(SYS_close_range)
+  /* Linux 5.9; called through syscall() so a libc that predates the wrapper
+     still builds. An older kernel answers ENOSYS and the walk below takes
+     over. */
+  if (syscall(SYS_close_range, (unsigned int)lowfd, ~0U, 0) == 0) return;
+#elif defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || \
+      defined(__DragonFly__) || defined(__sun)
+  closefrom(lowfd);
+  return;
+#endif
+  int max_fd = (int)sysconf(_SC_OPEN_MAX);
+  if (max_fd == -1) max_fd = 1024;
+  for (int i = lowfd; i < max_fd; i++) {
+    close(i);
+  }
+}
+
 int
 mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
                           int stdin_fd, int stdout_fd, int stderr_fd,
@@ -528,11 +557,7 @@ mrb_hal_io_spawn_process(mrb_state *mrb, const char *cmd,
     }
 
     /* Close all other file descriptors */
-    int max_fd = sysconf(_SC_OPEN_MAX);
-    if (max_fd == -1) max_fd = 1024;
-    for (int i = 3; i < max_fd; i++) {
-      close(i);
-    }
+    close_from(3);
 
     /* Execute command via shell */
     execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
