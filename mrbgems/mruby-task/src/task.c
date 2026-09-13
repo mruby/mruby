@@ -788,6 +788,12 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
     }
   }
 
+  /* A synchronous execution (mrb_execute_proc_synchronously) runs its
+     temporary task with no scheduler to hand the CPU to, so parking that
+     task here would leave nothing to resume it. Same rule as the other
+     asynchronous Task APIs. */
+  task_check_scheduler_lock(mrb);
+
   /* In task context - get current running task */
   t = MRB2TASK(mrb);
 
@@ -852,6 +858,9 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
         mrb_raise(mrb, E_RUNTIME_ERROR, "can't sleep across C function boundary");
       }
     }
+    /* See sleep_us_impl: never park the temporary task of a synchronous
+       execution. */
+    task_check_scheduler_lock(mrb);
     mrb_task *t = MRB2TASK(mrb);
     mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
@@ -1453,11 +1462,53 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
 
   /* 4. Execute the task in a dedicated loop (no context switching) */
   t->status = MRB_TASK_STATUS_RUNNING;
+  t->c.prev = mrb->c;
+  /* As in execute_task(): tells mrb_vm_exec() this context is driven from
+     C, so an unhandled exception terminates it and returns instead of
+     re-raising into the previous context. */
+  t->c.vmexec = TRUE;
   mrb->c = &t->c;
+
+  /* A pending switch request belongs to the scheduler, not to this loop.
+     mrb_vm_exec() honors task.switching at every OP boundary by returning
+     early (RETURN_IF_TASK_STOPPED), so with the flag left set it would
+     return before executing a single instruction and the loop below
+     would spin forever. Park the request while the temporary task runs
+     and hand it back afterwards. */
+  mrb_bool saved_switching = switching_;
+  switching_ = FALSE;
+
+  /* An exception the proc does not handle must come back here as a value,
+     the way execute_task_vm() arranges for scheduled tasks. Without the
+     flag mrb_vm_exec() longjmps to the caller's jmpbuf (when one exists)
+     straight past the teardown below, leaving the temporary task queued
+     with a freed stack, mrb->c pointing at it and the scheduler locked. */
+  mrb_bool saved_exception_as_result = mrb->task.exception_as_result;
+  mrb->task.exception_as_result = TRUE;
 
   while (t->c.status != MRB_TASK_STOPPED) {
     t->result = mrb_vm_exec(mrb, mrb->c->ci->proc, mrb->c->ci->pc);
+    if (t->c.status == MRB_TASK_STOPPED) break;
+
+    /* Early return without termination: a switch was requested from
+       inside the synchronous code (a tick IRQ expiring the timeslice, a
+       Task API that raised the flag, ...). The temporary task must keep
+       the CPU, so a request that left it runnable is simply dropped.
+       One that parked it (sleep, a suspend from a C extension) cannot be
+       honored here: there is no scheduler to hand the CPU to, so end the
+       execution with an error instead of spinning. */
+    if (t->status == MRB_TASK_STATUS_RUNNING) {
+      switching_ = FALSE;
+      continue;
+    }
+    mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_RUNTIME_ERROR,
+      "Cannot suspend the current task during synchronous execution"));
+    t->c.status = MRB_TASK_STOPPED;
+    break;
   }
+  mrb->task.exception_as_result = saved_exception_as_result;
+  t->c.vmexec = FALSE;
+  t->c.prev = NULL;
 
   /* If there's an unhandled exception after VM stops, save it as result */
   if (mrb->exc) {
@@ -1499,6 +1550,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   /* 7. Restore context and unlock */
   mrb->c = original_c;
   mrb->task.scheduler_lock--;
+  switching_ = saved_switching;
 
   mrb_gc_arena_restore(mrb, ai);
   mrb_gc_protect(mrb, result);
