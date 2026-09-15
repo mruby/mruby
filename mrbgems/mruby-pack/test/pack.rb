@@ -384,6 +384,20 @@ assert 'unpack1' do
   assert_equal(d, [d].pack("h*").unpack1("h*"))
 end
 
+assert 'unpack1 reads no further than its first value' do
+  # As in CRuby, what follows the first value is not read, so it cannot
+  # raise, and a directive short of bytes gives no nil to answer with.
+  assert_equal 97, "a\xFF".unpack1("CU")
+  assert_equal 97, "a".unpack1("Cx2")
+  assert_equal 97, "a\xFF".unpack1("U*")
+  assert_equal 97, "a".unpack1("nC")
+  assert_equal "", "".unpack1("Ca")
+  assert_nil "".unpack1("CC")
+  # what comes before the first value is still read
+  assert_raise(ArgumentError) { "\x01".unpack1("x2C") }
+  assert_raise(ArgumentError) { "\xFF".unpack1("UC") }
+end
+
 assert 'unpack of a fixed size directive past the end' do
   # CRuby answers nil for each element a count asks for that the bytes left
   # cannot fill, whether a piece of one is left or nothing is, and none for

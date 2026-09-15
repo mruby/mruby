@@ -1979,6 +1979,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       continue;
     }
 
+    /* unpack1 reads one element, so nothing after its first value can raise */
+    mrb_int n = (single && count != 0) ? 1 : count;
+
     /* Optimized dispatch for PACK_FLAG_COUNT2 formats - grouped by signature */
     sptr = base + srcidx;
     switch (dir) {
@@ -2012,7 +2015,8 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 
     /* UTF8 format - reads its whole count in one call */
     case PACK_DIR_UTF8:
-      srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, count);
+      srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, n);
+      if (single) goto elements_end;
       continue;
 
     default:
@@ -2022,7 +2026,6 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
     /* The elements to read: the count, cut to what the bytes left hold
        for a fixed size directive and to the bytes left for w, whose
        elements take a byte at least. */
-    mrb_int n = count;
     if (size > 0) {
       mrb_int fit = srcidx < srclen ? (srclen - srcidx) / size : 0;
       if (n < 0 || n > fit) n = fit;
@@ -2067,6 +2070,11 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       }
     }
   elements_end:
+    if (single) {
+      /* a directive short of bytes gives unpack1 no nil, and it goes on */
+      if (RARRAY_LEN(result) > 0) return RARRAY_PTR(result)[0];
+      continue;
+    }
     /* A fixed size directive short of bytes answers nil for each element
        its count still asks for, as CRuby does, whether a piece of one is
        left or nothing is. */
