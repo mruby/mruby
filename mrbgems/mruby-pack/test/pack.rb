@@ -383,3 +383,36 @@ assert 'unpack1' do
   d = "f00b00"
   assert_equal(d, [d].pack("h*").unpack1("h*"))
 end
+
+assert 'unpack1 reads no further than its first value' do
+  # As in CRuby, what follows the first value is not read, so it cannot
+  # raise, and a directive short of bytes gives no nil to answer with.
+  assert_equal 97, "a\xFF".unpack1("CU")
+  assert_equal 97, "a".unpack1("Cx2")
+  assert_equal 97, "a\xFF".unpack1("U*")
+  assert_equal 97, "a".unpack1("nC")
+  assert_equal "", "".unpack1("Ca")
+  assert_nil "".unpack1("CC")
+  # what comes before the first value is still read
+  assert_raise(ArgumentError) { "\x01".unpack1("x2C") }
+  assert_raise(ArgumentError) { "\xFF".unpack1("UC") }
+end
+
+assert 'unpack of a fixed size directive past the end' do
+  # CRuby answers nil for each element a count asks for that the bytes left
+  # cannot fill, whether a piece of one is left or nothing is, and none for
+  # `*`. The position stays where the bytes ran short.
+  assert_equal [97, nil], "a".unpack("CC")
+  assert_equal [nil], "".unpack("C")
+  assert_equal [nil, nil], "".unpack("C2")
+  assert_equal [24930, nil], "abc".unpack("n2")
+  assert_equal [97], "a".unpack("C*")
+  assert_equal [24930], "abc".unpack("n*")
+  assert_equal [97, nil, nil], "a".unpack("CnC")
+  assert_equal [nil, 97], "a".unpack("nC")
+  assert_equal [nil], "".unpack("e") if Object.const_defined?(:Float)
+  # a directive without a fixed size answers nothing past the end
+  assert_equal [], "".unpack("U")
+  assert_equal [], "".unpack("w")
+  assert_equal [""], "".unpack("a")
+end
