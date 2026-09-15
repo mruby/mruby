@@ -14,7 +14,7 @@ For a list of specific behavioral differences, see
 - No `Encoding` class — UTF-8 opt-in via `MRB_UTF8_STRING`
 - Fibers cannot yield across C function boundaries
 - Integer size varies by platform and boxing mode
-- Operators cannot be overridden by user code
+- Redefining an operator of a primitive class turns off that operator's fast path
 
 See [Key Differences from CRuby](#key-differences-from-cruby) for
 the full list.
@@ -364,8 +364,13 @@ This means subclassing `Array` or `String` and adding `@fields` will raise an er
 
 ### Operator Overriding
 
-Operators of primitive classes cannot be overridden by user code.
-Redefining `String#+` has no effect on the behavior of the `+` operator.
+The VM answers `+`, `<`, `==`, `[]` and the other operators of the primitive
+classes itself while each still resolves to its builtin implementation.
+Redefining one, by `def`, `alias`, `prepend` or, in a build with
+`MRB_USE_REFINEMENTS`, by a refinement, is honored: the operator's fast path
+is turned off and every use of it becomes an ordinary method call, for every
+caller, until the builtin is restored. Redefining `String#+` therefore works,
+at the cost of that fast path.
 
 ### Module Loading Hooks
 
