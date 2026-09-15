@@ -3974,6 +3974,7 @@ RETRY_TRY_BLOCK:
       if (target_class->flags & MRB_FL_CLASS_IS_PREPENDED) {
         goto super_typeerror;
       }
+      recv = regs[0];
       if (target_class->tt == MRB_TT_MODULE) {
 #ifdef MRB_USE_REFINEMENTS
         /* a refined method runs under its refinement, whose `super` is the
@@ -3981,11 +3982,17 @@ RETRY_TRY_BLOCK:
         if (MRB_CLASS_REFINEMENT_P(target_class) && target_class->super) {
           target_class = target_class->super;
         }
+        /* The method of a refined module, reached by a `super` from the
+           refinement: it runs under the module itself and not under the
+           ICLASS its includer holds, so there is no chain to go on up.
+           CRuby refuses the same way (Bug #22071). */
+        else if (mrb_obj_is_kind_of(mrb, recv, target_class)) {
+          RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super in a method in a module that has been refined and that is called via super from a refinement method is not supported.");
+        }
         else
 #endif
         goto super_typeerror;
       }
-      recv = regs[0];
       if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
       super_typeerror:
         RAISE_LIT(mrb, E_TYPE_ERROR, "self has wrong type to call super in this context");
