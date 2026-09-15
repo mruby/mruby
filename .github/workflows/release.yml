@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          submodules: recursive
       - name: Builds
         id: builds
         run: |
@@ -29,10 +30,22 @@ jobs:
           packagename="mruby-$tagname"
           destdir=packages
 
-          mkdir -p "$destdir"
-          git archive --format zip --prefix "$packagename/" -o "$destdir/$packagename.zip" "$GITHUB_REF"
-          git archive --format tar.gz --prefix "$packagename/" -o "$destdir/$packagename.tar.gz" "$GITHUB_REF"
-          gunzip -c "$destdir/$packagename.tar.gz" | xz > "$destdir/$packagename.tar.xz"
+          # `git archive` writes the tree of one repository, so the Prism
+          # submodule under mruby-compiler comes out as an empty directory
+          # and the archive does not build (#7608). Lay the tag's tree out
+          # in a staging directory, put each submodule's tree in its place,
+          # and pack that. The archives GitHub makes from a tag have the
+          # same hole, which is why the README points at these.
+          stage="$(mktemp -d)"
+          mkdir -p "$destdir" "$stage/$packagename"
+          git archive --format tar "$GITHUB_REF" | tar -C "$stage/$packagename" -x
+          git submodule foreach --quiet --recursive \
+            "git archive --format tar HEAD | tar -C \"$stage/$packagename/\$displaypath\" -x"
+
+          tar -C "$stage" -cf - "$packagename" | gzip -9 > "$destdir/$packagename.tar.gz"
+          tar -C "$stage" -cf - "$packagename" | xz > "$destdir/$packagename.tar.xz"
+          (cd "$stage" && zip -qr -9 "$OLDPWD/$destdir/$packagename.zip" "$packagename")
+          rm -rf "$stage"
 
           (
             cd "$destdir" || exit

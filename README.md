@@ -46,20 +46,25 @@ of the Ministry of Economy, Trade and Industry of Japan.
 
 ## How to get mruby
 
-To get mruby, you can download the stable version 4.0.0 from the official mruby
-GitHub repository or clone the trunk of the mruby source tree with the "git
-clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build), [rvm](https://github.com/rvm/rvm), [conda](https://anaconda.org/channels/conda-forge/packages/mruby/overview) or [Homebrew](https://formulae.brew.sh/formula/mruby).
+To get mruby, you can download a release from the official mruby GitHub
+repository or clone the trunk of the mruby source tree with the "git clone"
+command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build), [rvm](https://github.com/rvm/rvm), [conda](https://anaconda.org/channels/conda-forge/packages/mruby/overview) or [Homebrew](https://formulae.brew.sh/formula/mruby).
 
-The release candidate version 4.0.0 of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/archive/4.0.0-rc3.zip](https://github.com/mruby/mruby/archive/4.0.0-rc3.zip)
+Releases, including release candidates, are published on the releases page:
+[https://github.com/mruby/mruby/releases](https://github.com/mruby/mruby/releases).
+Download the `mruby-<version>.tar.gz`, `.tar.xz` or `.zip` attached to a
+release. The "Source code" archives GitHub generates for a tag, and the ZIP
+of the master branch, leave out the Prism parser that mruby-compiler carries
+as a git submodule, so they do not build.
 
-The latest development version of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/zipball/master](https://github.com/mruby/mruby/zipball/master)
-
-The trunk of the mruby source tree can be checked out with the
-following command:
+The trunk of the mruby source tree can be checked out with the following
+command; the `--recursive` fetches that submodule as well:
 
 ```console
-$ git clone https://github.com/mruby/mruby.git
+$ git clone --recursive https://github.com/mruby/mruby.git
 ```
+
+In a clone made without it, `rake` fetches the submodule on the first build.
 
 ## mruby homepage
 
