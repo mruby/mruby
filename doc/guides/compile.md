@@ -395,7 +395,10 @@ configured to use C++ exception.
 There are two levels of C++ exception handling. The one is
 `enable_cxx_exception` that enables C++ exception, but
 uses C ABI. The other is `enable_cxx_abi` where all
-files are compiled by C++ compiler.
+files are compiled by C++ compiler, except the Prism parser under
+`mruby-compiler`, which is a C library and stays on the C compiler. A C++
+standard added to `conf.cc.flags` (`-std=c++23`) reaches every C++ file and
+is dropped for those C files.
 
 When you mix C++ code, C++ exception would be enabled automatically.
 If you need to enable C++ exception explicitly add the following:
