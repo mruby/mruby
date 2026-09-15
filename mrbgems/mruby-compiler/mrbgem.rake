@@ -84,6 +84,18 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   task :prism_submodule do
     next if File.exist?("#{prism_dir}/templates/template.rb")
 
+    # A source archive (GitHub's "Download ZIP", `git archive`) carries the
+    # empty submodule directory and no .git to fill it from; say so rather
+    # than let `git submodule` fail on a tree that is not a checkout.
+    unless File.exist?("#{MRUBY_ROOT}/.git")
+      abort <<~MSG
+        mruby-compiler: #{prism_dir} is empty, and this source tree is not a git
+        checkout, so the Prism parser it comes from cannot be fetched. A source
+        archive of the repository leaves the submodule out: clone the repository
+        instead (`git clone --recursive https://github.com/mruby/mruby.git`), or
+        put the Prism sources the submodule pins (see .gitmodules) there.
+      MSG
+    end
     FileUtils.cd dir do
       sh 'git submodule update --init lib/prism'
     end
