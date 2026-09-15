@@ -149,6 +149,44 @@ assert('Refinement: a refined module prepended later to a guarded class') do
   assert_equal [2, 7], [3 - 1, [7][0]]
 end
 
+module RefTestModG; def a; "G" + super; end; end
+module RefTestModF; include RefTestModG; def a; "F" + super; end; end
+class RefTestModA; def a; "A"; end; end
+class RefTestModB < RefTestModA; include RefTestModF; end
+module RefTestModR
+  refine RefTestModF do
+    def a; "R" + super; end
+    def own; "own"; end
+  end
+end
+
+assert('Refinement: super into a refined module method cannot go on (Bug #22071)') do
+  assert_equal "FGA", RefTestModB.new.a
+  c = Class.new do
+    using RefTestModR
+    define_method(:go) { RefTestModB.new.a }
+    define_method(:own) { RefTestModB.new.own }
+  end
+  assert_equal "own", c.new.own
+  e = assert_raise(NoMethodError) { c.new.go }
+  assert_true e.message.include?("called via super from a refinement method")
+end
+
+class RefTestSupC; def foo; "C"; end; end
+module RefTestSupM1; refine(RefTestSupC) { def foo; "M1+" + super; end }; end
+module RefTestSupM2
+  refine(RefTestSupC) { using RefTestSupM1; def foo; "M2+" + super; end }
+end
+module RefTestSupM3; refine(RefTestSupC) { def foo; "M3+" + super; end }; end
+
+assert('Refinement: super goes to the next refinement active where super is written') do
+  a = Class.new { using RefTestSupM2; define_method(:go) { RefTestSupC.new.foo } }
+  assert_equal "M2+M1+C", a.new.go
+  # refinements active at the caller do not affect a super inside the method
+  b = Class.new { using RefTestSupM2; using RefTestSupM3; define_method(:go) { RefTestSupC.new.foo } }
+  assert_equal "M3+C", b.new.go
+end
+
 assert('Refinement: method_missing is not refined') do
   c = RefTestC.new
   assert_raise(NoMethodError) { c.no_such_method }
