@@ -837,6 +837,11 @@ unpack_utf8(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
     if (n == MRB_UTF8_REDUNDANT) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
     }
+    if (n == MRB_UTF8_TRUNCATED) {
+      mrb_int want = *p < 0xE0 ? 2 : *p < 0xF0 ? 3 : *p < 0xF8 ? 4 : *p < 0xFC ? 5 : 6;
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %i bytes, given %i bytes)",
+                 want, (mrb_int)(e - p));
+    }
     if (n < 0) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
     }

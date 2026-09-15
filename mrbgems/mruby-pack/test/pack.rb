@@ -358,6 +358,17 @@ assert 'unpack("U") on either side of each bound on the second byte' do
   end
 end
 
+assert 'unpack("U") of a sequence cut short' do
+  # CRuby says how many bytes the lead byte claims and how many are left.
+  assert_raise_with_message(ArgumentError, "malformed UTF-8 character (expected 3 bytes, given 2 bytes)") {
+    "a\xE3\x81".unpack("U*")
+  }
+  assert_raise_with_message(ArgumentError, "malformed UTF-8 character (expected 6 bytes, given 1 bytes)") {
+    "\xFD".unpack("U")
+  }
+  assert_raise_with_message(ArgumentError, "malformed UTF-8 character") { "\xE3\x41\x81".unpack("U") }
+end
+
 assert 'unpack1' do
   d = 1234
   assert_equal(d, [d].pack("i").unpack1("i"))
