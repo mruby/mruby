@@ -551,23 +551,6 @@ search_nonascii(const char *p, const char *e)
 
 #endif  /* SIMPLE_SEARCH_NONASCII */
 
-#if defined(__GNUC__) || __has_builtin(__builtin_popcount)
-# ifdef MRB_64BIT
-# define popcount(x) __builtin_popcountll(x)
-# else
-# define popcount(x) __builtin_popcountl(x)
-# endif
-#else
-#define POPC_SHIFT (8 * sizeof(bitint) - 8)
-static inline uint32_t popcount(bitint x)
-{
-  x = (x & (MASK01*0x55)) + ((x >>  1) & (MASK01*0x55));
-  x = (x & (MASK01*0x33)) + ((x >>  2) & (MASK01*0x33));
-  x = (x & (MASK01*0x0F)) + ((x >>  4) & (MASK01*0x0F));
-  return (uint32_t)((x * MASK01) >> POPC_SHIFT);
-}
-#endif
-
 /* Counts characters, and when `validp` is given also reports whether every
    sequence decoded as one character. The walk stops at the first broken
    sequence, so the returned count is a character count only while `*validp`
