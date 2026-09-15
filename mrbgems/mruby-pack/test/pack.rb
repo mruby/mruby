@@ -383,3 +383,22 @@ assert 'unpack1' do
   d = "f00b00"
   assert_equal(d, [d].pack("h*").unpack1("h*"))
 end
+
+assert 'unpack of a fixed size directive past the end' do
+  # CRuby answers nil for each element a count asks for that the bytes left
+  # cannot fill, whether a piece of one is left or nothing is, and none for
+  # `*`. The position stays where the bytes ran short.
+  assert_equal [97, nil], "a".unpack("CC")
+  assert_equal [nil], "".unpack("C")
+  assert_equal [nil, nil], "".unpack("C2")
+  assert_equal [24930, nil], "abc".unpack("n2")
+  assert_equal [97], "a".unpack("C*")
+  assert_equal [24930], "abc".unpack("n*")
+  assert_equal [97, nil, nil], "a".unpack("CnC")
+  assert_equal [nil, 97], "a".unpack("nC")
+  assert_equal [nil], "".unpack("e") if Object.const_defined?(:Float)
+  # a directive without a fixed size answers nothing past the end
+  assert_equal [], "".unpack("U")
+  assert_equal [], "".unpack("w")
+  assert_equal [""], "".unpack("a")
+end

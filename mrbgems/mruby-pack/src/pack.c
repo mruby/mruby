@@ -1956,6 +1956,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 
   mrb_int srcidx = 0;
   mrb_int srclen = RSTRING_LEN(str);
+  const unsigned char *base = (const unsigned char*)RSTRING_PTR(str);
 
   mrb_value result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
@@ -1979,7 +1980,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
     }
 
     /* Optimized dispatch for PACK_FLAG_COUNT2 formats - grouped by signature */
-    sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
+    sptr = base + srcidx;
     switch (dir) {
     /* String formats with count and flags - (mrb, sptr, len, result, count, flags) */
     case PACK_DIR_HEX:
@@ -2018,15 +2019,19 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       break;
     }
 
-    while (count != 0 && srcidx < srclen) {
-      if (srclen - srcidx < size) {
-        while (count-- > 0) {
-          mrb_ary_push(mrb, result, mrb_nil_value());
-        }
-        break;
-      }
-
-      sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
+    /* The elements to read: the count, cut to what the bytes left hold
+       for a fixed size directive and to the bytes left for w, whose
+       elements take a byte at least. */
+    mrb_int n = count;
+    if (size > 0) {
+      mrb_int fit = srcidx < srclen ? (srclen - srcidx) / size : 0;
+      if (n < 0 || n > fit) n = fit;
+    }
+    else if (n < 0 || n > srclen - srcidx) {
+      n = srclen - srcidx;
+    }
+    for (mrb_int i = n; i > 0; i--) {
+      sptr = base + srcidx;
       /* Optimized dispatch for element-by-element formats - grouped by signature */
       switch (dir) {
       /* Integer formats - all use (mrb, sptr, len, result, flags) signature */
@@ -2043,6 +2048,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
         srcidx += unpack_quad(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_BER:
+        if (srcidx >= srclen) goto elements_end;
         srcidx += unpack_BER(mrb, sptr, srclen - srcidx, result, flags);
         break;
 
@@ -2059,8 +2065,14 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       default:
         mrb_raise(mrb, E_RUNTIME_ERROR, "mruby-pack's bug");
       }
-      if (count > 0) {
-        count--;
+    }
+  elements_end:
+    /* A fixed size directive short of bytes answers nil for each element
+       its count still asks for, as CRuby does, whether a piece of one is
+       left or nothing is. */
+    if (size > 0) {
+      while (count-- > n) {
+        mrb_ary_push(mrb, result, mrb_nil_value());
       }
     }
   }
