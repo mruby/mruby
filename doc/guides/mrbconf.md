@@ -307,8 +307,14 @@ end
 `MRB_USE_REFINEMENTS`
 
 - Adds refinements: `Module#refine`, `Module#refinements`, `main.using`,
-  `Module#using`, `Module.used_modules`, `Module.used_refinements`, and the
-  `Refinement` class with `#target`, `#refined_class` and `#import_methods`.
+  `Module#using`, `Module.used_modules`, `Module.used_refinements`,
+  `Proc#refined`, and the `Refinement` class with `#target`, `#refined_class`
+  and `#import_methods`.
+- `Proc#refined(*modules)` returns a copy of a proc with the modules'
+  refinements active in its body, as in CRuby, including the `ArgumentError`
+  for `define_method` with such a proc; with no modules it returns the proc
+  itself. One difference: the procs of
+  `Symbol#to_proc` and `Method#to_proc`, Ruby lambdas here, are accepted.
 - Scope is lexical, as in CRuby: from the `using` call to the end of the file
   or of the class or module body. A method defined before the `using` does not
   see it; a block written in the scope does. `super` in a refined method

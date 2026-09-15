@@ -62,6 +62,8 @@ mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass 
 #ifdef MRB_USE_REFINEMENTS
 /* refinement.c / class.c / proc.c */
 struct RArray *mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci);
+struct RArray *mrb_proc_refinements(mrb_state *mrb, const struct RProc *p);
+mrb_bool mrb_proc_refined_p(mrb_state *mrb, const struct RProc *p);
 struct RArray *mrb_vm_caller_refinements(mrb_state *mrb);
 mrb_method_t mrb_vm_find_refined_method(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid, struct RClass *exclude);
 mrb_method_t mrb_vm_find_method_in_scope(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid);

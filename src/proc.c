@@ -118,10 +118,8 @@ mrb_vm_definee_class(mrb_state *mrb, mrb_callinfo *ci)
    scope it was written in, so it sees a `using` written after the block, as
    CRuby's does. */
 struct RArray*
-mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci)
+mrb_proc_refinements(mrb_state *mrb, const struct RProc *p)
 {
-  const struct RProc *p = ci->proc;
-
   while (p && !MRB_PROC_CFUNC_P(p) && p->gc_color != MRB_GC_RED) {
     uint32_t idx = MRB_PROC_REFSCOPE(p);
     if (idx) return mrb_refscope_at(mrb, idx);
@@ -129,6 +127,12 @@ mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci)
     p = p->upper;
   }
   return NULL;
+}
+
+struct RArray*
+mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci)
+{
+  return mrb_proc_refinements(mrb, ci->proc);
 }
 
 /* Gives `p` the refinements active in the frame it is made in, as a method

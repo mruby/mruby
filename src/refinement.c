@@ -101,6 +101,35 @@ mrb_gc_clear_dead_refscopes(mrb_state *mrb)
   }
 }
 
+/* A scope Proc#refined made, told from one `using` made by a bit of the
+   Array's flags that mruby/array.h leaves unused (embed length 0-2, shared
+   8).  A `using` written anywhere under such a proc is refused: the copy's
+   refinements are fixed when it is made, as CRuby's are. */
+#define REFSCOPE_OF_PROC_FL (1u << 12)
+#define REFSCOPE_OF_PROC_P(a) (((a)->flags & REFSCOPE_OF_PROC_FL) != 0)
+
+/* Whether `p` is a copy Proc#refined made. */
+mrb_bool
+mrb_proc_refined_p(mrb_state *mrb, const struct RProc *p)
+{
+  uint32_t idx = MRB_PROC_REFSCOPE(p);
+  return idx != 0 && REFSCOPE_OF_PROC_P(mrb_refscope_at(mrb, idx));
+}
+
+/* Raises when `p`, or any proc it was written in up to its scope, is a
+   copy Proc#refined made: a block made in such a proc carries no scope of
+   its own and reads the copy's. */
+static void
+check_not_in_refined_proc(mrb_state *mrb, const struct RProc *p)
+{
+  for (; p && !MRB_PROC_CFUNC_P(p) && p->gc_color != MRB_GC_RED; p = p->upper) {
+    if (mrb_proc_refined_p(mrb, p)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "using is not permitted in a proc with refinements");
+    }
+    if (MRB_PROC_CREF_P(p)) break;
+  }
+}
+
 /* --- refinement objects --- */
 
 static struct RClass*
@@ -259,9 +288,13 @@ using_scope_proc(mrb_state *mrb, mrb_value self, const char *who)
      way a `def` written there lands on the given class: the frame says so
      for the block itself, and the env it leaves behind says so for a block
      made inside it (see mrb_vm_definee_class()). */
-  if (MRB_CI_GIVEN_CLASS_P(&ci[-1])) return (struct RProc*)p;
+  if (MRB_CI_GIVEN_CLASS_P(&ci[-1])) {
+    check_not_in_refined_proc(mrb, p);
+    return (struct RProc*)p;
+  }
   /* a red proc is a static one the runtime links, not a scope of the
      program's: the chain ends before it */
+  check_not_in_refined_proc(mrb, p);
   while (p && !MRB_PROC_CFUNC_P(p) && p->gc_color != MRB_GC_RED) {
     if (MRB_PROC_SCOPE_P(p) && MRB_PROC_STRICT_P(p)) {
       if (mrb_obj_ptr(self) == mrb->top_self) {
@@ -429,6 +462,51 @@ refinement_import_methods(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     prc.refined(*modules)   -> a_proc
+ *
+ *  A copy of the proc in which the refinements of the modules are active,
+ *  over those the proc already sees; a module given later comes first.
+ *  The copy shares the proc's environment.  Blocks and methods written in
+ *  its body see the refinements; a `using` written in it raises.  With no
+ *  modules the proc itself is returned.
+ */
+static mrb_value
+proc_refined(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  const struct RProc *p = mrb_proc_ptr(self);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0) return self;
+  if (MRB_PROC_CFUNC_P(p) || MRB_PROC_ALIAS_P(p) || (MRB_PROC_SCOPE_P(p) && MRB_PROC_STRICT_P(p))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't apply refinements to a Proc without a Ruby block");
+  }
+  for (mrb_int i = 0; i < argc; i++) {
+    if (refinement_p(mrb, argv[i])) {
+      mrb_raise(mrb, E_TYPE_ERROR, "wrong argument type refinement (expected Module)");
+    }
+    if (!mrb_module_p(argv[i])) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected Module)", mrb_obj_class(mrb, argv[i]));
+    }
+  }
+
+  struct RArray *cur = mrb_proc_refinements(mrb, p);
+  mrb_value scope = cur ? mrb_ary_new_from_values(mrb, ARY_LEN(cur), ARY_PTR(cur)) : mrb_ary_new(mrb);
+  for (mrb_int i = 0; i < argc; i++) {
+    scope_activate(mrb, scope, mrb_class_ptr(argv[i]));
+  }
+  mrb_ary_ptr(scope)->flags |= REFSCOPE_OF_PROC_FL;
+  mrb_obj_freeze(mrb, scope);
+
+  struct RProc *np = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
+  mrb_proc_copy(mrb, np, p);
+  mrb_proc_set_refscope(mrb, np, mrb_ary_ptr(scope));
+  return mrb_obj_value(np);
+}
+
 static mrb_value
 refinement_no_include(mrb_state *mrb, mrb_value self)
 {
@@ -462,6 +540,8 @@ mrb_init_refinement(mrb_state *mrb)
   mrb_undef_method_id(mrb, ref, MRB_SYM(refine));
 
   mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(using), main_using, MRB_ARGS_REQ(1));
+
+  mrb_define_method_id(mrb, mrb->proc_class, MRB_SYM(refined), proc_refined, MRB_ARGS_ANY());
 }
 
 #else  /* MRB_USE_REFINEMENTS */
