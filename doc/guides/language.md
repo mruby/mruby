@@ -366,11 +366,14 @@ This means subclassing `Array` or `String` and adding `@fields` will raise an er
 
 The VM answers `+`, `<`, `==`, `[]` and the other operators of the primitive
 classes itself while each still resolves to its builtin implementation.
-Redefining one, by `def`, `alias`, `prepend` or, in a build with
-`MRB_USE_REFINEMENTS`, by a refinement, is honored: the operator's fast path
-is turned off and every use of it becomes an ordinary method call, for every
-caller, until the builtin is restored. Redefining `String#+` therefore works,
-at the cost of that fast path.
+Redefining one with `def`, `alias` or `prepend` on the primitive class is
+honored: the operator's fast path is turned off and every use of it becomes
+an ordinary method call, for every caller, until the builtin is restored.
+Redefining `String#+` therefore works, at the cost of that fast path. In a
+build with `MRB_USE_REFINEMENTS` a refinement of the operator turns the fast
+path off the same way, for every caller, but the refined method is reached
+only from the scopes where the refinement is active; a caller outside them
+gets the builtin through the ordinary call.
 
 ### Module Loading Hooks
 
