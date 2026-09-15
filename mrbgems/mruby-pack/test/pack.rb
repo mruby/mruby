@@ -269,11 +269,10 @@ assert 'unpack("U") over every lead byte' do
   # F0 80, F8 80, FC 80), a surrogate (ED A0 and above), U+10FFFF (F4 90 and
   # above, F5 to F7), and the five and six byte lengths (F8 to FD). A shorter
   # spelling of a value is "redundant" and everything else short of a
-  # character is "malformed", which is how CRuby tells the two apart. What
-  # CRuby admits past U+10FFFF, the four byte spellings above it and the
-  # five and six byte ones, is refused here; over these 3072 strings that is
-  # the whole of the difference. The next test holds the sequences right on
-  # either side of each bound on the second byte.
+  # character is "malformed", which is how CRuby tells the two apart, and
+  # a value past U+10FFFF is read up to 0x7FFFFFFF, as CRuby reads it. The
+  # next test holds the sequences right on either side of each bound on the
+  # second byte.
   min = [0, 128, 2048, 65536, 2097152, 67108864]
   claim = ->(c) {
     if c < 0x80 then 1 elsif c < 0xC0 then 0 elsif c < 0xE0 then 2
@@ -290,7 +289,6 @@ assert 'unpack("U") over every lead byte' do
     v = c & (0x7F >> n)
     (1...n).each {|k| v = (v << 6) | (bytes[k] & 0x3F) }
     next :redundant if v < min[n - 1]
-    next :malformed if v > 0x10FFFF
     [v]
   }
   0.upto(255) do |c|
@@ -322,9 +320,9 @@ assert 'unpack("U") on either side of each bound on the second byte' do
     ["\xE0\x9F\xBF", :redundant],             ["\xE0\xA0\x80", [0x800]],
     ["\xED\x9F\xBF", [0xD7FF]],               ["\xED\xA0\x80", [0xD800]],
     ["\xF0\x8F\xBF\xBF", :redundant],         ["\xF0\x90\x80\x80", [0x10000]],
-    ["\xF4\x8F\xBF\xBF", [0x10FFFF]],         ["\xF4\x90\x80\x80", :malformed],
-    ["\xF8\x87\xBF\xBF\xBF", :redundant],     ["\xF8\x88\x80\x80\x80", :malformed],
-    ["\xFC\x83\xBF\xBF\xBF\xBF", :redundant], ["\xFC\x84\x80\x80\x80\x80", :malformed],
+    ["\xF4\x8F\xBF\xBF", [0x10FFFF]],         ["\xF4\x90\x80\x80", [0x110000]],
+    ["\xF8\x87\xBF\xBF\xBF", :redundant],     ["\xF8\x88\x80\x80\x80", [0x200000]],
+    ["\xFC\x83\xBF\xBF\xBF\xBF", :redundant], ["\xFC\x84\x80\x80\x80\x80", [0x4000000]],
   ].each do |s, v|
     assert_equal v, read.call(s), s.inspect
   end

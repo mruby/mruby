@@ -764,11 +764,10 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
 
 
 /* What a lead byte's second byte may be for unpack("U") to read the
-   sequence as a value: RFC 3629's bounds with the UTF-16 surrogates let
-   through (0xED up to BF), and the two long lengths refused at their
-   floors, so that a shorter spelling under 0xF8 or 0xFC is reported as
-   one and everything at or above the floor as no character, which is what
-   the value bound at U+10FFFF made of them before. */
+   sequence as a value: the floor of each length alone, as CRuby reads it,
+   so that a surrogate and a value past U+10FFFF up to 0x7FFFFFFF are read
+   and only a shorter spelling is refused. 0xFE and 0xFF lead nothing and
+   never reach the table. */
 #define R(lo, hi) {0x##lo, 0x##hi}
 static const uint8_t unpack_utf8_bounds[64][2] = {
   R(C0,BF), R(C0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* C0..C7 */
@@ -777,13 +776,13 @@ static const uint8_t unpack_utf8_bounds[64][2] = {
   R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* D8..DF */
   R(A0,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* E0..E7 */
   R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* E8..EF */
-  R(90,BF), R(80,BF), R(80,BF), R(80,BF), R(80,8F), R(80,7F), R(80,7F), R(80,7F),  /* F0..F7 */
-  R(88,87), R(80,7F), R(80,7F), R(80,7F), R(84,83), R(80,7F), R(80,7F), R(80,7F),  /* F8..FF */
+  R(90,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF), R(80,BF),  /* F0..F7 */
+  R(88,BF), R(80,BF), R(80,BF), R(80,BF), R(84,BF), R(80,BF), R(80,7F), R(80,7F),  /* F8..FF */
 };
 #undef R
 
 /* The five and six byte lengths, which mrb_utf8_scan() hands back unread:
-   the same walk over the claimed length and the same bounds on the second
+   the same walk over the claimed length and the same floor on the second
    byte, for the one reader that has to say what it found in them. */
 static mrb_int
 unpack_utf8_long(const unsigned char *q, mrb_int len, uint32_t *uv)
@@ -829,7 +828,12 @@ unpack_utf8(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
     if (n < 0) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
     }
+    /* up to 0x7FFFFFFF, past the fixnums of word boxing on a 32-bit target */
+#if MRB_FIXNUM_MAX < 0x7FFFFFFF
+    mrb_ary_push(mrb, ary, mrb_int_value(mrb, (mrb_int)uv));
+#else
     mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+#endif
     p += n;
   }
   return p - src;
