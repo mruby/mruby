@@ -59,6 +59,20 @@ mrb_value mrb_mod_to_s(mrb_state *, mrb_value);
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
 mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);
+#ifdef MRB_USE_REFINEMENTS
+/* refinement.c / class.c / proc.c */
+struct RArray *mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci);
+struct RArray *mrb_vm_caller_refinements(mrb_state *mrb);
+mrb_method_t mrb_vm_find_refined_method(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid, struct RClass *exclude);
+mrb_method_t mrb_vm_find_method_in_scope(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid);
+mrb_bool mrb_refined_mid_p(mrb_state *mrb, mrb_sym mid);
+void mrb_refinement_method_added(mrb_state *mrb, struct RClass *refinement, mrb_sym mid);
+void mrb_refinement_ancestry_changed(mrb_state *mrb, struct RClass *c, struct RClass *m);
+void mrb_proc_set_refscope(mrb_state *mrb, struct RProc *p, struct RArray *scope);
+struct RArray *mrb_refscope_at(mrb_state *mrb, uint32_t idx);
+struct RProc *mrb_scope_proc_new(mrb_state *mrb, const mrb_irep *irep);
+void mrb_gc_clear_dead_refscopes(mrb_state *mrb);
+#endif
 mrb_value mrb_mod_const_missing(mrb_state *mrb, mrb_value mod);
 int mrb_mod_method_visibility(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym);

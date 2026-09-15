@@ -998,6 +998,15 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       mrb_gc_mark(mrb, (struct RBasic*)p->upper);
       mrb_gc_mark(mrb, (struct RBasic*)p->e.env);
       children+=2;
+#ifdef MRB_USE_REFINEMENTS
+      {
+        uint32_t idx = MRB_PROC_REFSCOPE(p);
+        if (idx) {
+          mrb_gc_mark(mrb, (struct RBasic*)mrb_refscope_at(mrb, idx));
+          children++;
+        }
+      }
+#endif
     }
     break;
 
@@ -1643,6 +1652,11 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
       uint64_t fm0 = gc_prof_now_us();
 #endif
       final_marking_phase(mrb, gc);
+#ifdef MRB_USE_REFINEMENTS
+      /* marking is complete: a refinement scope no proc marked is dropped
+         from the weak table before the sweep frees it */
+      mrb_gc_clear_dead_refscopes(mrb);
+#endif
 #ifdef MRB_GC_PROFILE
       {
         uint64_t fmdt = gc_prof_now_us() - fm0;

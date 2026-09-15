@@ -1230,6 +1230,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   mt_put(mrb, h, mid, flags, ptr);
   if (!mrb->bootstrapping) {
     mc_clear_by_id(mrb, mid);
+#ifdef MRB_USE_REFINEMENTS
+    if (MRB_CLASS_REFINEMENT_P(named)) mrb_refinement_method_added(mrb, named, mid);
+#endif
     mrb_builtin_op_update(mrb, mid);
     if (mid == MRB_OPSYM(eq)) eq_defined_mark(mrb, named);
   }
@@ -2315,9 +2318,17 @@ MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   mrb_check_frozen(mrb, c);
+#ifdef MRB_USE_REFINEMENTS
+  if (MRB_CLASS_REFINEMENT_P(m)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Cannot include refinement");
+  }
+#endif
   if (include_module_at(mrb, c, find_origin(c), m, 1) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
+#ifdef MRB_USE_REFINEMENTS
+  mrb_refinement_ancestry_changed(mrb, c, m);
+#endif
   mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE && (c->flags & MRB_FL_CLASS_IS_INHERITED)) {
     struct RClass *data[2];
@@ -2375,6 +2386,11 @@ MRB_API void
 mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   mrb_check_frozen(mrb, c);
+#ifdef MRB_USE_REFINEMENTS
+  if (MRB_CLASS_REFINEMENT_P(m)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "Cannot prepend refinement");
+  }
+#endif
   if (!(c->flags & MRB_FL_CLASS_IS_PREPENDED)) {
     struct RClass *origin = MRB_OBJ_ALLOC(mrb, MRB_TT_ICLASS, c);
     origin->flags |= MRB_FL_CLASS_IS_ORIGIN | MRB_FL_CLASS_IS_INHERITED;
@@ -2388,6 +2404,9 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, c, m, 0) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic prepend detected");
   }
+#ifdef MRB_USE_REFINEMENTS
+  mrb_refinement_ancestry_changed(mrb, c, m);
+#endif
   mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE &&
       (c->flags & (MRB_FL_CLASS_IS_INHERITED|MRB_FL_CLASS_IS_PREPENDED))) {
@@ -3069,6 +3088,14 @@ idx_op_refresh(mrb_state *mrb, int slot)
   /* A slot that startup never armed (the builtin was already gone, or the
      state failed to initialize) stays off; there is nothing to compare to. */
   if (mrb->idx_builtin[slot].as.func == NULL) return;
+#ifdef MRB_USE_REFINEMENTS
+  /* A refinement of the operator is invisible to the resolution below, and
+     may be active for any caller: the opcode may not answer for it. */
+  if (mrb->idx_refined & (1u << slot)) {
+    mrb->idx_class[slot] = NULL;
+    return;
+  }
+#endif
 
   struct RClass *c = idx_op_class(mrb, slot);
   struct RClass *base = c;
@@ -3091,6 +3118,14 @@ idx_op_arm(mrb_state *mrb, int slot)
 
   if (MRB_METHOD_UNDEF_P(m) || !MRB_METHOD_FUNC_P(m)) return;
   mrb->idx_builtin[slot] = m;
+#ifdef MRB_USE_REFINEMENTS
+  /* a refinement of the operator stays invisible to the resolution above;
+     see idx_op_refresh() */
+  if (mrb->idx_refined & (1u << slot)) {
+    mrb->idx_class[slot] = NULL;
+    return;
+  }
+#endif
   mrb->idx_class[slot] = base;
 }
 
@@ -3162,6 +3197,12 @@ bop_refresh(mrb_state *mrb, int slot)
   const mrb_method_t *builtin = &mrb->bop_builtin[slot];
 
   if (builtin->as.func == NULL) return;
+#ifdef MRB_USE_REFINEMENTS
+  if (mrb->bop_refined & (1u << slot)) {
+    mrb->bop_redefined |= 1u << slot;
+    return;
+  }
+#endif
 
   struct RClass *c = bop_class(mrb, slot);
   mrb_method_t m = mrb_vm_find_method(mrb, c, &c, bop_mid(slot));
@@ -3217,6 +3258,118 @@ mrb_builtin_op_update(mrb_state *mrb, mrb_sym mid)
   }
 }
 
+#ifdef MRB_USE_REFINEMENTS
+/* Whether `target` is `c` or stands in `c`'s ancestry. */
+static mrb_bool
+class_inherits_p(struct RClass *c, struct RClass *target)
+{
+  while (c) {
+    if (c == target) return TRUE;
+    if (c->tt == MRB_TT_ICLASS && c->c == target) return TRUE;
+    c = c->super;
+  }
+  return FALSE;
+}
+
+/* The bit of `mrb->refined_mids` a name maps to.  The id is folded first:
+   an inline symbol keeps its characters from bit 2 up and its low bits
+   clear, so read raw every short name would share one bit. */
+static inline uint32_t
+refined_mid_bit(mrb_sym mid)
+{
+  uint32_t h = (uint32_t)mid;
+  h ^= h >> 16;
+  h *= 0x45d9f3bu;
+  h ^= h >> 13;
+  return h & 255;
+}
+
+/* The slot mask a refined class keeps under `name`; none yet reads 0. */
+static uint32_t
+refined_slot_bits(mrb_state *mrb, mrb_value target, mrb_sym name)
+{
+  mrb_value v = mrb_iv_get(mrb, target, name);
+  return mrb_nil_p(v) ? 0 : (uint32_t)mrb_integer(v);
+}
+
+/* Marks as refined every guarded slot in `idx_bits`/`bop_bits` whose class
+   is `target` or inherits it; answers whether any mask changed. */
+static mrb_bool
+refined_slots_arm(mrb_state *mrb, struct RClass *target, uint32_t idx_bits, uint32_t bop_bits)
+{
+  uint32_t idx0 = mrb->idx_refined, bop0 = mrb->bop_refined;
+
+  for (int slot = 0; slot < MRB_IDX_OP_SLOT_COUNT; slot++) {
+    if ((idx_bits & (1u << slot)) && class_inherits_p(idx_op_class(mrb, slot), target)) {
+      mrb->idx_refined |= 1u << slot;
+    }
+  }
+  for (int slot = 0; slot < MRB_BOP_SLOT_COUNT; slot++) {
+    struct RClass *c = bop_class(mrb, slot);
+    if (c && (bop_bits & (1u << slot)) && class_inherits_p(c, target)) {
+      mrb->bop_refined |= 1u << slot;
+    }
+  }
+  return idx0 != mrb->idx_refined || bop0 != mrb->bop_refined;
+}
+
+/* Records that `mid` was defined (or undefined) into `refinement`.  A guarded
+   operator slot whose class the refinement's target sits over is disarmed
+   for good, since the slot cannot know which callers see the refinement;
+   CRuby disables its `opt_plus` and kin the same way. */
+void
+mrb_refinement_method_added(mrb_state *mrb, struct RClass *refinement, mrb_sym mid)
+{
+  struct RClass *target = refinement->super;
+
+  uint32_t bit = refined_mid_bit(mid);
+  mrb->refined_mids[bit >> 6] |= (uint64_t)1 << (bit & 63);
+  if (target == NULL) return;
+  /* The slots the name can stand for are kept on the target as well, since
+     a module refined now may be included into a guarded class later; see
+     mrb_refinement_ancestry_changed(). */
+  mrb_value tv = mrb_obj_value(target);
+  uint32_t idx_bits = refined_slot_bits(mrb, tv, MRB_SYM(__idx_refined__));
+  uint32_t bop_bits = refined_slot_bits(mrb, tv, MRB_SYM(__bop_refined__));
+  for (int slot = 0; slot < MRB_IDX_OP_SLOT_COUNT; slot++) {
+    if (mid == idx_op_mid(slot)) idx_bits |= 1u << slot;
+  }
+  for (int slot = 0; slot < MRB_BOP_SLOT_COUNT; slot++) {
+    if (mid == bop_mid(slot)) bop_bits |= 1u << slot;
+  }
+  mrb_iv_set(mrb, tv, MRB_SYM(__idx_refined__), mrb_int_value(mrb, idx_bits));
+  mrb_iv_set(mrb, tv, MRB_SYM(__bop_refined__), mrb_int_value(mrb, bop_bits));
+  refined_slots_arm(mrb, target, idx_bits, bop_bits);
+  if (mid == MRB_OPSYM(eq)) eq_defined_mark(mrb, target);
+}
+
+/* Called once `m` has been included into or prepended to `c`: a guarded
+   class that now inherits a refined module takes on the slots that
+   module's refinements redefine, which were recorded on the module. */
+void
+mrb_refinement_ancestry_changed(mrb_state *mrb, struct RClass *c, struct RClass *m)
+{
+  mrb_bool changed = FALSE;
+
+  for (; m; m = m->super) {
+    struct RClass *k = (m->tt == MRB_TT_ICLASS) ? m->c : m;
+    if (!(k->flags & MRB_FL_CLASS_IS_REFINED)) continue;
+    mrb_value kv = mrb_obj_value(k);
+    uint32_t idx_bits = refined_slot_bits(mrb, kv, MRB_SYM(__idx_refined__));
+    uint32_t bop_bits = refined_slot_bits(mrb, kv, MRB_SYM(__bop_refined__));
+    if (idx_bits || bop_bits) changed |= refined_slots_arm(mrb, c, idx_bits, bop_bits);
+  }
+  if (changed) mrb_builtin_op_update(mrb, 0);
+}
+
+mrb_bool
+mrb_refined_mid_p(mrb_state *mrb, mrb_sym mid)
+{
+  uint32_t bit = refined_mid_bit(mid);
+  return (mrb->refined_mids[bit >> 6] & ((uint64_t)1 << (bit & 63))) != 0;
+}
+#endif
+
 mrb_method_t
 mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid)
 {
@@ -3266,6 +3419,79 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   MRB_METHOD_FROM_PROC(m, NULL);
   return m;                  /* no method */
 }
+
+#ifdef MRB_USE_REFINEMENTS
+/* The refinements in `scope` (an Array, most recently activated first) that
+   target `key`, asked in order for `mid`.  The refinement the caller is
+   already running in, `exclude`, is passed over: a `super` written in a
+   refined method reaches the method under it and not itself. */
+static mrb_bool
+refined_mt_get(mrb_state *mrb, struct RArray *scope, struct RClass *key, mrb_sym mid,
+               struct RClass *exclude, struct RClass **rp, union mrb_mt_ptr *ptr, uint32_t *flags)
+{
+  const mrb_value *e = ARY_PTR(scope);
+  mrb_int len = ARY_LEN(scope);
+
+  for (mrb_int i = 0; i < len; i++) {
+    struct RClass *r = mrb_class_ptr(e[i]);
+    if (r == exclude || r->super != key || r->mt == NULL) continue;
+    if (mt_get(mrb, r->mt, mid, ptr, flags)) {
+      *rp = r;
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+/* mrb_vm_find_method() as seen from a scope with refinements active.  Each
+   class on the chain is asked for its refinements in `scope` before its own
+   table, and the origin of a prepended class is passed over since the class
+   itself was asked already.  The method cache is neither read nor written:
+   what it holds is what the chain answers with no scope, and that stays
+   right for every send made outside one. */
+mrb_method_t
+mrb_vm_find_refined_method(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid, struct RClass *exclude)
+{
+  mrb_method_t m;
+  union mrb_mt_ptr ptr;
+  uint32_t flags;
+
+  while (c) {
+    struct RClass *key = c;
+    if (c->tt == MRB_TT_ICLASS) {
+      key = (c->flags & MRB_FL_CLASS_IS_ORIGIN) ? NULL : c->c;
+    }
+    if (key && (key->flags & MRB_FL_CLASS_IS_REFINED)) {
+      struct RClass *r;
+      if (refined_mt_get(mrb, scope, key, mid, exclude, &r, &ptr, &flags)) {
+        if (ptr.proc == 0) break;    /* undefined within the scope */
+        *cp = r;
+        return create_method_value(mrb, flags, ptr);
+      }
+    }
+    mrb_mt_tbl *h = c->mt;
+    if (h && mt_get(mrb, h, mid, &ptr, &flags)) {
+      if (ptr.proc == 0) break;
+      *cp = c;
+      return create_method_value(mrb, flags, ptr);
+    }
+    c = c->super;
+  }
+  MRB_METHOD_FROM_PROC(m, NULL);
+  return m;
+}
+
+/* The lookup a send from a frame carrying `scope` makes: the refined walk
+   when the scope may hold the name, the cached one otherwise. */
+mrb_method_t
+mrb_vm_find_method_in_scope(mrb_state *mrb, struct RArray *scope, struct RClass *c, struct RClass **cp, mrb_sym mid)
+{
+  if (scope && mrb_refined_mid_p(mrb, mid)) {
+    return mrb_vm_find_refined_method(mrb, scope, c, cp, mid, NULL);
+  }
+  return mrb_vm_find_method(mrb, c, cp, mid);
+}
+#endif
 
 /*
  * Searches for a method in the method table of a class and its ancestors
@@ -4018,6 +4244,18 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     }
     return mrb_str_cat_lit(mrb, str, ">");
   }
+#ifdef MRB_USE_REFINEMENTS
+  else if (MRB_CLASS_REFINEMENT_P(mrb_class_ptr(klass))) {
+    struct RClass *r = mrb_class_ptr(klass);
+    mrb_value str = mrb_str_new_lit(mrb, "#<refinement:");
+    mrb_value owner = mrb_iv_get(mrb, klass, MRB_SYM(__defined_at__));
+
+    mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_obj_value(r->super)));
+    mrb_str_cat_lit(mrb, str, "@");
+    mrb_str_cat_str(mrb, str, mrb_inspect(mrb, owner));
+    return mrb_str_cat_lit(mrb, str, ">");
+  }
+#endif
   else {
     return class_name_str(mrb, mrb_class_ptr(klass));
   }

@@ -411,6 +411,23 @@ struct mrb_state {
      global still pays nothing until a program actually writes through it. */
   mrb_bool svar_used;
 
+#ifdef MRB_USE_REFINEMENTS
+  struct RClass *refinement_class;
+  /* Weak table of the refinement scopes procs carry by index (see
+     MRB_PROC_REFSCOPE in mruby/proc.h).  An entry is an Array of Refinement
+     modules; the GC clears an entry no proc marks any more. */
+  struct RArray **refscopes;
+  uint32_t refscopes_len;
+  uint32_t refscopes_capa;
+  /* Operator slots a refinement has redefined: the opcode may not answer
+     for them, whatever the core class resolves to. */
+  uint32_t bop_refined;
+  uint32_t idx_refined;
+  /* Bloom filter of the method names ever defined into a refinement; a send
+     whose name is not in it is dispatched without any refinement lookup. */
+  uint64_t refined_mids[4];
+#endif
+
   mrb_gc gc;
 
 #if !defined(MRB_NO_FLOAT) && !defined(MRB_WORD_BOXING)

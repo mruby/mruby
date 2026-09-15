@@ -177,9 +177,11 @@ end
 carrying neither hook falls through rather than raising, both as CRuby
 does.
 
-## No Refinements
+## Refinements Are Opt-in
 
-Module refinements (`refine`, `using`) are not supported in mruby.
+Module refinements (`refine`, `using`) are available only in a build with
+`MRB_USE_REFINEMENTS` defined; see `doc/guides/mrbconf.md` for the scope of
+what that build honors.
 
 ## No `Encoding` Class
 

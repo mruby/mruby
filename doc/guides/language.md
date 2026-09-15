@@ -10,12 +10,11 @@ For a list of specific behavioral differences, see
 **If you are coming from CRuby**, note these major differences upfront:
 
 - No `require` or `load` — all code is linked at build time
-- No `defined?` keyword — use `respond_to?`, `const_defined?`, etc.
-- No refinements (`refine`, `using`)
+- No refinements (`refine`, `using`) unless built with `MRB_USE_REFINEMENTS`
 - No `Encoding` class — UTF-8 opt-in via `MRB_UTF8_STRING`
 - Fibers cannot yield across C function boundaries
 - Integer size varies by platform and boxing mode
-- Operators cannot be overridden by user code
+- Redefining an operator of a primitive class turns off that operator's fast path
 
 See [Key Differences from CRuby](#key-differences-from-cruby) for
 the full list.
@@ -34,8 +33,8 @@ mruby supports the following keywords:
 
 Magic variables: `__FILE__`, `__LINE__`, `__ENCODING__`, `__method__`
 
-**Not supported:** `defined?` (use `respond_to?`, `const_defined?`,
-etc. instead), `refinements` (`using`, `refine`).
+**Not supported:** `refinements` (`using`, `refine`) unless built with
+`MRB_USE_REFINEMENTS`.
 
 ### Classes and Modules
 
@@ -352,22 +351,6 @@ MRuby::Build.new do |conf|
 end
 ```
 
-### No `defined?` Keyword
-
-The `defined?` keyword raises `NameError` instead of returning a
-type string or `nil`. Use alternatives:
-
-```ruby
-# Instead of: defined?(Foo)
-Object.const_defined?(:Foo)
-
-# Instead of: defined?(@var)
-instance_variable_defined?(:@var)
-
-# Instead of: defined?(method_name)
-respond_to?(:method_name)
-```
-
 ### Fiber Limitations
 
 Fibers cannot cross C function boundaries. You cannot yield from a
@@ -381,8 +364,16 @@ This means subclassing `Array` or `String` and adding `@fields` will raise an er
 
 ### Operator Overriding
 
-Operators of primitive classes cannot be overridden by user code.
-Redefining `String#+` has no effect on the behavior of the `+` operator.
+The VM answers `+`, `<`, `==`, `[]` and the other operators of the primitive
+classes itself while each still resolves to its builtin implementation.
+Redefining one with `def`, `alias` or `prepend` on the primitive class is
+honored: the operator's fast path is turned off and every use of it becomes
+an ordinary method call, for every caller, until the builtin is restored.
+Redefining `String#+` therefore works, at the cost of that fast path. In a
+build with `MRB_USE_REFINEMENTS` a refinement of the operator turns the fast
+path off the same way, for every caller, but the refined method is reached
+only from the scopes where the refinement is active; a caller outside them
+gets the builtin through the ordinary call.
 
 ### Module Loading Hooks
 
@@ -395,9 +386,10 @@ directly.
 For small hashes, `#hash` is not called on keys. Custom `#hash`
 methods may not execute for small hash tables.
 
-### No Refinements
+### Refinements Are Opt-in
 
-Module refinements (`refine`, `using`) are not supported.
+Module refinements (`refine`, `using`) are compiled in only with
+`MRB_USE_REFINEMENTS` (see `doc/guides/mrbconf.md`).
 
 ### No Encoding Class
 

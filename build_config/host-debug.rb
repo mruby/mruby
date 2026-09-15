@@ -9,7 +9,7 @@ MRuby::Build.new('host') do |conf|
 
   # C compiler settings
   # `+=` keeps MRB_DEBUG, which conf.enable_debug added above
-  conf.cc.defines += %w(MRB_USE_DEBUG_HOOK MRB_NO_BOXING)
+  conf.cc.defines += %w(MRB_USE_DEBUG_HOOK MRB_NO_BOXING MRB_USE_REFINEMENTS)
 
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"

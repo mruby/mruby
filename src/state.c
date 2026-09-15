@@ -196,6 +196,9 @@ mrb_close(mrb_state *mrb)
   /* free */
   mrb_gc_free_gv(mrb);
   mrb_gc_destroy(mrb, &mrb->gc);
+#ifdef MRB_USE_REFINEMENTS
+  mrb_free(mrb, mrb->refscopes);
+#endif
   mrb_free_shape(mrb);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);

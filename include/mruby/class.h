@@ -58,7 +58,9 @@ mrb_class(mrb_state *mrb, mrb_value v)
    18:   is_origin
    17:   is_inherited (used by method cache)
    16:   eq_defined (a class among the ancestors defines its own `==`)
-   7-15: unused
+   8:    is_refined (MRB_USE_REFINEMENTS)
+   7:    is_refinement (MRB_USE_REFINEMENTS)
+   9-15: unused
    6:    prohibit Class#allocate
    0-5:  instance type
 */
@@ -82,6 +84,13 @@ mrb_class(mrb_state *mrb, mrb_value v)
    receiver; for `nil`, `true` and `false`, which carry no class pointer, it
    reads `MRB_BOP_NIL_TRUE_FALSE_EQ`, which the flag of the three sets. */
 #define MRB_FL_CLASS_EQ_DEFINED (1 << 16)
+#ifdef MRB_USE_REFINEMENTS
+/* A module made by Module#refine: its `super` is the class it refines. */
+#define MRB_FL_CLASS_IS_REFINEMENT (1 << 7)
+#define MRB_CLASS_REFINEMENT_P(c) (((c)->flags & MRB_FL_CLASS_IS_REFINEMENT) != 0)
+/* A class or module some refinement targets; never cleared. */
+#define MRB_FL_CLASS_IS_REFINED (1 << 8)
+#endif
 #define MRB_INSTANCE_TT_MASK (0x1F)
 #define MRB_SET_INSTANCE_TT(c, tt) ((c)->flags = (((c)->flags & ~MRB_INSTANCE_TT_MASK) | (char)(tt)))
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)((c)->flags & MRB_INSTANCE_TT_MASK)
