@@ -387,6 +387,18 @@ genop_W(mrc_codegen_scope *s, mrc_code i, uint32_t a)
 #define VAL    1
 
 #define nregs_update do {if (s->sp > s->nregs) s->nregs = s->sp;} while (0)
+
+/* An operator instruction answers itself while the operator is the builtin
+   one and sends otherwise, and the send needs the block slot after its two
+   operands: R[a] receiver, R[a+1] operand, R[a+2] block.  Pattern-matching
+   code emits operators at registers the surrounding frame may not reach,
+   so the slot is reserved here rather than by a push the code has no use
+   for. */
+static void
+binop_reserve(mrc_codegen_scope *s, int a)
+{
+  if (s->nregs < a + 3) s->nregs = a + 3;
+}
 static void
 push_n_(mrc_codegen_scope *s, int n)
 {
@@ -3260,6 +3272,7 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
           gen_int(s, cursp(), -(post_len - i));
           push(); pop();  /* space for the index */
           genop_1(s, OP_GETIDX, cursp() - 1);
+          binop_reserve(s, cursp() - 1);
           /* Element is now at cursp-1 */
           codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1, 0);
           pop();
@@ -3283,9 +3296,11 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
           gen_int(s, chk + 1, pre_len + post_len);
           if (pat_arr->rest == NULL) {
             genop_1(s, OP_EQ, chk);
+            binop_reserve(s, chk);
           }
           else {
             genop_1(s, OP_GE, chk);
+            binop_reserve(s, chk);
           }
           tmp = genjmp2(s, OP_JMPNOT, chk, *fail_pos, 1);
           *fail_pos = tmp;
@@ -3343,6 +3358,7 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
           gen_int(s, cursp(), -(post_len - i));
           push(); pop();  /* space for the index */
           genop_1(s, OP_GETIDX, cursp() - 1);
+          binop_reserve(s, cursp() - 1);
           codegen_pattern(s, pat_arr->posts.nodes[i], cursp() - 1, fail_pos, -1, 0);
           pop();
         }
@@ -3471,6 +3487,7 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
         genop_3(s, OP_SEND, chk, new_sym(s, MRC_SYM_1(size)), 0);
         gen_int(s, chk + 1, num_keys);
         genop_1(s, OP_EQ, chk);
+        binop_reserve(s, chk);
         tmp = genjmp2(s, OP_JMPNOT, chk, *fail_pos, 1);
         *fail_pos = tmp;
       }
@@ -3542,6 +3559,7 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
       genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_SYM_1(size)), 0);
       gen_int(s, cursp() + 1, elems_len);
       genop_1(s, OP_GE, cursp());
+      binop_reserve(s, cursp());
       tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
       *fail_pos = tmp;
 
@@ -3560,8 +3578,10 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
       genop_3(s, OP_SEND, cursp(), new_sym(s, MRC_SYM_1(size)), 0);
       gen_int(s, cursp() + 1, elems_len);
       genop_1(s, OP_SUB, cursp());
+      binop_reserve(s, cursp());
       gen_move(s, cursp() + 1, idx_reg, 0);
       genop_1(s, OP_GE, cursp());
+      binop_reserve(s, cursp());
       tmp = genjmp2(s, OP_JMPNOT, cursp(), *fail_pos, 1);
       *fail_pos = tmp;
 
@@ -3577,9 +3597,11 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
           gen_move(s, cursp(), idx_reg, 0);
           gen_int(s, cursp() + 1, (int)i);
           genop_1(s, OP_ADD, cursp());
+          binop_reserve(s, cursp());
         }
         push_n(2); pop_n(2);  /* space for the index and the ADD operand */
         genop_1(s, OP_GETIDX, cursp() - 1);
+        binop_reserve(s, cursp() - 1);
         int elem_reg = cursp() - 1;
         codegen_pattern(s, pat_find->requireds.nodes[i], elem_reg, &match_fail, -1, 0);
         pop();
@@ -3621,6 +3643,7 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
             gen_move(s, cursp(), idx_reg, 0);
             gen_int(s, cursp() + 1, elems_len);
             genop_1(s, OP_ADD, cursp());
+            binop_reserve(s, cursp());
             push();
             gen_int(s, cursp(), -1);
             push(); pop();  /* space for the range end, which is also the block slot */
