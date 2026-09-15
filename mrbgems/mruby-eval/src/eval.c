@@ -381,6 +381,14 @@ object_eval(mrb_state *mrb, mrb_value self, mrb_bool class_eval)
   MRB_PROC_SET_TARGET_CLASS(proc, c);
   proc->flags |= MRB_PROC_CREF;
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
+#ifdef MRB_USE_REFINEMENTS
+  /* a scope of its own ends the walk for refinements too, so the string
+     is given the refinements active where it was written */
+  {
+    struct RArray *scope = mrb_vm_caller_refinements(mrb);
+    if (scope) mrb_proc_set_refscope(mrb, proc, scope);
+  }
+#endif
   mrb_vm_ci_target_class_set(mrb->c->ci, c);
   /* The frame carries one class, and it is given to `c` here so that a `def`
      in the string lands on the receiver. A `super` reads that same field for

@@ -304,6 +304,32 @@ end
 
 - Disable method cache to save memory.
 
+`MRB_USE_REFINEMENTS`
+
+- Adds refinements: `Module#refine`, `Module#refinements`, `main.using`,
+  `Module#using`, `Module.used_modules`, `Module.used_refinements`, and the
+  `Refinement` class with `#target`, `#refined_class` and `#import_methods`.
+- Scope is lexical, as in CRuby: from the `using` call to the end of the file
+  or of the class or module body. A method defined before the `using` does not
+  see it; a block written in the scope does. `super` in a refined method
+  reaches the refined class, and refinements come before the class's prepended
+  modules. Each `mrb_load_*` call is a separate file, so `using` in one mirb
+  line does not reach the next.
+- Honored by the sends the VM makes, the operator instructions, `__send__`,
+  `send`, `public_send`, `respond_to?` and `defined?(obj.method)`. Not honored
+  by `Kernel#method`, `Module#instance_method`, `method_defined?`,
+  `Symbol#to_proc`, string interpolation's `to_s`, `==` asked by containers,
+  or any `mrb_funcall()` made from C.
+- `using` written in a block given a class to run under (`class_eval {}`,
+  `Class.new {}`, a `refine` block) is kept to that block, as CRuby keeps it.
+  One written in an `eval` string installs into the enclosing file or class
+  body, where CRuby keeps it to the string.
+- A refinement of a guarded operator (`Integer#+`, `String#[]`, `==` and the
+  like) turns that operator's fast path off for every caller, as CRuby's
+  `opt_plus` is; sends under a `using` skip the method cache.
+- A proc carries its scope by index in flag bits, so `struct RProc` does not
+  grow; at most 2047 scopes can be alive at once.
+
 `MRB_METHOD_CACHE_SIZE`
 
 - Default value is `256`.

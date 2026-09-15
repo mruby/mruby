@@ -636,7 +636,11 @@ static mrb_bool
 obj_respond_to_p(mrb_state *mrb, mrb_value self, mrb_sym id, mrb_bool priv)
 {
   struct RClass *c = mrb_class(mrb, self);
+#ifdef MRB_USE_REFINEMENTS
+  mrb_method_t m = mrb_vm_find_method_in_scope(mrb, mrb_vm_caller_refinements(mrb), c, &c, id);
+#else
   mrb_method_t m = mrb_method_search_vm(mrb, &c, id);
+#endif
   if (!MRB_METHOD_UNDEF_P(m)) {
     /* A method that is unimplemented on this machine answers a plain false,
        and leaves `respond_to_missing?` nothing to add. */
@@ -880,7 +884,11 @@ mrb_f_defined_method_on(mrb_state *mrb, mrb_value self)
   mrb_sym sym;
   mrb_get_args(mrb, "on", &recv, &sym);
   struct RClass *c = mrb_class(mrb, recv);
+#ifdef MRB_USE_REFINEMENTS
+  mrb_method_t m = mrb_vm_find_method_in_scope(mrb, mrb_vm_caller_refinements(mrb), c, &c, sym);
+#else
   mrb_method_t m = mrb_method_search_vm(mrb, &c, sym);
+#endif
   if (MRB_METHOD_UNDEF_P(m)) {
     mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
     if (!mrb_func_basic_p(mrb, recv, rtm_id, mrb_false) && mrb_respond_to(mrb, recv, rtm_id)) {

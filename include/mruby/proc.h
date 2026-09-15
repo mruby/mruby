@@ -175,6 +175,20 @@ struct RProc {
  * Values exceeding the compressed range are clamped and rest is forced to 1. */
 #define MRB_PROC_CASPEC_MASK  0xfc07fu  /* bits 0-6 and 14-19 */
 
+#ifdef MRB_USE_REFINEMENTS
+/* The refinement scope a proc carries, as an index+1 into mrb->refscopes
+ * (0: none), packed into the flag bits an irep proc leaves unused: bits 0-6
+ * and 16-19, which only a cfunc proc reads as its compressed aspec.  A scope
+ * proc (MRB_PROC_CREF) carries the scope `using` gave it; a method body made
+ * in a scope copies the scope's at definition, so a `using` written later
+ * does not reach it; a block carries none and reads its scope's. */
+#define MRB_PROC_REFSCOPE_MAX 2047
+#define MRB_PROC_REFSCOPE(p) \
+  (MRB_PROC_CFUNC_P(p) ? 0 : (((p)->flags & 0x7f) | (((p)->flags >> 9) & 0x780)))
+#define MRB_PROC_SET_REFSCOPE(p, i) \
+  ((p)->flags = ((p)->flags & ~0xf007fu) | ((i) & 0x7f) | (((i) & 0x780) << 9))
+#endif
+
 static inline uint32_t
 mrb_proc_compress_aspec(mrb_aspec aspec)
 {

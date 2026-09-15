@@ -6,6 +6,12 @@
 
 #include <mruby.h>
 
+#ifdef MRB_USE_REFINEMENTS
+# define INIT_FUNC_REFINEMENT(def) def(mrb_init_refinement)
+#else
+# define INIT_FUNC_REFINEMENT(def)
+#endif
+
 #define INIT_FUNC_FOREACH(def) \
   def(mrb_init_symtbl) \
   def(mrb_init_class) \
@@ -16,6 +22,7 @@
   def(mrb_init_string) \
   def(mrb_init_exception) \
   def(mrb_init_proc) \
+  INIT_FUNC_REFINEMENT(def) \
   def(mrb_init_array) \
   def(mrb_init_hash) \
   def(mrb_init_numeric) \

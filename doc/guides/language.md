@@ -11,7 +11,7 @@ For a list of specific behavioral differences, see
 
 - No `require` or `load` — all code is linked at build time
 - No `defined?` keyword — use `respond_to?`, `const_defined?`, etc.
-- No refinements (`refine`, `using`)
+- No refinements (`refine`, `using`) unless built with `MRB_USE_REFINEMENTS`
 - No `Encoding` class — UTF-8 opt-in via `MRB_UTF8_STRING`
 - Fibers cannot yield across C function boundaries
 - Integer size varies by platform and boxing mode
@@ -35,7 +35,8 @@ mruby supports the following keywords:
 Magic variables: `__FILE__`, `__LINE__`, `__ENCODING__`, `__method__`
 
 **Not supported:** `defined?` (use `respond_to?`, `const_defined?`,
-etc. instead), `refinements` (`using`, `refine`).
+etc. instead), `refinements` (`using`, `refine`) unless built with
+`MRB_USE_REFINEMENTS`.
 
 ### Classes and Modules
 
@@ -395,9 +396,10 @@ directly.
 For small hashes, `#hash` is not called on keys. Custom `#hash`
 methods may not execute for small hash tables.
 
-### No Refinements
+### Refinements Are Opt-in
 
-Module refinements (`refine`, `using`) are not supported.
+Module refinements (`refine`, `using`) are compiled in only with
+`MRB_USE_REFINEMENTS` (see `doc/guides/mrbconf.md`).
 
 ### No Encoding Class
 

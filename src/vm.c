@@ -1695,6 +1695,19 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
   }
 }
 
+#ifdef MRB_USE_REFINEMENTS
+/* The refinements active for the Ruby code that called the running C
+   function, or NULL when it was called from C. */
+struct RArray*
+mrb_vm_caller_refinements(mrb_state *mrb)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+
+  if (mrb->refscopes_len == 0 || ci->cci != CINFO_NONE || ci == mrb->c->cibase) return NULL;
+  return mrb_vm_refinements(mrb, ci - 1);
+}
+#endif
+
 mrb_value
 mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
 {
@@ -1756,7 +1769,11 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   }
 
   struct RClass *c = mrb_class(mrb, self);
+#ifdef MRB_USE_REFINEMENTS
+  m = mrb_vm_find_method_in_scope(mrb, mrb_vm_caller_refinements(mrb), c, &c, name);
+#else
   m = mrb_vm_find_method(mrb, c, &c, name);
+#endif
   if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
     goto funcall;
   }
@@ -3755,6 +3772,25 @@ RETRY_TRY_BLOCK:
       ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, c);
       recv = regs[0];
       ci->u.target_class = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci - 1)->super : mrb_class(mrb, recv);
+#ifdef MRB_USE_REFINEMENTS
+      /* A refined name is looked up as the calling frame's scope sees it.
+         `super` in a refined method passes over the refinement it is in. */
+      if (mrb->refscopes_len && mrb_refined_mid_p(mrb, mid)) {
+        struct RArray *scope = mrb_vm_refinements(mrb, ci - 1);
+        if (scope) {
+          struct RClass *exclude = NULL;
+          if (insn == OP_SUPER) {
+            struct RClass *cur = CI_TARGET_CLASS(ci - 1);
+            if (MRB_CLASS_REFINEMENT_P(cur)) exclude = cur;
+          }
+          m = mrb_vm_find_refined_method(mrb, scope, ci->u.target_class, &ci->u.target_class, mid, exclude);
+        }
+        else {
+          m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
+        }
+      }
+      else
+#endif
       m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
       if (mrb_unlikely(MRB_METHOD_UNDEF_P(m))) {
         m = prepare_missing(mrb, ci, recv, mid, (insn == OP_SUPER));
@@ -3915,7 +3951,18 @@ RETRY_TRY_BLOCK:
       if (mid == 0 || !target_class) {
         RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super called outside of method");
       }
-      if ((target_class->flags & MRB_FL_CLASS_IS_PREPENDED) || target_class->tt == MRB_TT_MODULE) {
+      if (target_class->flags & MRB_FL_CLASS_IS_PREPENDED) {
+        goto super_typeerror;
+      }
+      if (target_class->tt == MRB_TT_MODULE) {
+#ifdef MRB_USE_REFINEMENTS
+        /* a refined method runs under its refinement, whose `super` is the
+           class it refines; `self` is checked against that class */
+        if (MRB_CLASS_REFINEMENT_P(target_class) && target_class->super) {
+          target_class = target_class->super;
+        }
+        else
+#endif
         goto super_typeerror;
       }
       recv = regs[0];
@@ -4748,7 +4795,11 @@ RETRY_TRY_BLOCK:
       const mrb_irep *nirep = irep->reps[b];
 
       /* prepare closure */
+#ifdef MRB_USE_REFINEMENTS
+      struct RProc *p = mrb_scope_proc_new(mrb, nirep);
+#else
       struct RProc *p = mrb_proc_new(mrb, nirep);
+#endif
       p->c = NULL;
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)ci->proc);
       MRB_PROC_SET_TARGET_CLASS(p, c);
