@@ -349,6 +349,7 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
    it by RFC 3629, under which a surrogate spells nothing. So what this writes
    is deliberately wider than what that reads, and a string built from one is
    valid_encoding? == false. */
+#if defined(MRB_UTF8_STRING) || defined(HAVE_MRUBY_REGEXP_GEM)
 mrb_int
 mrb_utf8_to_buf(char *buf, mrb_int cp)
 {
@@ -379,6 +380,7 @@ mrb_utf8_to_buf(char *buf, mrb_int cp)
   }
   return 0;  /* above U+10FFFF */
 }
+#endif
 
 /* UTF-8: what a run of bytes spells, and what a string holds character by
    character. The scan is mrb_utf8_scan() in internal.h, taken inline by

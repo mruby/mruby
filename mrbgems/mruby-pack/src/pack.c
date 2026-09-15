@@ -745,19 +745,31 @@ unpack_float(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_valu
 static int
 pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, unsigned int flags)
 {
-  char utf8[4];
-  int len;
   mrb_int c = mrb_integer(o);
 
-  /* A value that spells no character writes no byte. */
-  len = (int)mrb_utf8_to_buf(utf8, c);
-  if (len == 0) {
+  /* Every value up to 0x7FFFFFFF has a spelling here, over up to six bytes,
+     as CRuby writes it: a value past U+10FFFF as well as a surrogate. A
+     negative value wraps past the bound. */
+  if ((mrb_uint)c > 0x7FFFFFFF) {
     mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
   }
+  uint32_t uv = (uint32_t)c;
+  int len = uv < 0x80 ? 1 : uv < 0x800 ? 2 : uv < 0x10000 ? 3 :
+            uv < 0x200000 ? 4 : uv < 0x4000000 ? 5 : 6;
 
+  /* the bytes go straight into the string, from the last one back */
   str = str_len_ensure(mrb, str, sidx + len);
-  memcpy(RSTRING_PTR(str) + sidx, utf8, len);
-
+  char *p = RSTRING_PTR(str) + sidx;
+  if (len == 1) {
+    p[0] = (char)uv;
+    return 1;
+  }
+  for (int i = len - 1; i > 0; i--) {
+    p[i] = (char)(0x80 | (uv & 0x3F));
+    uv >>= 6;
+  }
+  /* the lead byte carries len high bits set */
+  p[0] = (char)((0xFF00 >> len) | uv);
   return len;
 }
 

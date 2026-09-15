@@ -472,8 +472,13 @@ void mrb_str_check_byte_pos(mrb_state *mrb, mrb_value str, mrb_int pos);
 /* Write the UTF-8 spelling of a codepoint into a buffer of at least four
    bytes, and return how many it took (1-4), or 0 for a value that spells no
    character. What counts as one, and why a surrogate does spell one here
-   while mrb_utf8len() says it does not, is in the definition in string.c. */
+   while mrb_utf8len() says it does not, is in the definition in string.c.
+   A build that indexes by byte has one writer, mruby-regexp, which spells a
+   named codepoint as the bytes it matches; a byte build without the gem
+   carries none of it. */
+#if defined(MRB_UTF8_STRING) || defined(HAVE_MRUBY_REGEXP_GEM)
 mrb_int mrb_utf8_to_buf(char *buf, mrb_int cp);
+#endif
 
 /* UTF-8: what a run of bytes spells. A build that indexes strings by
    character reads through this on every character, so it is compiled
