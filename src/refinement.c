@@ -116,11 +116,17 @@ mrb_proc_refined_p(mrb_state *mrb, const struct RProc *p)
   return idx != 0 && REFSCOPE_OF_PROC_P(mrb_refscope_at(mrb, idx));
 }
 
+/* Raises when `p`, or any proc it was written in up to its scope, is a
+   copy Proc#refined made: a block made in such a proc carries no scope of
+   its own and reads the copy's. */
 static void
 check_not_in_refined_proc(mrb_state *mrb, const struct RProc *p)
 {
-  if (mrb_proc_refined_p(mrb, p)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "using is not permitted in a proc with refinements");
+  for (; p && !MRB_PROC_CFUNC_P(p) && p->gc_color != MRB_GC_RED; p = p->upper) {
+    if (mrb_proc_refined_p(mrb, p)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "using is not permitted in a proc with refinements");
+    }
+    if (MRB_PROC_CREF_P(p)) break;
   }
 }
 
@@ -288,8 +294,8 @@ using_scope_proc(mrb_state *mrb, mrb_value self, const char *who)
   }
   /* a red proc is a static one the runtime links, not a scope of the
      program's: the chain ends before it */
+  check_not_in_refined_proc(mrb, p);
   while (p && !MRB_PROC_CFUNC_P(p) && p->gc_color != MRB_GC_RED) {
-    check_not_in_refined_proc(mrb, p);
     if (MRB_PROC_SCOPE_P(p) && MRB_PROC_STRICT_P(p)) {
       if (mrb_obj_ptr(self) == mrb->top_self) {
         mrb_raise(mrb, E_RUNTIME_ERROR, "main.using is permitted only at toplevel");

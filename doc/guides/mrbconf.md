@@ -312,7 +312,8 @@ end
   and `#import_methods`.
 - `Proc#refined(*modules)` returns a copy of a proc with the modules'
   refinements active in its body, as in CRuby, including the `ArgumentError`
-  for `define_method` with such a proc. One difference: the procs of
+  for `define_method` with such a proc; with no modules it returns the proc
+  itself. One difference: the procs of
   `Symbol#to_proc` and `Method#to_proc`, Ruby lambdas here, are accepted.
 - Scope is lexical, as in CRuby: from the `using` call to the end of the file
   or of the class or module body. A method defined before the `using` does not

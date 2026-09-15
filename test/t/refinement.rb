@@ -512,6 +512,11 @@ assert('Proc#refined: using is refused inside the proc') do
   assert_raise(RuntimeError) { c.call }
   n = Proc.new { -> { using RefTestProcRefWhisper }.call }.refined(RefTestProcRef)
   assert_raise(RuntimeError) { n.call }
+  # a block made in the proc and given a class to run under
+  g = Proc.new { blk = Proc.new { using RefTestProcRefWhisper }; Module.new.module_eval(&blk) }.refined(RefTestProcRef)
+  assert_raise(RuntimeError) { g.call }
+  g2 = Proc.new { blk = Proc.new { Class.new { using RefTestProcRefWhisper } }; blk.call }.refined(RefTestProcRef)
+  assert_raise(RuntimeError) { g2.call }
   # a plain proc is unaffected, and the refined proc still works
   assert_equal "ok...", Module.new.module_eval(&Proc.new { using RefTestProcRefWhisper; "ok".whisper })
   assert_equal "OK!", Proc.new { "ok".shout }.refined(RefTestProcRef).call
