@@ -1923,6 +1923,62 @@ assert('pattern matching - find pattern as the last expression of a frame') do
   assert_equal [[], 1, [2, 3]], f.call([1, 2, 3])
 end
 
+assert('pattern matching - operators the frame sends rather than answers') do
+  # An operator instruction answers itself only while the operator is the
+  # builtin one; once it is redefined the instruction sends, and the send
+  # needs a block slot after its two operands. The frames here are as wide
+  # as the pattern's own code declares, so that slot has to be counted.
+  # The overrides are aliased back at the end, which re-arms the fast paths.
+  class Array
+    alias __orig_aref []
+    def [](*a); __orig_aref(*a); end
+  end
+  class Integer
+    alias __orig_ge >=
+    alias __orig_sub -
+    alias __orig_add +
+    alias __orig_eq ==
+    def >=(o); __orig_ge(o); end
+    def -(o); __orig_sub(o); end
+    def +(o); __orig_add(o); end
+    def ==(o); __orig_eq(o); end
+  end
+  begin
+    f = ->(x) { x => [a, *, b]; [a, b] }
+    assert_equal [1, 3], f.call([1, 2, 3])
+
+    f = ->(x) { x => [a, b]; [a, b] }
+    assert_equal [1, 2], f.call([1, 2])
+
+    f = ->(x) { x => [*, a, *]; a }
+    assert_equal 1, f.call([1, 2, 3])
+
+    f = ->(x) { x => [*, a, b, *]; [a, b] }
+    assert_equal [1, 2], f.call([1, 2, 3])
+
+    f = ->(x) { x => [*p, a, *q]; [p, a, q] }
+    assert_equal [[], 1, [2, 3]], f.call([1, 2, 3])
+
+    f = ->(x) { x => {}; true }
+    assert_true f.call({})
+  ensure
+    class Array
+      alias_method :[], :__orig_aref
+      undef_method :__orig_aref
+    end
+    class Integer
+      alias_method :>=, :__orig_ge
+      alias_method :-, :__orig_sub
+      alias_method :+, :__orig_add
+      alias_method :==, :__orig_eq
+      undef_method :__orig_ge
+      undef_method :__orig_sub
+      undef_method :__orig_add
+      undef_method :__orig_eq
+    end
+  end
+end
+
 assert('defined? on statically-decidable operands') do
   # literals and pure expressions
   assert_equal 'expression', defined?(1)
