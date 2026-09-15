@@ -1745,7 +1745,9 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   mrb_sym name;
 
   if (ci->cci > CINFO_NONE) {
+#ifndef MRB_USE_REFINEMENTS
   funcall:;
+#endif
     const mrb_value *argv;
     mrb_int argc;
     mrb_value block;
@@ -1771,12 +1773,23 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   struct RClass *c = mrb_class(mrb, self);
 #ifdef MRB_USE_REFINEMENTS
   m = mrb_vm_find_method_in_scope(mrb, mrb_vm_caller_refinements(mrb), c, &c, name);
+  if (MRB_METHOD_UNDEF_P(m)) {
+    /* `method_missing` is sent by name: a funcall of the name itself would
+       look it up with no scope and reach a method the scope undefines */
+    const mrb_value *argv;
+    mrb_int argc;
+    mrb_value block;
+    mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
+    mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+    mrb_ary_unshift(mrb, args, mrb_symbol_value(name));
+    return mrb_funcall_with_block(mrb, self, MRB_SYM(method_missing), RARRAY_LEN(args), RARRAY_PTR(args), block);
+  }
 #else
   m = mrb_vm_find_method(mrb, c, &c, name);
-#endif
   if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
     goto funcall;
   }
+#endif
 
   if (pub) {
     mrb_bool priv = TRUE;
@@ -3824,10 +3837,17 @@ RETRY_TRY_BLOCK:
               vis_error(mrb, mid, args, recv, priv);
             }
             /* protected methods are callable when the caller's `self` belongs
-               to the class (or module) where the method is defined */
-            else if (!mrb_obj_is_kind_of(mrb, ci[-1].stack[0], ci->u.target_class)) {
-              priv = FALSE;
-              goto vis_err;
+               to the class (or module) where the method is defined; one a
+               refinement holds belongs to the refined class */
+            else {
+              struct RClass *owner = ci->u.target_class;
+#ifdef MRB_USE_REFINEMENTS
+              if (MRB_CLASS_REFINEMENT_P(owner)) owner = owner->super;
+#endif
+              if (!mrb_obj_is_kind_of(mrb, ci[-1].stack[0], owner)) {
+                priv = FALSE;
+                goto vis_err;
+              }
             }
           }
         }

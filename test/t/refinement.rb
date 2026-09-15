@@ -86,6 +86,69 @@ assert('Refinement: indirect calls honor the caller scope') do
   assert_equal "method", defined?(c.baz)
 end
 
+class RefTestProt; end
+
+module RefTestProtM
+  refine RefTestProt do
+    protected def prot; "prot"; end
+  end
+end
+
+class RefTestProt
+  using RefTestProtM
+  def call_prot(o); o.prot; end
+  def defined_prot(o); defined?(o.prot); end
+  def self.outside(o); [(o.prot rescue :err), defined?(o.prot)]; end
+end
+
+assert('Refinement: protected refined method is reached from the refined class') do
+  a = RefTestProt.new
+  assert_equal "prot", a.call_prot(RefTestProt.new)
+  assert_equal "method", a.defined_prot(RefTestProt.new)
+  assert_equal [:err, nil], RefTestProt.outside(a)
+end
+
+assert('Refinement: send does not reach a method the refinement undefined') do
+  k = Class.new { def gone; "gone"; end }
+  m = Module.new { refine(k) { undef_method :gone } }
+  seen = nil
+  k2 = Class.new { def gone; "gone"; end; define_method(:method_missing) { |n, *a| seen = n; "missing" } }
+  m2 = Module.new { refine(k2) { undef_method :gone } }
+  run = Class.new do
+    using m
+    using m2
+    define_method(:go) { [(k.new.__send__(:gone) rescue :missing_raised), k2.new.__send__(:gone)] }
+  end
+  assert_equal [:missing_raised, "missing"], run.new.go
+  assert_equal :gone, seen
+  assert_equal "gone", k.new.__send__(:gone)
+end
+
+module RefTestLater
+  def other; "other"; end
+end
+module RefTestLaterOps
+  refine RefTestLater do
+    def -(o); "later-"; end
+    def [](i); "later[]"; end
+  end
+end
+class RefTestLaterUse
+  using RefTestLaterOps
+  def self.run; [3 - 1, [7][0]]; end
+end
+
+assert('Refinement: a refined module prepended later to a guarded class') do
+  # the module's refinement comes before the class's own operator only once
+  # the module stands before the class, which is what prepend does; the
+  # guarded fast paths must notice the change of ancestry
+  assert_equal [2, 7], RefTestLaterUse.run
+  Integer.prepend(RefTestLater)
+  Array.prepend(RefTestLater)
+  assert_equal ["later-", "later[]"], RefTestLaterUse.run
+  assert_equal [2, 7], [3 - 1, [7][0]]
+end
+
 assert('Refinement: method_missing is not refined') do
   c = RefTestC.new
   assert_raise(NoMethodError) { c.no_such_method }

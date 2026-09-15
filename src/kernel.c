@@ -903,6 +903,10 @@ mrb_f_defined_method_on(mrb_state *mrb, mrb_value self)
   if (MRB_METHOD_NOTIMPL_P(m)) return mrb_nil_value();
   /* the visibility test the VM applies to OP_SEND, in the same order */
   if (m.flags & MRB_METHOD_PRIVATE_FL) return mrb_nil_value();
+#ifdef MRB_USE_REFINEMENTS
+  /* a protected method a refinement holds is reached from the refined class */
+  if (MRB_CLASS_REFINEMENT_P(c)) c = c->super;
+#endif
   if ((m.flags & MRB_METHOD_PROTECTED_FL) && !mrb_obj_is_kind_of(mrb, self, c)) {
     return mrb_nil_value();
   }

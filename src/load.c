@@ -787,16 +787,17 @@ load_irep(mrb_state *mrb, struct RProc *proc, mrb_ccontext *c)
     return mrb_nil_value();
   }
   proc->c = NULL;
-  if (c && c->dump_result) mrb_codedump_all(mrb, proc);
-  if (c && c->no_exec) return mrb_obj_value(proc);
   /* The file's own scope, as mrb_load_exec() marks the proc it compiles: a
      walk up the `upper` chain ends here and not in whatever frame was
      running when the proc was read.  The scope's class is Object, or the
      one the context names, and not the class mrb_proc_new() copied from
      that frame, which is where a `def` or a constant at the top of the
-     file would otherwise land. */
+     file would otherwise land.  A proc handed back unrun is marked the
+     same, since mrb_load_proc() may run it later. */
   MRB_PROC_SET_TARGET_CLASS(proc, (c && c->target_class) ? c->target_class : mrb->object_class);
   proc->flags |= MRB_PROC_CREF;
+  if (c && c->dump_result) mrb_codedump_all(mrb, proc);
+  if (c && c->no_exec) return mrb_obj_value(proc);
   return mrb_top_run(mrb, proc, mrb_top_self(mrb), 0);
 }
 

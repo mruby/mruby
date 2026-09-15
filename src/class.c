@@ -2326,6 +2326,9 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, find_origin(c), m, 1) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
+#ifdef MRB_USE_REFINEMENTS
+  mrb_refinement_ancestry_changed(mrb, c, m);
+#endif
   mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE && (c->flags & MRB_FL_CLASS_IS_INHERITED)) {
     struct RClass *data[2];
@@ -2401,6 +2404,9 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, c, m, 0) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic prepend detected");
   }
+#ifdef MRB_USE_REFINEMENTS
+  mrb_refinement_ancestry_changed(mrb, c, m);
+#endif
   mrb_const_cache_clear(mrb);
   if (c->tt == MRB_TT_MODULE &&
       (c->flags & (MRB_FL_CLASS_IS_INHERITED|MRB_FL_CLASS_IS_PREPENDED))) {
@@ -3278,6 +3284,35 @@ refined_mid_bit(mrb_sym mid)
   return h & 255;
 }
 
+/* The slot mask a refined class keeps under `name`; none yet reads 0. */
+static uint32_t
+refined_slot_bits(mrb_state *mrb, mrb_value target, mrb_sym name)
+{
+  mrb_value v = mrb_iv_get(mrb, target, name);
+  return mrb_nil_p(v) ? 0 : (uint32_t)mrb_integer(v);
+}
+
+/* Marks as refined every guarded slot in `idx_bits`/`bop_bits` whose class
+   is `target` or inherits it; answers whether any mask changed. */
+static mrb_bool
+refined_slots_arm(mrb_state *mrb, struct RClass *target, uint32_t idx_bits, uint32_t bop_bits)
+{
+  uint32_t idx0 = mrb->idx_refined, bop0 = mrb->bop_refined;
+
+  for (int slot = 0; slot < MRB_IDX_OP_SLOT_COUNT; slot++) {
+    if ((idx_bits & (1u << slot)) && class_inherits_p(idx_op_class(mrb, slot), target)) {
+      mrb->idx_refined |= 1u << slot;
+    }
+  }
+  for (int slot = 0; slot < MRB_BOP_SLOT_COUNT; slot++) {
+    struct RClass *c = bop_class(mrb, slot);
+    if (c && (bop_bits & (1u << slot)) && class_inherits_p(c, target)) {
+      mrb->bop_refined |= 1u << slot;
+    }
+  }
+  return idx0 != mrb->idx_refined || bop0 != mrb->bop_refined;
+}
+
 /* Records that `mid` was defined (or undefined) into `refinement`.  A guarded
    operator slot whose class the refinement's target sits over is disarmed
    for good, since the slot cannot know which callers see the refinement;
@@ -3290,18 +3325,41 @@ mrb_refinement_method_added(mrb_state *mrb, struct RClass *refinement, mrb_sym m
   uint32_t bit = refined_mid_bit(mid);
   mrb->refined_mids[bit >> 6] |= (uint64_t)1 << (bit & 63);
   if (target == NULL) return;
+  /* The slots the name can stand for are kept on the target as well, since
+     a module refined now may be included into a guarded class later; see
+     mrb_refinement_ancestry_changed(). */
+  mrb_value tv = mrb_obj_value(target);
+  uint32_t idx_bits = refined_slot_bits(mrb, tv, MRB_SYM(__idx_refined__));
+  uint32_t bop_bits = refined_slot_bits(mrb, tv, MRB_SYM(__bop_refined__));
   for (int slot = 0; slot < MRB_IDX_OP_SLOT_COUNT; slot++) {
-    if (mid == idx_op_mid(slot) && class_inherits_p(idx_op_class(mrb, slot), target)) {
-      mrb->idx_refined |= 1u << slot;
-    }
+    if (mid == idx_op_mid(slot)) idx_bits |= 1u << slot;
   }
   for (int slot = 0; slot < MRB_BOP_SLOT_COUNT; slot++) {
-    struct RClass *c = bop_class(mrb, slot);
-    if (c && mid == bop_mid(slot) && class_inherits_p(c, target)) {
-      mrb->bop_refined |= 1u << slot;
-    }
+    if (mid == bop_mid(slot)) bop_bits |= 1u << slot;
   }
+  mrb_iv_set(mrb, tv, MRB_SYM(__idx_refined__), mrb_int_value(mrb, idx_bits));
+  mrb_iv_set(mrb, tv, MRB_SYM(__bop_refined__), mrb_int_value(mrb, bop_bits));
+  refined_slots_arm(mrb, target, idx_bits, bop_bits);
   if (mid == MRB_OPSYM(eq)) eq_defined_mark(mrb, target);
+}
+
+/* Called once `m` has been included into or prepended to `c`: a guarded
+   class that now inherits a refined module takes on the slots that
+   module's refinements redefine, which were recorded on the module. */
+void
+mrb_refinement_ancestry_changed(mrb_state *mrb, struct RClass *c, struct RClass *m)
+{
+  mrb_bool changed = FALSE;
+
+  for (; m; m = m->super) {
+    struct RClass *k = (m->tt == MRB_TT_ICLASS) ? m->c : m;
+    if (!(k->flags & MRB_FL_CLASS_IS_REFINED)) continue;
+    mrb_value kv = mrb_obj_value(k);
+    uint32_t idx_bits = refined_slot_bits(mrb, kv, MRB_SYM(__idx_refined__));
+    uint32_t bop_bits = refined_slot_bits(mrb, kv, MRB_SYM(__bop_refined__));
+    if (idx_bits || bop_bits) changed |= refined_slots_arm(mrb, c, idx_bits, bop_bits);
+  }
+  if (changed) mrb_builtin_op_update(mrb, 0);
 }
 
 mrb_bool

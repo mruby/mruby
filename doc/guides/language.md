@@ -10,7 +10,6 @@ For a list of specific behavioral differences, see
 **If you are coming from CRuby**, note these major differences upfront:
 
 - No `require` or `load` — all code is linked at build time
-- No `defined?` keyword — use `respond_to?`, `const_defined?`, etc.
 - No refinements (`refine`, `using`) unless built with `MRB_USE_REFINEMENTS`
 - No `Encoding` class — UTF-8 opt-in via `MRB_UTF8_STRING`
 - Fibers cannot yield across C function boundaries
@@ -34,8 +33,7 @@ mruby supports the following keywords:
 
 Magic variables: `__FILE__`, `__LINE__`, `__ENCODING__`, `__method__`
 
-**Not supported:** `defined?` (use `respond_to?`, `const_defined?`,
-etc. instead), `refinements` (`using`, `refine`) unless built with
+**Not supported:** `refinements` (`using`, `refine`) unless built with
 `MRB_USE_REFINEMENTS`.
 
 ### Classes and Modules
@@ -351,22 +349,6 @@ gem in your build configuration:
 MRuby::Build.new do |conf|
   conf.gem :core => "mruby-time"
 end
-```
-
-### No `defined?` Keyword
-
-The `defined?` keyword raises `NameError` instead of returning a
-type string or `nil`. Use alternatives:
-
-```ruby
-# Instead of: defined?(Foo)
-Object.const_defined?(:Foo)
-
-# Instead of: defined?(@var)
-instance_variable_defined?(:@var)
-
-# Instead of: defined?(method_name)
-respond_to?(:method_name)
 ```
 
 ### Fiber Limitations
