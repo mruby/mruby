@@ -4702,6 +4702,14 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
+#ifdef MRB_USE_REFINEMENTS
+  /* refused as CRuby refuses it, where a method made from such a proc would
+     drop its refinements; the copy below would keep them, but the two agree
+     on what a program may write */
+  if (mrb_proc_refined_p(mrb, mrb_proc_ptr(blk))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't define a method from a Proc with refinements");
+  }
+#endif
   struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;

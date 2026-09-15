@@ -410,6 +410,127 @@ assert('Refinement: undef within a refinement hides the method') do
   assert_raise(NoMethodError) { k.new.gone }
 end
 
+module RefTestProcRef
+  refine String do
+    def shout; upcase + "!"; end
+  end
+  refine Integer do
+    def tripled; self * 3; end
+  end
+end
+
+module RefTestProcRefStr
+  refine(String) { def shout; upcase + "!"; end }
+end
+
+module RefTestProcRefInt
+  refine(Integer) { def doubled; self * 2; end }
+end
+
+module RefTestProcRefWhisper
+  refine(String) { def whisper; downcase + "..."; end }
+end
+
+assert('Proc#refined') do
+  orig = ->(s) { s.shout }
+  refined = orig.refined(RefTestProcRef)
+  assert_equal "HI!", refined.call("hi")
+  assert_raise(NoMethodError) { orig.call("hi") }
+  assert_equal "HI!", refined.call("hi")
+  assert_false orig.equal?(refined)
+  # no modules: the proc itself
+  assert_same orig, orig.refined
+end
+
+assert('Proc#refined: nested blocks, several modules, shared environment') do
+  refined = ->(a) { a.map { |s| s.shout } }.refined(RefTestProcRef)
+  assert_equal ["A!", "B!"], refined.call(["a", "b"])
+
+  refined = ->(s, n) { "#{s.shout}#{n.tripled}" }.refined(RefTestProcRef)
+  assert_equal "A!6", refined.call("a", 2)
+
+  counter = 0
+  inc = -> { counter += 1 }
+  inc.refined(RefTestProcRef).call
+  inc.call
+  assert_equal 2, counter
+end
+
+assert('Proc#refined: called through yield, each, send and Fiber') do
+  refined = ->(s) { s.shout }.refined(RefTestProcRef)
+  out = []
+  [1, 2].each { |i| out << refined.call("x#{i}") }
+  assert_equal ["X1!", "X2!"], out
+  forwarded = []
+  rr = ->(s) { forwarded << s.shout }.refined(RefTestProcRef)
+  %w[p q].each(&rr)
+  assert_equal ["P!", "Q!"], forwarded
+  assert_equal "A!", refined.__send__(:call, "a")
+  assert_equal "C!", Fiber.new(&refined).resume("c") if Object.const_defined?(:Fiber)
+end
+
+assert('Proc#refined: instance_eval and class_eval with the proc') do
+  refined = Proc.new { self.shout }.refined(RefTestProcRef)
+  assert_equal "HI!", "hi".instance_eval(&refined)
+  assert_raise(NoMethodError) { "hi".instance_eval(&Proc.new { self.shout }) }
+  refined = Proc.new { "ok".shout }.refined(RefTestProcRef)
+  assert_equal "OK!", Class.new.class_eval(&refined)
+  again = Proc.new { "ok".shout }.refined(RefTestProcRef)
+  assert_equal "OK!", Class.new.class_eval(&again)
+end
+
+assert('Proc#refined: kept by dup and clone, and by a def in the body') do
+  refined = ->(s) { s.shout }.refined(RefTestProcRef)
+  assert_equal "Z!", refined.dup.call("z") if refined.respond_to?(:dup)
+  assert_equal "Z!", refined.clone.call("z") if refined.respond_to?(:clone)
+  r = -> { obj = Object.new; def obj.shout_hi; "hi".shout; end; obj.shout_hi }.refined(RefTestProcRef)
+  assert_equal "HI!", r.call
+end
+
+assert('Proc#refined: rejected by define_method') do
+  refined = ->(s) { s.shout }.refined(RefTestProcRef)
+  assert_raise(ArgumentError) { Class.new { define_method(:m, refined) } }
+  assert_raise(ArgumentError) { Class.new { define_method(:m, &refined) } }
+  assert_raise(ArgumentError) { define_method(:ref_test_top_m, refined) }
+  # a proc made inside a refined proc is not itself refined
+  assert_nothing_raised { -> { Class.new { define_method(:m, ->(s) { s }) } }.refined(RefTestProcRef).call }
+end
+
+assert('Proc#refined: errors') do
+  assert_raise(TypeError) { ->(s) { s }.refined(42) }
+  assert_raise(TypeError) { ->(s) { s }.refined(String) }
+  assert_raise(TypeError) { ->(s) { s }.refined(RefTestProcRef.refinements[0]) }
+end
+
+assert('Proc#refined: using is refused inside the proc') do
+  r = Proc.new { using RefTestProcRefWhisper }.refined(RefTestProcRef)
+  e = assert_raise(RuntimeError) { r.call }
+  assert_true e.message.include?("not permitted in a proc with refinements")
+  e = Proc.new { using RefTestProcRefWhisper }.refined(RefTestProcRef)
+  assert_raise(RuntimeError) { Module.new.module_eval(&e) }
+  c = Proc.new { class ::RefTestProcRefUsingTmp; using RefTestProcRefWhisper; end }.refined(RefTestProcRef)
+  assert_raise(RuntimeError) { c.call }
+  n = Proc.new { -> { using RefTestProcRefWhisper }.call }.refined(RefTestProcRef)
+  assert_raise(RuntimeError) { n.call }
+  # a plain proc is unaffected, and the refined proc still works
+  assert_equal "ok...", Module.new.module_eval(&Proc.new { using RefTestProcRefWhisper; "ok".whisper })
+  assert_equal "OK!", Proc.new { "ok".shout }.refined(RefTestProcRef).call
+end
+
+assert('Proc#refined: chained and nested, later modules first') do
+  result = -> {
+    inner = ->(s, n) { [s.shout, n.doubled] }
+    inner.refined(RefTestProcRefStr).call("hi", 3)
+  }.refined(RefTestProcRefInt).call
+  assert_equal ["HI!", 6], result
+
+  loud = Module.new { refine(String) { def shout; "LOUD"; end } }
+  assert_equal "LOUD", ->(s) { s.shout }.refined(RefTestProcRef, loud).call("x")
+  assert_equal "LOUD", ->(s) { s.shout }.refined(RefTestProcRef).refined(loud).call("x")
+  assert_equal "X!", ->(s) { s.shout }.refined(loud).refined(RefTestProcRef).call("x")
+  assert_equal [RefTestProcRef, loud], -> { Module.used_modules }.refined(loud, RefTestProcRef).call.first(2)
+end
+
 assert('Refinement: survives GC and scope slots are reused') do
   k = Class.new { def base; "base"; end }
   m = Module.new { refine(k) { def base; "refined"; end } }
