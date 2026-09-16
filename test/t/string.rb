@@ -1019,6 +1019,27 @@ assert('String#length leaves what its walk read on the string') do
   assert_equal "\xff", m[1]
 end if UTF8STRING
 
+assert('String#length of a string already read as UTF-8') do
+  # A string that has been read carries what its bytes spell, and a string that
+  # spells characters holds one per byte that no character continues, which is
+  # counted a word at a time rather than a character at a time. The two counts
+  # are of the same characters, so they answer the same over strings of every
+  # length up to a few words, holding characters of one to four bytes in every
+  # order: a character crosses a word boundary at each offset, and the bytes
+  # left over past the last whole word run from none to one short of a word.
+  pool = ['a', "é", 'あ', "\u{1F600}"]
+  0.upto(3) do |w|
+    0.upto(24) do |k|
+      s = ''
+      k.times {|i| s += pool[(i + w) % 4] }
+      cold = ('' + s).length      # counted with nothing read of it
+      s[0]                        # read, which leaves what it reads recorded
+      assert_equal k, cold, [w, k].inspect
+      assert_equal k, s.length, [w, k].inspect
+    end
+  end
+end if UTF8STRING
+
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
 assert('String#replace', '15.2.10.5.28') do

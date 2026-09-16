@@ -594,6 +594,60 @@ mrb_utf8_strlen(const char *str, mrb_int byte_len)
   return utf8_strlen_check(str, byte_len, NULL);
 }
 
+/* A character of valid UTF-8 is one lead byte and the continuation bytes after
+   it, so a string of it holds one character per byte that is not 10xxxxxx.
+   Counting that way reads a word at a time and decodes nothing, which is what
+   a string already read as UTF-8 is counted with below. */
+#define UTF8_LEAD_SHIFT (8 * sizeof(bitint) - 8)
+#define UTF8_LEAD_P(c) (((unsigned char)(c) & 0xc0) != 0x80)
+
+static inline mrb_int
+utf8_word_leads(bitint w)
+{
+  /* Each byte of `cont` is one where the byte of `w` is a continuation byte,
+     and the multiplication sums the bytes into the top one. A word holds
+     sizeof(bitint) bytes, so the sum cannot carry out of that byte. */
+  const bitint cont = (w >> 7) & ~(w >> 6) & MASK01;
+  return (mrb_int)sizeof(bitint) - (mrb_int)((cont * MASK01) >> UTF8_LEAD_SHIFT);
+}
+
+/* the characters of bytes known to spell them */
+static mrb_int
+utf8_valid_strlen(const char *p, mrb_int byte_len)
+{
+  const char *e = p + byte_len;
+  mrb_int len = 0;
+
+  while (e - p >= (ptrdiff_t)sizeof(bitint)) {
+    bitint w;
+
+    memcpy(&w, p, sizeof(bitint));
+    /* A word of nothing but ASCII is one character per byte, and
+       search_nonascii() crosses a run of those faster than a word at a time
+       where the machine has an instruction for it. */
+    if (w & (MASK01*0x80)) {
+      len += utf8_word_leads(w);
+      p += sizeof(bitint);
+    }
+    else {
+      const char *np = search_nonascii(p, e);
+
+      len += np - p;
+      p = np;
+    }
+  }
+  if (p < e) {
+    /* The bytes left over are counted as a word padded with zeros, which are
+       lead bytes of their own and are taken off again. */
+    bitint w = 0;
+    const mrb_int rest = (mrb_int)(e - p);
+
+    memcpy(&w, p, (size_t)rest);
+    len += utf8_word_leads(w) - ((mrb_int)sizeof(bitint) - rest);
+  }
+  return len;
+}
+
 /* count the characters of a string */
 mrb_int
 mrb_str_char_len(mrb_state *mrb, mrb_value str)
@@ -614,6 +668,11 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
      reading away again and leave the claim standing. */
   if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
+  }
+  /* A string that has been read already says what its bytes spell, and what
+     they spell says how many characters they are without decoding one. */
+  else if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    return utf8_valid_strlen(RSTR_PTR(s), byte_len);
   }
   else {
     const char *p = RSTR_PTR(s);
