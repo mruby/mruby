@@ -551,12 +551,14 @@ search_nonascii(const char *p, const char *e)
 
 #endif  /* SIMPLE_SEARCH_NONASCII */
 
-/* Counts characters, and when `validp` is given also reports whether every
-   sequence decoded as one character. The walk stops at the first broken
-   sequence, so the returned count is a character count only while `*validp`
-   stays TRUE. */
+/* Counts characters, and when `restp` is given also answers where the walk
+   stopped: at the end of the string when every byte spelled a character, and
+   at the first byte that spells none otherwise, the count reaching only that
+   far. A caller passing no `restp` is counting rather than asking, and the
+   walk reads a byte that spells no character as a character of its own and
+   carries on, which is what the count of a broken string has always been. */
 static mrb_int
-utf8_strlen_check(const char *str, mrb_int byte_len, mrb_bool *validp)
+utf8_strlen_check(const char *str, mrb_int byte_len, const char **restp)
 {
   const char *p = str;
   const char *e = str + byte_len;
@@ -574,14 +576,15 @@ utf8_strlen_check(const char *str, mrb_int byte_len, mrb_bool *validp)
       /* mrb_utf8len() answers 1 for a byte that leads no valid sequence. The
          byte here is known to be non-ASCII, so a length of 1 means the string
          carries a byte that stands for no character. */
-      if (validp && clen == 1) {
-        *validp = FALSE;
+      if (restp && clen == 1) {
+        *restp = p;
         return len;
       }
       p += clen;
       len++;
     }
   }
+  if (restp) *restp = e;
   return len;
 }
 
@@ -589,6 +592,60 @@ mrb_int
 mrb_utf8_strlen(const char *str, mrb_int byte_len)
 {
   return utf8_strlen_check(str, byte_len, NULL);
+}
+
+/* A character of valid UTF-8 is one lead byte and the continuation bytes after
+   it, so a string of it holds one character per byte that is not 10xxxxxx.
+   Counting that way reads a word at a time and decodes nothing, which is what
+   a string already read as UTF-8 is counted with below. */
+#define UTF8_LEAD_SHIFT (8 * sizeof(bitint) - 8)
+#define UTF8_LEAD_P(c) (((unsigned char)(c) & 0xc0) != 0x80)
+
+static inline mrb_int
+utf8_word_leads(bitint w)
+{
+  /* Each byte of `cont` is one where the byte of `w` is a continuation byte,
+     and the multiplication sums the bytes into the top one. A word holds
+     sizeof(bitint) bytes, so the sum cannot carry out of that byte. */
+  const bitint cont = (w >> 7) & ~(w >> 6) & MASK01;
+  return (mrb_int)sizeof(bitint) - (mrb_int)((cont * MASK01) >> UTF8_LEAD_SHIFT);
+}
+
+/* the characters of bytes known to spell them */
+static mrb_int
+utf8_valid_strlen(const char *p, mrb_int byte_len)
+{
+  const char *e = p + byte_len;
+  mrb_int len = 0;
+
+  while (e - p >= (ptrdiff_t)sizeof(bitint)) {
+    bitint w;
+
+    memcpy(&w, p, sizeof(bitint));
+    /* A word of nothing but ASCII is one character per byte, and
+       search_nonascii() crosses a run of those faster than a word at a time
+       where the machine has an instruction for it. */
+    if (w & (MASK01*0x80)) {
+      len += utf8_word_leads(w);
+      p += sizeof(bitint);
+    }
+    else {
+      const char *np = search_nonascii(p, e);
+
+      len += np - p;
+      p = np;
+    }
+  }
+  if (p < e) {
+    /* The bytes left over are counted as a word padded with zeros, which are
+       lead bytes of their own and are taken off again. */
+    bitint w = 0;
+    const mrb_int rest = (mrb_int)(e - p);
+
+    memcpy(&w, p, (size_t)rest);
+    len += utf8_word_leads(w) - ((mrb_int)sizeof(bitint) - rest);
+  }
+  return len;
 }
 
 /* count the characters of a string */
@@ -612,6 +669,11 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
   if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
   }
+  /* A string that has been read already says what its bytes spell, and what
+     they spell says how many characters they are without decoding one. */
+  else if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    return utf8_valid_strlen(RSTR_PTR(s), byte_len);
+  }
   else {
     const char *p = RSTR_PTR(s);
     const char *e = p + byte_len;
@@ -627,7 +689,33 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
       RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
       return byte_len;
     }
-    mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
+
+    /* A string already known to be broken has nothing left to learn here, and
+       the count of one is the walk that reads every byte through. */
+    if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_BROKEN) {
+      mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
+      mrb_assert(utf8_len <= byte_len);
+      return utf8_len;
+    }
+
+    /* The walk that counts decodes every sequence on the way, which is the
+       whole of what asking whether the string reads as UTF-8 does. Recording
+       it here is what spares the next reader of the same string a second walk
+       of it: character indexing asks that question of every string it is
+       given, and a string counted first used to arrive with nothing recorded
+       and be read through again. The count carries past the byte the walk
+       stopped at, since the length of a broken string is what it has always
+       been, one character for each byte that spells none. */
+    const char *stop;
+    mrb_int utf8_len = (mrb_int)(np - p) + utf8_strlen_check(np, (mrb_int)(e - np), &stop);
+
+    if (stop == e) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_VALID);
+    }
+    else {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_BROKEN);
+      utf8_len += mrb_utf8_strlen(stop, (mrb_int)(e - stop));
+    }
     mrb_assert(utf8_len <= byte_len);
     return utf8_len;
   }
@@ -652,10 +740,11 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   if (cr == MRB_STR_CODERANGE_BROKEN) return FALSE;
 
   mrb_int byte_len = RSTR_LEN(s);
-  mrb_bool valid = TRUE;
-  mrb_int utf8_len = utf8_strlen_check(RSTR_PTR(s), byte_len, &valid);
+  const char *p = RSTR_PTR(s);
+  const char *stop;
+  mrb_int utf8_len = utf8_strlen_check(p, byte_len, &stop);
 
-  if (!valid) {
+  if (stop != p + byte_len) {
     RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_BROKEN);
     return FALSE;
   }
@@ -711,6 +800,48 @@ mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
   const char *e = o + RSTR_LEN(s);
   mrb_int i = 0;
 
+  /* Where the bytes are known to spell characters, a word of them says how
+     many it holds, and a word holding fewer than the index still has to reach
+     is a word to step over whole. What the walk below decodes to step one
+     character, this reads. */
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    if (idx <= 0) return 0;
+    /* A word spells two characters or more, so one character is stepped by
+       the loop after this rather than by reading a word to step nothing. */
+    while (idx > 1 && e - p >= (ptrdiff_t)sizeof(bitint)) {
+      bitint w;
+
+      memcpy(&w, p, sizeof(bitint));
+      if (w & (MASK01*0x80)) {
+        const mrb_int n = utf8_word_leads(w);
+
+        if (i + n > idx) break;
+        i += n;
+        p += sizeof(bitint);
+      }
+      else {
+        /* see the ASCII run below */
+        if (i == idx) break;
+        const char *lim = (e - p) > (idx - i) ? p + (idx - i) : e;
+        const char *np = search_nonascii(p, lim);
+
+        i += np - p;
+        p = np;
+      }
+    }
+    /* The word the loop stopped at holds the character asked for, and a
+       character starts where a continuation byte does not. */
+    for (; p < e; p++) {
+      if (UTF8_LEAD_P(*p)) {
+        if (i == idx) break;
+        i++;
+      }
+    }
+    mrb_int len = (mrb_int)(p-p0);
+    if (i<idx) len++;
+    return len;
+  }
+
   while (p<e && i<idx) {
     if ((*p & 0x80) == 0) {
       /* Every ASCII byte stands for a character of its own, so the run only
@@ -748,6 +879,14 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   const char *e = p + RSTR_LEN(s);
   const char *pivot = p + bi;
   mrb_int i = 0;
+
+  /* Where the bytes are known to spell characters, the characters before the
+     offset are the bytes before it that no character continues, and the offset
+     is inside a character exactly when a continuation byte stands there. */
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    if (pivot < e && !UTF8_LEAD_P(*pivot)) return -1;
+    return utf8_valid_strlen(p, bi);
+  }
 
   while (p < pivot) {
     if ((*p & 0x80) == 0) {
