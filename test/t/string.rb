@@ -1040,6 +1040,38 @@ assert('String#length of a string already read as UTF-8') do
   end
 end if UTF8STRING
 
+assert('character indexing of a string already read as UTF-8') do
+  # Both directions of the mapping between a character index and a byte offset
+  # read words of a string whose bytes are known to spell characters, and both
+  # owe what stepping a character at a time answers: the same strings as the
+  # count above, asked for every position in them.
+  pool = ['a', "é", 'あ', "\u{1F600}"]
+  0.upto(3) do |w|
+    0.upto(20) do |k|
+      chars = (0...k).map {|i| pool[(i + w) % 4] }
+      s = chars.join
+      s[0]                        # read, which leaves what it reads recorded
+      k.times do |j|
+        where = [w, k, j].inspect
+        assert_equal chars[j], s[j], where
+        assert_equal chars[j] + (chars[j + 1] || ''), s[j, 2], where
+        assert_equal chars[j], s[j - k], where
+        # the pool repeats every four characters, so the one at `j` is the
+        # first of its own from there
+        assert_equal j, s.index(chars[j], j), where
+      end
+      assert_nil s[k]
+    end
+  end
+
+  # A needle lands where a character does or it is not found: these bytes are
+  # the tail of a character rather than one of their own.
+  a = 'あい'
+  a[0]
+  assert_nil a.index("\x81")
+  assert_equal 1, a.index('い')
+end if UTF8STRING
+
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
 assert('String#replace', '15.2.10.5.28') do

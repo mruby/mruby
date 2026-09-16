@@ -800,6 +800,48 @@ mrb_str_char_to_byte(mrb_state *mrb, mrb_value str, mrb_int off, mrb_int idx)
   const char *e = o + RSTR_LEN(s);
   mrb_int i = 0;
 
+  /* Where the bytes are known to spell characters, a word of them says how
+     many it holds, and a word holding fewer than the index still has to reach
+     is a word to step over whole. What the walk below decodes to step one
+     character, this reads. */
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    if (idx <= 0) return 0;
+    /* A word spells two characters or more, so one character is stepped by
+       the loop after this rather than by reading a word to step nothing. */
+    while (idx > 1 && e - p >= (ptrdiff_t)sizeof(bitint)) {
+      bitint w;
+
+      memcpy(&w, p, sizeof(bitint));
+      if (w & (MASK01*0x80)) {
+        const mrb_int n = utf8_word_leads(w);
+
+        if (i + n > idx) break;
+        i += n;
+        p += sizeof(bitint);
+      }
+      else {
+        /* see the ASCII run below */
+        if (i == idx) break;
+        const char *lim = (e - p) > (idx - i) ? p + (idx - i) : e;
+        const char *np = search_nonascii(p, lim);
+
+        i += np - p;
+        p = np;
+      }
+    }
+    /* The word the loop stopped at holds the character asked for, and a
+       character starts where a continuation byte does not. */
+    for (; p < e; p++) {
+      if (UTF8_LEAD_P(*p)) {
+        if (i == idx) break;
+        i++;
+      }
+    }
+    mrb_int len = (mrb_int)(p-p0);
+    if (i<idx) len++;
+    return len;
+  }
+
   while (p<e && i<idx) {
     if ((*p & 0x80) == 0) {
       /* Every ASCII byte stands for a character of its own, so the run only
@@ -837,6 +879,14 @@ mrb_str_byte_to_char(mrb_state *mrb, mrb_value str, mrb_int bi)
   const char *e = p + RSTR_LEN(s);
   const char *pivot = p + bi;
   mrb_int i = 0;
+
+  /* Where the bytes are known to spell characters, the characters before the
+     offset are the bytes before it that no character continues, and the offset
+     is inside a character exactly when a continuation byte stands there. */
+  if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_VALID) {
+    if (pivot < e && !UTF8_LEAD_P(*pivot)) return -1;
+    return utf8_valid_strlen(p, bi);
+  }
 
   while (p < pivot) {
     if ((*p & 0x80) == 0) {
