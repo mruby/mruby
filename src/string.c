@@ -551,12 +551,14 @@ search_nonascii(const char *p, const char *e)
 
 #endif  /* SIMPLE_SEARCH_NONASCII */
 
-/* Counts characters, and when `validp` is given also reports whether every
-   sequence decoded as one character. The walk stops at the first broken
-   sequence, so the returned count is a character count only while `*validp`
-   stays TRUE. */
+/* Counts characters, and when `restp` is given also answers where the walk
+   stopped: at the end of the string when every byte spelled a character, and
+   at the first byte that spells none otherwise, the count reaching only that
+   far. A caller passing no `restp` is counting rather than asking, and the
+   walk reads a byte that spells no character as a character of its own and
+   carries on, which is what the count of a broken string has always been. */
 static mrb_int
-utf8_strlen_check(const char *str, mrb_int byte_len, mrb_bool *validp)
+utf8_strlen_check(const char *str, mrb_int byte_len, const char **restp)
 {
   const char *p = str;
   const char *e = str + byte_len;
@@ -574,14 +576,15 @@ utf8_strlen_check(const char *str, mrb_int byte_len, mrb_bool *validp)
       /* mrb_utf8len() answers 1 for a byte that leads no valid sequence. The
          byte here is known to be non-ASCII, so a length of 1 means the string
          carries a byte that stands for no character. */
-      if (validp && clen == 1) {
-        *validp = FALSE;
+      if (restp && clen == 1) {
+        *restp = p;
         return len;
       }
       p += clen;
       len++;
     }
   }
+  if (restp) *restp = e;
   return len;
 }
 
@@ -627,7 +630,33 @@ mrb_str_char_len(mrb_state *mrb, mrb_value str)
       RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_7BIT);
       return byte_len;
     }
-    mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
+
+    /* A string already known to be broken has nothing left to learn here, and
+       the count of one is the walk that reads every byte through. */
+    if (RSTR_CODERANGE(s) == MRB_STR_CODERANGE_BROKEN) {
+      mrb_int utf8_len = (mrb_int)(np - p) + mrb_utf8_strlen(np, (mrb_int)(e - np));
+      mrb_assert(utf8_len <= byte_len);
+      return utf8_len;
+    }
+
+    /* The walk that counts decodes every sequence on the way, which is the
+       whole of what asking whether the string reads as UTF-8 does. Recording
+       it here is what spares the next reader of the same string a second walk
+       of it: character indexing asks that question of every string it is
+       given, and a string counted first used to arrive with nothing recorded
+       and be read through again. The count carries past the byte the walk
+       stopped at, since the length of a broken string is what it has always
+       been, one character for each byte that spells none. */
+    const char *stop;
+    mrb_int utf8_len = (mrb_int)(np - p) + utf8_strlen_check(np, (mrb_int)(e - np), &stop);
+
+    if (stop == e) {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_VALID);
+    }
+    else {
+      RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_BROKEN);
+      utf8_len += mrb_utf8_strlen(stop, (mrb_int)(e - stop));
+    }
     mrb_assert(utf8_len <= byte_len);
     return utf8_len;
   }
@@ -652,10 +681,11 @@ mrb_str_valid_encoding_p(mrb_state *mrb, mrb_value str)
   if (cr == MRB_STR_CODERANGE_BROKEN) return FALSE;
 
   mrb_int byte_len = RSTR_LEN(s);
-  mrb_bool valid = TRUE;
-  mrb_int utf8_len = utf8_strlen_check(RSTR_PTR(s), byte_len, &valid);
+  const char *p = RSTR_PTR(s);
+  const char *stop;
+  mrb_int utf8_len = utf8_strlen_check(p, byte_len, &stop);
 
-  if (!valid) {
+  if (stop != p + byte_len) {
     RSTR_CODERANGE_SET(s, MRB_STR_CODERANGE_BROKEN);
     return FALSE;
   }

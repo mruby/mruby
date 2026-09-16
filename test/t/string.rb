@@ -993,6 +993,32 @@ assert('String#length on either side of each bound on the second byte') do
   end
 end
 
+assert('String#length leaves what its walk read on the string') do
+  # Counting decodes every sequence, which is the whole of what asking whether
+  # the string reads as UTF-8 does, and the readers that follow are owed the
+  # same answers a string counted first used to give.
+  s = 'あいう'
+  assert_equal 3, s.length
+  assert_equal 'い', s[1]
+
+  # A count is not a reading: bytes that spell no character count one each,
+  # which is the length these have always had, wherever the break sits.
+  [["あ\xffい", 3], ["あ\xe3\x81", 3], ["\x82あ", 2]].each do |str, n|
+    assert_equal n, str.length, str.inspect
+  end
+  b = "あ\xffい"
+  assert_equal 3, b.length
+  assert_equal "\xff", b[1]
+  assert_equal 2, b.index('い')
+
+  # A write through the buffer takes the reading back.
+  m = 'あい'
+  m.length
+  m[1] = "\xff"
+  assert_equal 2, m.length
+  assert_equal "\xff", m[1]
+end if UTF8STRING
+
 # 'String#match', '15.2.10.5.27' will be tested in mrbgems.
 
 assert('String#replace', '15.2.10.5.28') do

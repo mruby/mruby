@@ -45,6 +45,37 @@ assert('String#valid_encoding? survives what the string goes through') do
   end
 end
 
+assert('String#length answers for the bytes it walked') do
+  # Counting decodes every sequence of the string, which is the whole of what
+  # `valid_encoding?` does, so a string counted first is one that has been read
+  # and answers without being read again. What it answers has to be what the
+  # same bytes answer when nothing counted them: broken in the middle, cut
+  # short at the end, and beginning where a character cannot.
+  if UTF8STRING
+    ["あいう", "aあ", "あ" * 40, "abc",
+     "あ\xFFい", "あ\xE3\x81", "\x82あ", "\xED\xA0\x80", "a\x80b"].each do |base|
+      counted = base.dup
+      counted.length
+      assert_equal base.dup.valid_encoding?, counted.valid_encoding?, base.inspect
+      assert_equal base.dup.length, counted.length, base.inspect
+    end
+
+    # A write through the buffer takes the reading back, and one that cannot
+    # change what the bytes read as leaves it standing.
+    m = 'あい'
+    m.length
+    m << "\xFF"
+    assert_false m.valid_encoding?
+    assert_equal 3, m.length
+
+    k = 'Aあ'
+    k.length
+    k.downcase!
+    assert_true k.valid_encoding?
+    assert_equal 'aあ', k
+  end
+end
+
 assert('every mutating method leaves an answer the string can stand behind') do
   # The one rule underneath all of this: after a write, what the string says
   # about its own bytes is either true of them or UNKNOWN. A write that keeps a
@@ -109,8 +140,9 @@ assert('every mutating method leaves an answer the string can stand behind') do
     bases = ["あ", "あa", "aあ", "  あ  ", "\tあ\n", "\0あ\0", "あ" * 40,
              "abc", "a" * 40, "  abc  ", "",
              "\x80", "a\x80b", "\xE3\x81", "\xED\xA0\x80"]
-    # Two readings, because they leave different answers behind: the walk
-    # settles on VALID or BROKEN, while counting marks only 7BIT.
+    # Two readings, because they reach the string by different routes: the walk
+    # of `valid_encoding?` starts at the head, and counting starts at the first
+    # byte that is not ASCII.
     reads = [->(s) { s.valid_encoding? }, ->(s) { s.length }]
 
     # The list above is only a checklist while something keeps it honest. A
