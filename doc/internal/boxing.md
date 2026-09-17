@@ -14,17 +14,26 @@ Word boxing packs the Ruby data in a word, which is a natural integer size that 
 
 Some values (called immediate values, e.g. integers, booleans, symbols, etc.) are directly packed in the word. The other data types are represented by pointers to the heap allocated structures.
 
-The Word boxing packing bit patterns are like following:
+The Word boxing packing bit patterns, with inline float (the default),
+are like following:
 
 | Types  | Bit Pattern                           |
 | ------ | ------------------------------------- |
 | object | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxx000` |
 | fixnum | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxx1` |
+| float  | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxxx10` |
+| symbol | `SSSSSSSS SSSSSSSS SSSSSSSS SSS11100` |
 | nil    | `00000000 00000000 00000000 00000000` |
 | true   | `00000000 00000000 00000000 00001100` |
 | false  | `00000000 00000000 00000000 00000100` |
 | undef  | `00000000 00000000 00000000 00010100` |
-| symbol | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxxx10` |
+
+The tag occupies the low `WORDBOX_SYMBOL_SHIFT` bits and the symbol value
+sits above it: 5 bits on 32-bit, 32 bits on 64-bit.
+
+Without inline float (`MRB_WORDBOX_NO_INLINE_FLOAT`) the float tag is
+free and symbols take it: a symbol is `xxxxxx10` and an object pointer
+`xxxxxx00`.
 
 ### Inline Float (64-bit)
 
@@ -36,14 +45,16 @@ for most float values; only a small set of exotic exponents require
 heap allocation as `RFloat`.
 
 To disable inline float and heap-allocate all floats, define
-`MRB_WORDBOX_NO_INLINE_FLOAT`.
+`MRB_WORDBOX_NO_INLINE_FLOAT`. With `MRB_USE_FLOAT32` a `float` is
+inlined shifted left by 2 instead, and a NaN is heap-allocated.
 
 ### 32-bit Considerations
 
 On 32-bit platforms with 64-bit `double` (the common case),
 `MRB_WORDBOX_NO_INLINE_FLOAT` is automatically defined because a
 64-bit double cannot fit in a 32-bit word. All floats are
-heap-allocated as `RFloat` objects.
+heap-allocated as `RFloat` objects. A 32-bit build asking for
+`MRB_USE_FLOAT32` keeps its floats inline.
 
 The `RFloat` struct uses a `char[]` buffer instead of a `double`
 field to avoid alignment issues, since GC heap slots (RVALUE) on
@@ -63,13 +74,13 @@ The NaN boxing packing bit patterns are like following:
 | +/-inf | `S1111111 11110000 00000000 00000000 00000000 00000000 00000000 00000000` |
 | nan    | `01111111 11111000 00000000 00000000 00000000 00000000 00000000 00000000` |
 | fixnum | `01111111 11111001 00000000 00000000 IIIIIIII IIIIIIII IIIIIIII IIIIIIII` |
-| symbol | `01111111 11111110 00000000 00000000 SSSSSSSS SSSSSSSS SSSSSSSS SSSSSSSS` |
-| misc   | `01111111 11111111 00000000 00000000 00000000 00000000 00TTTTTT 0000MMMM` |
+| symbol | `01111111 11111110 00000000 00TTTTTT SSSSSSSS SSSSSSSS SSSSSSSS SSSSSSSS` |
+| misc   | `01111111 11111110 00000000 00TTTTTT 00000000 00000000 00000000 0000MMMM` |
 | object | `01111111 11111100 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPP00` |
-| ptr    | `01111111 11111100 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPP01` |
+| cptr   | `01111111 11111111 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP` |
 | nil    | `00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000` |
 
-The object values appear far more frequently than floating-point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer".
+The object values appear far more frequently than floating-point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer". The patterns above are stored as `O = R + 0x8004000000000000` and read back as `R = O - 0x8004000000000000`, which leaves an object pointer as itself.
 
 ## No Boxing
 
@@ -77,16 +88,16 @@ No boxing represents `mrb_value` by the C struct with `type` and the value union
 
 ## Comparison
 
-| Property               | Word Boxing       | NaN Boxing       | No Boxing            |
-| ---------------------- | ----------------- | ---------------- | -------------------- |
-| `mrb_value` size       | 1 word (4/8 byte) | 8 bytes          | 2 words (8/16 bytes) |
-| Default on             | most platforms    | (manual opt-in)  | `host-debug`         |
-| Macro                  | `MRB_WORD_BOXING` | `MRB_NAN_BOXING` | `MRB_NO_BOXING`      |
-| Inline integers        | yes (31/63 bit)   | yes (32 bit)     | yes (full width)     |
-| Inline floats (64-bit) | yes (rotation)    | yes (native)     | yes (struct field)   |
-| Inline floats (32-bit) | no (heap RFloat)  | yes (native)     | yes (struct field)   |
-| Pointer size limit     | none              | 48 bits          | none                 |
-| Debugger friendly      | no                | no               | yes                  |
+| Property               | Word Boxing                 | NaN Boxing       | No Boxing            |
+| ---------------------- | --------------------------- | ---------------- | -------------------- |
+| `mrb_value` size       | 1 word (4/8 byte)           | 8 bytes          | 2 words (8/16 bytes) |
+| Default on             | most platforms              | (manual opt-in)  | `host-debug`         |
+| Macro                  | `MRB_WORD_BOXING`           | `MRB_NAN_BOXING` | `MRB_NO_BOXING`      |
+| Inline integers        | yes (31/63 bit)             | yes (32 bit)     | yes (full width)     |
+| Inline floats (64-bit) | yes (rotation)              | yes (native)     | yes (struct field)   |
+| Inline floats (32-bit) | only with `MRB_USE_FLOAT32` | yes (native)     | yes (struct field)   |
+| Pointer size limit     | none                        | 48 bits          | none                 |
+| Debugger friendly      | no                          | no               | yes                  |
 
 ## ABI Compatibility
 
