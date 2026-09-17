@@ -254,6 +254,70 @@ assert('Kernel#inspect leaves out an ivar Ruby cannot name') do
   assert_not_include o.inspect, "secret"
 end
 
+assert('Kernel#inspect survives a callback that grows the object mid-walk (GHSA-j6fq-xj4w-877x)') do
+  # inspect calls each ivar value's own #inspect, which can run arbitrary
+  # Ruby. Adding a new ivar to the object being inspected from in there
+  # used to free its shaped storage (shaped_iv_set growing to a wider
+  # block) out from under the walk still reading the old one.
+  owner_class = Class.new do
+    def initialize(mutator_class)
+      @first = mutator_class.new(self)
+      @second = "kept"
+    end
+
+    def grow
+      @third = :grown
+    end
+  end
+  mutator_class = Class.new do
+    def initialize(owner)
+      @owner = owner
+    end
+
+    def inspect
+      @owner.grow
+      "mutated"
+    end
+  end
+
+  o = owner_class.new(mutator_class)
+  s = o.inspect
+  assert_include s, "@first=mutated"
+  assert_include s, '@second="kept"'
+end
+
+assert('Kernel#inspect survives a callback that removes an ivar mid-walk (GHSA-j6fq-xj4w-877x)') do
+  # remove_instance_variable de-shapes the object (shaped storage to a
+  # plain table), freeing the same shaped block a growing callback frees;
+  # the walk used to keep reading through it for the remaining keys.
+  owner_class = Class.new do
+    def initialize(remover_class)
+      @a = remover_class.new(self)
+      @b = "kept"
+      @c = "also kept"
+    end
+
+    def drop_b
+      remove_instance_variable(:@b)
+    end
+  end
+  remover_class = Class.new do
+    def initialize(owner)
+      @owner = owner
+    end
+
+    def inspect
+      @owner.drop_b
+      "dropped"
+    end
+  end
+
+  o = owner_class.new(remover_class)
+  s = o.inspect
+  assert_include s, "@a=dropped"
+  assert_include s, '@c="also kept"'
+end
+
 assert('Kernel#is_a?', '15.3.1.3.24') do
   assert_true is_a?(Kernel)
   assert_false is_a?(Array)
