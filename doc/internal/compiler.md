@@ -5,10 +5,10 @@
 This document describes mruby's compilation pipeline for developers
 working on the parser, code generator, or bytecode format.
 
-**Read this if you are:** adding new syntax or modifying the parser,
-debugging codegen issues (wrong registers, missing opcodes),
-working with the `.mrb` binary format, or understanding how Ruby
-constructs map to bytecode.
+**Read this if you are:** following a Ruby construct from the parse
+tree to the opcodes, debugging codegen issues (wrong registers,
+missing opcodes), working with the `.mrb` binary format, or teaching
+the code generator a node Prism already parses.
 
 ## Pipeline Overview
 
@@ -16,102 +16,121 @@ constructs map to bytecode.
 Ruby source
     |
     v
- Lexer/Parser (parse.y)
+ Parser (Prism)
     |
     v
-   AST (mrb_ast_node)
+   AST (pm_node_t)
     |
     v
  Code Generator (codegen.c)
     |
     v
- Bytecode (mrb_irep)
+ Bytecode (mrc_irep)
     |
     v
  VM execution  -or-  .mrb binary file
 ```
 
-## Stage 1: Lexer and Parser
+## Stage 1: Parser
 
-The lexer and parser are combined in a single Lrama/Bison grammar
-file: `mrbgems/mruby-compiler/core/parse.y`.
+mruby parses with [Prism](https://github.com/ruby/prism), the parser CRuby
+uses, vendored as the `lib/prism` submodule. The build generates Prism's
+templated sources into `<build>/prism` and compiles them into the
+`mruby-compiler` gem (`mrbgems/mruby-compiler/mrbgem.rake`).
 
-### Parser State
+### Compiler Context
 
-The parser maintains extensive state in `mrb_parser_state`:
+One compilation is held in `mrc_ccontext`
+(`mrbgems/mruby-compiler/include/mrc_ccontext.h`):
 
-- **lstate**: current lexer state (EXPR_BEG, EXPR_END, EXPR_ARG,
-  EXPR_DOT, EXPR_FNAME, etc.). Controls how tokens like `+`/`-`
-  are interpreted (sign vs operator) and whether newlines are
-  significant.
-- **locals**: stack of local variable lists (one per scope), stored
-  as cons-lists of symbols.
-- **lex_strterm**: string/heredoc parsing state for handling nested
-  interpolation.
-- **cond_stack**, **cmdarg_stack**: bit stacks tracking
-  conditional and command argument contexts.
-- **tree**: root AST node after successful parse.
-- **error_buffer**: accumulated parse errors.
+- **p**: the Prism parser (`pm_parser_t`)
+- **options**: parse options (`pm_options_t`), carrying the enclosing scopes'
+  local variable names for `eval` and `binding`
+- **filename_table**: where in the joined source each input file begins
+- **diagnostic_list**: parser and code generator errors and warnings
+- **prism_arena**: the arena Prism allocates from (see
+  `mrbgems/mruby-compiler/include/prism_xallocator.h`)
+- **no_optimize**, **no_ext_ops**, **keep_lv**, **dump_ast**: switches taken
+  from the command line or from an `mrb_ccontext`
 
-### AST Nodes
+### Parsing
 
-The parser produces an AST using two node types:
+`mrc_parse_string_cxt()` and `mrc_parse_file_cxt()` initialize the parser and
+call `pm_parse()`, which returns a `pm_node_t` tree (`mrc_node`). Several
+input files are concatenated into a single source and parsed together; the
+filename table tells which file a position came from, and a lexer callback
+moves `p->filepath` across the boundaries.
 
-- **Cons-list nodes**: traditional binary tree pairs (car/cdr)
-- **Variable-sized nodes**: have a header with `node_type`, `lineno`,
-  and `filename_index`
+The same callback counts the brackets the lexer has opened and hands the
+parser an EOF token past `PRISM_DEPTH_MAXIMUM` (256, defined in
+`mrbgem.rake`), because Prism checks its own depth only where it parses an
+expression.
 
-Key node types include `NODE_SCOPE` (new variable scope),
-`NODE_STMTS` (statement sequence), `NODE_IF`, `NODE_WHILE`,
-`NODE_CALL` (method call), `NODE_DEF` (method definition),
-`NODE_CLASS`, `NODE_RESCUE`, `NODE_ENSURE`, etc. See
-`mrbgems/mruby-compiler/core/node.h` for the complete list.
+Prism's `error_list` and `warning_list` are copied into the context's
+`mrc_diagnostic_list` once the parse is over.
 
-### Local Variable Tracking
+The tree belongs to the Prism arena and is given back with it when the
+context is freed.
 
-Local variables are tracked per-scope during parsing:
+### Local Variables
 
-- `local_add(sym)`: register a new local variable in current scope
-- `local_var_p(sym)`: check if a symbol is a local variable (affects
-  whether an identifier is parsed as a method call or variable
-  reference)
+Prism resolves local variables while parsing. Each scope node
+(`pm_program_node_t`, `pm_def_node_t`, `pm_block_node_t`, and so on) carries
+a `pm_constant_id_list_t` of the names declared in it, which the code
+generator takes as the scope's `lv`.
+
+Names are interned in Prism's constant pool. `mrc_init_presym()` seeds that
+pool with the literals the code generator itself needs
+(`mrbgems/mruby-compiler/include/mrc_presym.inc`), so a `pm_constant_id_t`
+can be used as a symbol without another lookup.
+
+### Legacy Parser API
+
+`struct mrb_parser_state`, `mrb_parse_string()` and `mrb_generate_code()`
+(`include/mruby/compile.h`) remain as public C API. They are a shim over the
+above in `mrbgems/mruby-compiler/src/mruby_compat.c`: the fields describing
+the old lexer are unused, `p->ylval` holds the `mrc_ccontext`, and `p->tree`
+holds the compiled `mrc_irep`.
 
 ## Stage 2: Code Generator
 
-The code generator (`mrbgems/mruby-compiler/core/codegen.c`) walks
-the AST and emits bytecode into `mrb_irep` structures.
+The code generator (`mrbgems/mruby-compiler/src/codegen.c`) walks the
+Prism tree and emits bytecode into `mrc_irep` structures.
 
 ### Codegen Scope
 
 Each lexical scope (method, block, class body) has its own
-`codegen_scope`:
+`mrc_codegen_scope`:
 
 ```text
-codegen_scope
+mrc_codegen_scope
 +-- sp             current register index (stack pointer)
 +-- pc             current instruction count
 +-- nlocals        number of local variables
 +-- nregs          maximum register index used
-+-- lv             local variable list
++-- lv             local variable list (pm_constant_id_list_t)
++-- aspec          the operand of this scope's OP_ENTER
 +-- iseq[]         instruction sequence (grows dynamically)
 +-- pool[]         literal pool (strings, numbers)
 +-- syms[]         symbol table (method/variable names)
 +-- reps[]         child ireps (nested methods/blocks)
 +-- catch_table[]  exception handler entries
 +-- loop           current loop context stack
++-- rlev           recursion level of the walk
 +-- prev           parent scope
 +-- mscope         true if method/module/class scope
 ```
 
 Scopes nest for blocks, method definitions, and class/module bodies.
-Each scope produces one `mrb_irep`.
+Each scope produces one `mrc_irep`.
 
 ### Register Allocation
 
 The code generator uses a simple stack-based register allocator:
 
 - Register 0 is always `self`
-- Registers 1..nlocals-1 are local variables (in declaration order)
+- Registers 1..nlocals-1 are local variables, in the order Prism lists
+  them for the scope
 - Registers nlocals..nregs-1 are temporaries
 
 `push()` increments `sp` and tracks the high-water mark in `nregs`.
@@ -152,8 +171,9 @@ Loop types (`LOOP_NORMAL`, `LOOP_BLOCK`, `LOOP_FOR`, `LOOP_BEGIN`,
 
 ## IRep Structure
 
-The compiled bytecode is stored in `mrb_irep` (Instruction
-REPresentation):
+The code generator builds `mrc_irep`
+(`mrbgems/mruby-compiler/include/mrc_irep.h`), laid out field for field like
+the VM's `mrb_irep` (Instruction REPresentation):
 
 ```text
 mrb_irep
@@ -284,7 +304,7 @@ the other sources read the count through `mrb_presym_max()`.
 Precompiled bytecode is stored in the RITE binary format:
 
 ```text
-Header: "RITE" magic + version ("0400") + CRC + size
+Header: "RITE" magic + format version ("0400") + size + compiler name
 Section IREP: instruction sequences, pools, symbols
 Section DBG:  debug info (optional, filename/line mapping)
 Section LVAR: local variable names (optional)
@@ -300,6 +320,10 @@ Loading functions:
   `mrb_irep*`)
 - `mrb_load_irep_file(mrb, fp)`: load from file
 
+`mrb_generate_code()` turns an `mrc_irep` into the `mrb_irep` the VM runs
+by dumping it in this format and reading it back, with debug information
+always kept (`mruby_compat.c`).
+
 The `mrbc` command-line tool performs ahead-of-time compilation:
 
 ```shell
@@ -311,7 +335,8 @@ mrbc -Boutput source.rb           # C array format
 
 | Limit                  | Value                         |
 | ---------------------- | ----------------------------- |
-| Max nesting depth      | 256 (`MRB_CODEGEN_LEVEL_MAX`) |
+| Max parse depth        | 256 (`PRISM_DEPTH_MAXIMUM`)   |
+| Max codegen recursion  | 256 (`MRC_CODEGEN_LEVEL_MAX`) |
 | Max local variables    | 255 (uint16 `nlocals`)        |
 | Max symbols per irep   | 65535                         |
 | Max operand (standard) | 255 (8-bit)                   |
@@ -319,15 +344,18 @@ mrbc -Boutput source.rb           # C array format
 
 ## Source Files
 
-| File                                    | Contents                  |
-| --------------------------------------- | ------------------------- |
-| `mrbgems/mruby-compiler/core/parse.y`   | Lrama/Bison grammar       |
-| `mrbgems/mruby-compiler/core/y.tab.c`   | Generated parser          |
-| `mrbgems/mruby-compiler/core/codegen.c` | Code generator            |
-| `mrbgems/mruby-compiler/core/node.h`    | AST node types            |
-| `include/mruby/irep.h`                  | IRep structure definition |
-| `include/mruby/compile.h`               | Compiler context API      |
-| `include/mruby/ops.h`                   | Opcode definitions        |
-| `src/load.c`                            | Binary format loader      |
-| `src/dump.c`                            | Binary format writer      |
-| `lib/mruby/presym.rb`                   | Presym table generator    |
+| File                                            | Contents                  |
+| ----------------------------------------------- | ------------------------- |
+| `lib/prism/`                                    | Prism parser (submodule)  |
+| `mrbgems/mruby-compiler/src/compile.c`          | Parse and compile entry   |
+| `mrbgems/mruby-compiler/src/codegen.c`          | Code generator            |
+| `mrbgems/mruby-compiler/src/dump.c`             | `.mrb` writer for `mrc`   |
+| `mrbgems/mruby-compiler/src/mruby_compat.c`     | Legacy parser API shim    |
+| `mrbgems/mruby-compiler/include/mrc_irep.h`     | `mrc_irep` definition     |
+| `mrbgems/mruby-compiler/include/mrc_ccontext.h` | Compiler context          |
+| `include/mruby/irep.h`                          | IRep structure definition |
+| `include/mruby/compile.h`                       | Compiler context API      |
+| `include/mruby/ops.h`                           | Opcode definitions        |
+| `src/load.c`                                    | Binary format loader      |
+| `src/dump.c`                                    | Binary format writer      |
+| `lib/mruby/presym.rb`                           | Presym table generator    |

@@ -57,7 +57,7 @@ for tracking method/block call frames. Each method call pushes a
 `mrb_callinfo` frame with the method symbol, proc, PC, and argument
 counts.
 
-The dispatch loop in `mrb_vm_run()` decodes opcodes and operates on
+The dispatch loop in `mrb_vm_exec()` decodes opcodes and operates on
 registers. Method dispatch looks up the receiver's class method table
 (with a per-state method cache), then either calls a C function
 directly or pushes a new call frame for Ruby methods.
@@ -92,13 +92,15 @@ management.
 
 The compiler transforms Ruby source code through three stages:
 
-1. **Parser** (`parse.y`): Lrama/Bison grammar produces an AST of
-   `mrb_ast_node` structures, tracking lexer state and local scopes.
-2. **Code Generator** (`codegen.c`): walks the AST and emits bytecode
-   into `mrb_irep` structures (instruction sequence, literal pool,
+1. **Parser** (Prism): the `lib/prism` submodule parses the source
+   into a `pm_node_t` tree, with local variables already resolved per
+   scope.
+2. **Code Generator** (`codegen.c`): walks the tree and emits bytecode
+   into `mrc_irep` structures (instruction sequence, literal pool,
    symbol table, child ireps).
-3. **Execution**: the irep is wrapped in an `RProc` and executed by
-   the VM, or serialized to `.mrb` binary format.
+3. **Execution**: the VM runs the irep once it is converted to
+   `mrb_irep` and wrapped in an `RProc`. `mrbc` takes the other path and
+   writes the `mrc_irep` out in `.mrb` binary format as it is.
 
 Alternative loading paths include `mrb_load_string()` (compile and
 run), `mrb_load_irep()` (load precompiled bytecode), and `mrbc`
@@ -111,36 +113,41 @@ See [compiler.md](compiler.md) for detailed compiler internals,
 
 ### Core (`src/`)
 
-| File          | Responsibility                                 |
-| ------------- | ---------------------------------------------- |
-| `vm.c`        | Bytecode dispatch loop, method invocation      |
-| `state.c`     | `mrb_state` init/close, irep management        |
-| `gc.c`        | Garbage collector (mark-sweep, incremental)    |
-| `class.c`     | Class/module definition, method tables         |
-| `object.c`    | Core object operations                         |
-| `variable.c`  | Instance/class/global variables, object shapes |
-| `proc.c`      | Proc/Lambda/closure handling                   |
-| `array.c`     | Array implementation                           |
-| `string.c`    | String implementation (embedded, shared, heap) |
-| `hash.c`      | Hash implementation (open addressing)          |
-| `numeric.c`   | Integer/Float arithmetic                       |
-| `symbol.c`    | Symbol table and interning                     |
-| `range.c`     | Range implementation                           |
-| `error.c`     | Exception creation, raise, backtrace           |
-| `kernel.c`    | Kernel module methods                          |
-| `load.c`      | `.mrb` bytecode loading                        |
-| `dump.c`      | Bytecode serialization (write `.mrb`)          |
-| `print.c`     | Print/puts/p output                            |
-| `backtrace.c` | Stack trace generation                         |
+| File           | Responsibility                                 |
+| -------------- | ---------------------------------------------- |
+| `vm.c`         | Bytecode dispatch loop, method invocation      |
+| `state.c`      | `mrb_state` init/close, irep management        |
+| `gc.c`         | Garbage collector (mark-sweep, incremental)    |
+| `class.c`      | Class/module definition, method tables         |
+| `object.c`     | Core object operations                         |
+| `variable.c`   | Instance/class/global variables, object shapes |
+| `proc.c`       | Proc/Lambda/closure handling                   |
+| `array.c`      | Array implementation                           |
+| `string.c`     | String implementation (embedded, shared, heap) |
+| `hash.c`       | Hash implementation (open addressing)          |
+| `numeric.c`    | Integer/Float arithmetic                       |
+| `symbol.c`     | Symbol table and interning                     |
+| `range.c`      | Range implementation                           |
+| `error.c`      | Exception creation, raise, backtrace           |
+| `kernel.c`     | Kernel module methods                          |
+| `load.c`       | `.mrb` bytecode loading                        |
+| `dump.c`       | Bytecode serialization (write `.mrb`)          |
+| `print.c`      | Print/puts/p output                            |
+| `backtrace.c`  | Stack trace generation                         |
+| `codedump.c`   | Bytecode disassembler (`mrb_codedump_all`)     |
+| `debug.c`      | Debug info (pc → file/line) lookup             |
+| `refinement.c` | Refinements (`MRB_USE_REFINEMENTS`)            |
 
-### Compiler (`mrbgems/mruby-compiler/core/`)
+### Compiler (`mrbgems/mruby-compiler/src/`)
 
-| File        | Responsibility                  |
-| ----------- | ------------------------------- |
-| `parse.y`   | Yacc grammar → AST              |
-| `y.tab.c`   | Generated parser (from parse.y) |
-| `codegen.c` | AST → bytecode (irep)           |
-| `node.h`    | AST node type definitions       |
+| File             | Responsibility                        |
+| ---------------- | ------------------------------------- |
+| `compile.c`      | Parse and compile entry points        |
+| `codegen.c`      | Prism tree → bytecode (irep)          |
+| `dump.c`         | `.mrb` writer for the compiler's irep |
+| `mruby_compat.c` | `mrb_parser_state` API over the above |
+
+The parser itself is Prism, vendored as the `lib/prism` submodule.
 
 ### Key Headers (`include/mruby/`)
 
