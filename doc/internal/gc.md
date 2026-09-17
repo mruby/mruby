@@ -113,11 +113,12 @@ Marks objects directly reachable from the VM:
 
 1. Global variables (`mrb_gc_mark_gv`)
 2. GC arena (`gc->arena[0..arena_idx-1]`)
-3. All built-in classes (Object, Class, Module, etc.)
-4. Top-level self (`mrb->top_self`)
-5. Current exception (`mrb->exc`)
-6. Execution contexts (VM stacks, call info stacks, active fibers)
-7. Task queues (if `MRB_USE_TASK_SCHEDULER` is defined)
+3. Registered roots (`gc->root`, see [Permanent Registration](#permanent-registration))
+4. All built-in classes (Object, Class, Module, etc.)
+5. Top-level self (`mrb->top_self`)
+6. Current exception (`mrb->exc`)
+7. Execution contexts (VM stacks, call info stacks, active fibers)
+8. Task queues (if `MRB_USE_TASK_SCHEDULER` is defined)
 
 After root scanning, the white color is flipped.
 
@@ -228,8 +229,10 @@ mrb_gc_register(mrb, obj);    /* add to permanent root */
 mrb_gc_unregister(mrb, obj);  /* remove from root */
 ```
 
-These store objects in a global array that is always marked as
-part of the root set.
+These hold the object in a table (`gc->root`) marked with the rest of
+the roots, at the start of a marking cycle and again at its end. The
+table counts registrations, so an object registered twice needs two
+`mrb_gc_unregister()` calls to leave the root set.
 
 See [gc-arena-howto.md](../guides/gc-arena-howto.md) for detailed
 usage patterns.
@@ -399,6 +402,8 @@ GC.stat
 #   :step_limit => 0,           # current step limit setting
 #   :malloc_increase => 8192,   # malloc bytes since last cycle
 #   :malloc_threshold => 16777216, # current malloc threshold setting
+#   :symbol_count => 1234,      # symbols in total, presym included
+#   :dynamic_symbol_count => 12, # symbols interned at runtime
 # }
 ```
 

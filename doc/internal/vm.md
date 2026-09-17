@@ -27,10 +27,15 @@ mrb_context
 +-- stbase..stend    value stack (mrb_value[])
 +-- cibase..ciend    call info stack (mrb_callinfo[])
 +-- ci               current call frame pointer
++-- svars            per-frame special variables (`$~` and friends)
 +-- status           fiber state
 +-- prev             previous context (fiber chain)
++-- fib              the RFiber this context belongs to
 +-- vmexec           VM execution state flag
 ```
+
+`svars` is indexed like the frames (`svars[ci - cibase]`) and stays
+NULL until a frame first writes a special variable.
 
 The value stack and call info stack grow independently. Each fiber
 has its own `mrb_context`.
@@ -56,10 +61,10 @@ Each method or block call pushes a `mrb_callinfo` frame:
 
 ```text
 mrb_callinfo
-+-- n:4          positional argument count (0-14, 15 = varargs)
-+-- nk:4         keyword argument count (0-14, 15 = varargs)
-+-- cci          call context info (NONE, DIRECT, SKIP, RESUMED)
-+-- vis          visibility flags (public/private/protected)
++-- n:4          positional argument count (0-14, 15 = packed in an Array)
++-- kw:1         keyword arguments were given, as a single Hash
++-- cci          how the frame was entered (NONE, SKIP, DIRECT, RESUMED)
++-- vis          visibility and scope flags
 +-- mid          method symbol
 +-- proc         current RProc
 +-- blk          block argument (RProc*)
@@ -73,41 +78,49 @@ mrb_callinfo
 
 ```text
 ci->stack:
-  [0]      self (receiver)
-  [1..n]   positional arguments
-  [n+1..]  keyword argument pairs (key, value, key, value, ...)
-  [bidx]   block argument
+  [0]        self (receiver)
+  [1..n]     positional arguments, or a single Array when n == 15
+  [bidx-1]   keyword arguments as a Hash, when kw is set
+  [bidx]     block argument
   [bidx+1..] local variables and temporaries
 ```
 
+`bidx` is `ci_bidx(ci)`, so the keyword Hash lands at `[2]` when the
+positional arguments are packed and at `[n+1]` otherwise.
+
 ### Argument Count Encoding
 
-The `n` and `nk` fields are 4 bits each (0-15). When `n == 15`,
-positional arguments are packed into a single Array in register 1.
-When `nk == 15`, keyword arguments are packed into a single Hash.
-
-The block index is calculated by `mrb_bidx(n, nk)`:
+`OP_SEND` and its variants carry both counts in one operand,
+`c = n | k<<4`, 4 bits each (0-15). `n == 15` means the positional
+arguments are already packed into an Array, `k == 15` that the keyword
+arguments are already a Hash. `mrb_bidx(n, k)` gives the block register
+from that operand:
 
 ```text
 if n == 15: n = 1 (array)
-if nk == 15: n += 1 (hash)
-else: n += nk * 2 (key-value pairs)
+if k == 15: n += 1 (hash)
+else: n += k * 2 (key-value pairs)
 return n + 1 (skip self)
 ```
 
+Keyword arguments given as pairs are packed into a Hash before the frame
+is pushed, so a frame holds at most one keyword register, and `ci->kw`
+says whether it is there. `ci_bidx(ci)` is the same calculation over a
+pushed frame.
+
 ### Call Context Info (cci)
 
-| Value | Name            | Meaning                               |
-| ----- | --------------- | ------------------------------------- |
-| 0     | `CINFO_NONE`    | Normal VM-to-VM call                  |
-| 1     | `CINFO_DIRECT`  | Explicit VM call (block, lambda.call) |
-| 2     | `CINFO_SKIP`    | Skip frame in stack traces            |
-| 3     | `CINFO_RESUMED` | Fiber resumed (stop execution)        |
+| Value | Name            | Meaning                                   |
+| ----- | --------------- | ----------------------------------------- |
+| 0     | `CINFO_NONE`    | Called from the VM, with no C in between  |
+| 1     | `CINFO_SKIP`    | The VM was started from C on this frame   |
+| 2     | `CINFO_DIRECT`  | The method was called from C              |
+| 3     | `CINFO_RESUMED` | `Fiber.yield` returned here; the VM stops |
 
 ## Dispatch Loop
 
-The main loop in `mrb_vm_run()` decodes and dispatches opcodes.
-Two dispatch strategies are available:
+The main loop is in `mrb_vm_exec()`, which `mrb_vm_run()` calls once
+it has set up the frame. Two dispatch strategies are available:
 
 - **Computed goto** (default on GCC/Clang): a jump table of label
   addresses (`optable[]`) for direct dispatch. Faster due to
@@ -131,11 +144,13 @@ Array (varargs mode).
 ### 2. Push Call Frame
 
 ```c
-ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, blk, mid, argc);
+ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, c);
+ci->u.target_class = mrb_class(mrb, recv);
 ```
 
 The new frame's stack starts at the previous frame's stack + `a`
-(the receiver's register index).
+(the receiver's register index). The method symbol is filled in after
+the lookup, so `cipush()` is given 0 for it here.
 
 ### 3. Method Lookup
 
@@ -261,6 +276,7 @@ CREATED --> RUNNING --> SUSPENDED --> TERMINATED
                 |           ^
                 +-----------+
                   (yield/resume)
+            RESUMED     (suspended by resuming another fiber)
             TRANSFERRED (via Fiber#transfer)
 ```
 
@@ -317,9 +333,9 @@ ensuring the incremental GC correctly tracks live references.
 
 ## Source Files
 
-| File                    | Contents                                       |
-| ----------------------- | ---------------------------------------------- |
-| `src/vm.c`              | Dispatch loop, method invocation (~1900 lines) |
-| `include/mruby.h`       | `mrb_state`, `mrb_callinfo`, `mrb_context`     |
-| `include/mruby/proc.h`  | `RProc`, `REnv` structures                     |
-| `include/mruby/throw.h` | `MRB_TRY`/`MRB_CATCH` macros                   |
+| File                    | Contents                                   |
+| ----------------------- | ------------------------------------------ |
+| `src/vm.c`              | Dispatch loop, method invocation           |
+| `include/mruby.h`       | `mrb_state`, `mrb_callinfo`, `mrb_context` |
+| `include/mruby/proc.h`  | `RProc`, `REnv` structures                 |
+| `include/mruby/throw.h` | `MRB_TRY`/`MRB_CATCH` macros               |
