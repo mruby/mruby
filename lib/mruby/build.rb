@@ -95,7 +95,8 @@ module MRuby
 
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :libdir_name
+    attr_accessor :name, :bins, :exts, :file_separator, :gem_clone_dir, :libdir_name
+    attr_reader :build_dir
     attr_reader :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
     attr_reader :compile_rules
@@ -589,6 +590,15 @@ EOS
         end
       end
       @mrbcfile || fail("external mrbc or mruby-bin-mrbc gem in current('#{@name}') or 'host' build is required")
+    end
+
+    # Named against the directory the build was started from, as the one
+    # given to `new` is, and expanded the same way: the rules of the build are
+    # keyed by the names they are defined under, and the `mrbc` it makes for
+    # itself is named to it in full (`mrbcfile=`), so the two have to agree
+    # on the spelling of the directory.
+    def build_dir=(dir)
+      @build_dir = File.expand_path(dir)
     end
 
     def mrbcfile=(path)
