@@ -5,6 +5,7 @@ MRuby::Gem::Specification.new('mruby-bin-debugger') do |spec|
   spec.build.defines << "MRB_USE_DEBUG_HOOK"
   spec.add_dependency('mruby-eval', :core => 'mruby-eval')
   spec.add_test_dependency('mruby-bin-mrbc', :core => 'mruby-bin-mrbc')
+  spec.add_test_dependency('mruby-io', :core => 'mruby-io')
 
   spec.bins = %w(mrdb)
 end
