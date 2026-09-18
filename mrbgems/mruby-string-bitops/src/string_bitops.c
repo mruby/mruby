@@ -11,6 +11,7 @@
 #include <mruby.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/range.h>
 #include <mruby/internal.h>
 #include <string.h>
 #include <stdint.h>
@@ -276,15 +277,23 @@ bitop_offset_from_index(mrb_state *mrb, mrb_value index)
   return mrb_as_int(mrb, mrb_ensure_integer_type(mrb, index));
 }
 
-/*
- * Scans "offset" and the optional "lsb_first" keyword argument.
- * Returns the lsb_first flag (default true).
- */
 static mrb_bool
-bitop_scan_offset(mrb_state *mrb, mrb_int *offset)
+bitop_lsb_first(mrb_state *mrb, mrb_value kw)
 {
-  mrb_value index;
-  mrb_bool lsb_first;
+  if (mrb_undef_p(kw) || mrb_true_p(kw)) return TRUE;
+  if (mrb_false_p(kw)) return FALSE;
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "lsb_first must be true or false");
+}
+
+/*
+ * Scans the positional arguments described by fmt, one into a or two
+ * into a and b when b is given, and the optional "lsb_first" keyword
+ * argument.  Returns the number of positional arguments given.
+ */
+static mrb_int
+bitop_scan_args(mrb_state *mrb, const char *fmt, mrb_value *a, mrb_value *b, mrb_bool *lsb_first)
+{
+  mrb_int argc;
   mrb_sym kw_names[1];
   mrb_value kw_values[1];
   mrb_kwargs kwargs;
@@ -295,18 +304,67 @@ bitop_scan_offset(mrb_state *mrb, mrb_int *offset)
   kwargs.table = kw_names;
   kwargs.values = kw_values;
   kwargs.rest = NULL;
-  mrb_get_args(mrb, "o:", &index, &kwargs);
-  if (mrb_undef_p(kw_values[0]) || mrb_true_p(kw_values[0])) {
-    lsb_first = TRUE;
+  argc = b ? mrb_get_args(mrb, fmt, a, b, &kwargs) : mrb_get_args(mrb, fmt, a, &kwargs);
+  *lsb_first = bitop_lsb_first(mrb, kw_values[0]);
+  return argc;
+}
+
+/*
+ * A bit offset, as an index or a Range endpoint, is never counted from
+ * the end: a negative one is an IndexError, not a position.
+ */
+static uint64_t
+bitop_offset(mrb_state *mrb, mrb_value index)
+{
+  mrb_int offset = bitop_offset_from_index(mrb, index);
+
+  if (offset < 0) {
+    mrb_raise(mrb, E_INDEX_ERROR, "bit index out of range");
   }
-  else if (mrb_false_p(kw_values[0])) {
-    lsb_first = FALSE;
+  return (uint64_t)offset;
+}
+
+/*
+ * Resolves (offset, length) or a Range into the bit region [start,
+ * end).  Nothing is clamped here: end may lie beyond bit_size, and the
+ * caller decides whether that is an error or a shorter region.  An
+ * inverted or empty Range gives end == start.  A Range with no end
+ * runs to bit_size, the position after the last bit.
+ *
+ * The arithmetic is done in uint64_t: an mrb_int offset and length are
+ * each below 2^63, so their sum cannot overflow, and RSTRING_LEN * 8
+ * fits for any string, which it does not in a 32-bit mrb_int.
+ */
+static void
+bitop_scan_region(mrb_state *mrb, mrb_int argc, mrb_value a, mrb_value b,
+                  uint64_t bit_size, uint64_t *start, uint64_t *end)
+{
+  if (mrb_range_p(a)) {
+    struct RRange *r = mrb_range_ptr(mrb, a);
+    mrb_value beg = RANGE_BEG(r), last = RANGE_END(r);
+
+    if (argc == 2) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "a Range and a length cannot both be given");
+    }
+    *start = mrb_nil_p(beg) ? 0 : bitop_offset(mrb, beg);
+    if (mrb_nil_p(last)) {
+      *end = bit_size;
+    }
+    else {
+      *end = bitop_offset(mrb, last);
+      if (!RANGE_EXCL(r)) (*end)++;
+    }
+    if (*end < *start) *end = *start;
   }
   else {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "lsb_first must be true or false");
+    mrb_int length = mrb_as_int(mrb, mrb_ensure_integer_type(mrb, b));
+
+    if (length < 0) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %i", length);
+    }
+    *start = bitop_offset(mrb, a);
+    *end = *start + (uint64_t)length;
   }
-  *offset = bitop_offset_from_index(mrb, index);
-  return lsb_first;
 }
 
 static mrb_int
@@ -316,13 +374,32 @@ bitop_physical_index(mrb_int logical, mrb_bool lsb_first)
   return (logical & ~(mrb_int)7) | (7 - (logical & 7));
 }
 
+/*
+ * The physical mask of the logical bits [lo, hi) of one byte,
+ * 0 <= lo < hi <= 8.  Under lsb_first: false logical bit i is
+ * physical bit 7 - i, so the run is mirrored within the byte.
+ */
+static unsigned char
+bitop_byte_mask(unsigned int lo, unsigned int hi, mrb_bool lsb_first)
+{
+  if (!lsb_first) {
+    unsigned int t = 8 - hi;
+    hi = 8 - lo;
+    lo = t;
+  }
+  return (unsigned char)(((1u << hi) - 1) & ~((1u << lo) - 1));
+}
+
 /* Returns 0 or 1, or -1 when offset is beyond the end of str. */
 static int
 bitop_get_bit(mrb_state *mrb, mrb_value str)
 {
+  mrb_value index;
   mrb_int offset, physical;
-  mrb_bool lsb_first = bitop_scan_offset(mrb, &offset);
+  mrb_bool lsb_first;
 
+  bitop_scan_args(mrb, "o:", &index, NULL, &lsb_first);
+  offset = bitop_offset_from_index(mrb, index);
   if (offset < 0) {
     mrb_raise(mrb, E_INDEX_ERROR, "bit index out of range");
   }
@@ -354,32 +431,88 @@ enum bitop_mutation {
   BITOP_MUT_FLIP
 };
 
+static void
+bitop_mutate_byte(unsigned char *p, unsigned char mask, enum bitop_mutation mutation)
+{
+  switch (mutation) {
+  case BITOP_MUT_SET:
+    *p |= mask;
+    break;
+  case BITOP_MUT_CLEAR:
+    *p &= (unsigned char)~mask;
+    break;
+  case BITOP_MUT_FLIP:
+    *p ^= mask;
+    break;
+  }
+}
+
+/*
+ * Applies mutation to the non-empty bit region [start, end), which
+ * lies within the buffer.  The first and last bytes may be partial;
+ * the bytes between them are whole and go through memset or the
+ * word-wide not kernel.
+ */
+static void
+bitop_mutate_region(unsigned char *ptr, uint64_t start, uint64_t end,
+                    mrb_bool lsb_first, enum bitop_mutation mutation)
+{
+  mrb_int sb = (mrb_int)(start / 8), eb = (mrb_int)((end - 1) / 8);
+  unsigned int lo = (unsigned int)(start % 8), hi = (unsigned int)((end - 1) % 8) + 1;
+
+  if (sb == eb) {
+    bitop_mutate_byte(ptr + sb, bitop_byte_mask(lo, hi, lsb_first), mutation);
+    return;
+  }
+  bitop_mutate_byte(ptr + sb, bitop_byte_mask(lo, 8, lsb_first), mutation);
+  if (eb - sb > 1) {
+    unsigned char *mid = ptr + sb + 1;
+    mrb_int n = eb - sb - 1;
+
+    switch (mutation) {
+    case BITOP_MUT_SET:
+      memset(mid, 0xFF, (size_t)n);
+      break;
+    case BITOP_MUT_CLEAR:
+      memset(mid, 0, (size_t)n);
+      break;
+    case BITOP_MUT_FLIP:
+      bitop_not_kernel(mid, mid, n);
+      break;
+    }
+  }
+  bitop_mutate_byte(ptr + eb, bitop_byte_mask(0, hi, lsb_first), mutation);
+}
+
+/*
+ * bit_set(offset), bit_set(offset, length) and bit_set(range), and the
+ * same for bit_clear and bit_flip.  A lone offset is the one-bit region
+ * [offset, offset + 1), so the whole-region bound applies to it too.
+ * The region must fit, and an empty one must still start no later than
+ * the position after the last bit, before any byte is touched; a frozen
+ * receiver is then refused even for an empty region.
+ */
 static mrb_value
 bitop_mutate(mrb_state *mrb, mrb_value str, enum bitop_mutation mutation)
 {
-  mrb_int offset, physical;
-  mrb_bool lsb_first = bitop_scan_offset(mrb, &offset);
-  unsigned char *ptr;
-  unsigned char mask;
+  mrb_value a, b;
+  mrb_bool lsb_first;
+  uint64_t start, end, bit_size = (uint64_t)RSTRING_LEN(str) * 8;
+  mrb_int argc = bitop_scan_args(mrb, "o|o:", &a, &b, &lsb_first);
 
-  if (offset < 0 || offset / 8 >= RSTRING_LEN(str)) {
+  if (argc == 1 && !mrb_range_p(a)) {
+    start = bitop_offset(mrb, a);
+    end = start + 1;
+  }
+  else {
+    bitop_scan_region(mrb, argc, a, b, bit_size, &start, &end);
+  }
+  if (start > bit_size || end > bit_size) {
     mrb_raise(mrb, E_INDEX_ERROR, "bit index out of range");
   }
   mrb_str_modify(mrb, mrb_str_ptr(str));
-  physical = bitop_physical_index(offset, lsb_first);
-  ptr = (unsigned char*)RSTRING_PTR(str);
-  mask = (unsigned char)(1u << (physical % 8));
-  switch (mutation) {
-  case BITOP_MUT_SET:
-    ptr[physical / 8] |= mask;
-    break;
-  case BITOP_MUT_CLEAR:
-    ptr[physical / 8] &= (unsigned char)~mask;
-    break;
-  case BITOP_MUT_FLIP:
-    ptr[physical / 8] ^= mask;
-    break;
-  }
+  if (end == start) return str;
+  bitop_mutate_region((unsigned char*)RSTRING_PTR(str), start, end, lsb_first, mutation);
   return str;
 }
 
@@ -401,14 +534,50 @@ mrb_str_bit_flip(mrb_state *mrb, mrb_value str)
   return bitop_mutate(mrb, str, BITOP_MUT_FLIP);
 }
 
+/* Counts the set bits of the non-empty region [start, end) within the buffer. */
+static uint64_t
+bitop_count_region(const unsigned char *ptr, uint64_t start, uint64_t end, mrb_bool lsb_first)
+{
+  mrb_int sb = (mrb_int)(start / 8), eb = (mrb_int)((end - 1) / 8);
+  unsigned int lo = (unsigned int)(start % 8), hi = (unsigned int)((end - 1) % 8) + 1;
+  uint64_t count;
+
+  if (sb == eb) {
+    return bitop_popcount((bitop_word)(ptr[sb] & bitop_byte_mask(lo, hi, lsb_first)));
+  }
+  count = bitop_popcount((bitop_word)(ptr[sb] & bitop_byte_mask(lo, 8, lsb_first)));
+  if (eb - sb > 1) {
+    count += bitop_count_bits(ptr + sb + 1, eb - sb - 1);
+  }
+  count += bitop_popcount((bitop_word)(ptr[eb] & bitop_byte_mask(0, hi, lsb_first)));
+  return count;
+}
+
+/*
+ * bit_count, bit_count(offset, length) and bit_count(range).  Unlike
+ * the mutations this clamps: only the bits that exist are counted, and
+ * a region entirely beyond the end counts 0.  There is no one-bit form,
+ * so a lone offset is an error rather than a count to the end.
+ */
 static mrb_value
 mrb_str_bit_count(mrb_state *mrb, mrb_value str)
 {
-  uint64_t count;
+  mrb_value a, b;
+  mrb_bool lsb_first;
+  uint64_t start, end, bit_size = (uint64_t)RSTRING_LEN(str) * 8;
+  const unsigned char *ptr = (const unsigned char*)RSTRING_PTR(str);
+  mrb_int argc = bitop_scan_args(mrb, "|oo:", &a, &b, &lsb_first);
 
-  mrb_get_args(mrb, "");
-  count = bitop_count_bits((const unsigned char*)RSTRING_PTR(str), RSTRING_LEN(str));
-  return mrb_uint64_value(mrb, count);
+  if (argc == 0) {
+    return mrb_uint64_value(mrb, bitop_count_bits(ptr, RSTRING_LEN(str)));
+  }
+  if (argc == 1 && !mrb_range_p(a)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "bit_count takes a Range or an offset and a length");
+  }
+  bitop_scan_region(mrb, argc, a, b, bit_size, &start, &end);
+  if (end > bit_size) end = bit_size;
+  if (start >= end) return mrb_fixnum_value(0);
+  return mrb_uint64_value(mrb, bitop_count_region(ptr, start, end, lsb_first));
 }
 
 /*
@@ -555,10 +724,10 @@ mrb_mruby_string_bitops_gem_init(mrb_state *mrb)
 
   mrb_define_method_id(mrb, s, MRB_SYM(bit_get), mrb_str_bit_get, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
   mrb_define_method_id(mrb, s, MRB_SYM_Q(bit_set), mrb_str_bit_set_p, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
-  mrb_define_method_id(mrb, s, MRB_SYM(bit_set), mrb_str_bit_set, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
-  mrb_define_method_id(mrb, s, MRB_SYM(bit_clear), mrb_str_bit_clear, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
-  mrb_define_method_id(mrb, s, MRB_SYM(bit_flip), mrb_str_bit_flip, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
-  mrb_define_method_id(mrb, s, MRB_SYM(bit_count), mrb_str_bit_count, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(bit_set), mrb_str_bit_set, MRB_ARGS_ARG(1,1)|MRB_ARGS_KEY(1, 0));
+  mrb_define_method_id(mrb, s, MRB_SYM(bit_clear), mrb_str_bit_clear, MRB_ARGS_ARG(1,1)|MRB_ARGS_KEY(1, 0));
+  mrb_define_method_id(mrb, s, MRB_SYM(bit_flip), mrb_str_bit_flip, MRB_ARGS_ARG(1,1)|MRB_ARGS_KEY(1, 0));
+  mrb_define_method_id(mrb, s, MRB_SYM(bit_count), mrb_str_bit_count, MRB_ARGS_OPT(2)|MRB_ARGS_KEY(1, 0));
   mrb_define_method_id(mrb, s, MRB_SYM(bitwise_not), mrb_str_bitwise_not, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(bitwise_not), mrb_str_bitwise_not_bang, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(bitwise_and), mrb_str_bitwise_and, MRB_ARGS_REQ(1));

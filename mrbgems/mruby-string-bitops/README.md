@@ -27,9 +27,48 @@ are numbered from most-significant to least-significant.
 `IndexError` is raised when `offset` is negative, or (for the mutating
 methods) when it is beyond the end of the string.
 
+### Bit-region operations
+
+The mutating methods and `bit_count` also act on a contiguous run of
+bits, given either as `(offset, length)` or as a `Range`. The two
+forms are equivalent, following `String#[]`; passing a `Range` and a
+`length` together is an `ArgumentError`.
+
+- `String#bit_set(offset, length, lsb_first: true)`,
+  `String#bit_set(range, lsb_first: true)`
+- `String#bit_clear(offset, length, lsb_first: true)`,
+  `String#bit_clear(range, lsb_first: true)`
+- `String#bit_flip(offset, length, lsb_first: true)`,
+  `String#bit_flip(range, lsb_first: true)`
+- `String#bit_count(offset, length, lsb_first: true)`,
+  `String#bit_count(range, lsb_first: true)`
+
+Beginless and endless ranges work as usual (`0..` runs to the last
+bit). An inverted range such as `5..2` is empty. `lsb_first` only
+changes the numbering of bits within each byte.
+
+The mutating methods require the whole region to be in range and
+raise `IndexError` on overrun without modifying any bits. An empty
+region is a no-op, but must still begin no later than the position
+after the last bit: `"\x00".bit_set(8, 0)` is allowed and
+`"\x00".bit_set(9, 0)` raises `IndexError`, as `"abc"[3, 0]` is `""`
+while `"abc"[4, 0]` is `nil`. A frozen receiver raises `FrozenError`
+even for an empty region.
+
+`bit_count` instead clamps to the bits that exist, and returns `0`
+(not `nil`) for a region that lies entirely beyond the end, so that
+`length - s.bit_count(offset, length)` is always a number. It has no
+single-bit form: `bit_count(offset)` raises `ArgumentError`, and a
+count to the end is spelled `bit_count(offset..)`.
+
+Negative offsets and range endpoints raise `IndexError`; there is no
+count-from-end normalization. A negative `length` raises
+`ArgumentError`, and an explicit `nil` length raises `TypeError`.
+
 ### Whole-string operations
 
-- `String#bit_count` - number of set bits (population count)
+- `String#bit_count(lsb_first: true)` - number of set bits (population
+  count)
 - `String#bitwise_not` / `String#bitwise_not!` - bitwise complement
 - `String#bitwise_and(other)` / `String#bitwise_and!(other)`
 - `String#bitwise_or(other)` / `String#bitwise_or!(other)`
@@ -47,6 +86,11 @@ s.bit_set(3)          # => "\x08\x00"
 s.bit_set?(3)         # => true
 s.bit_count           # => 1
 
+s.bit_set(4, 8)       # => "\xF8\x0F"
+s.bit_flip(0...16)    # => "\x07\xF0"
+s.bit_count(4..11)    # => 0
+s.bit_count(12..)     # => 4
+
 "\xF0".bitwise_and("\xCC")  # => "\xC0"
 "\x0F".bitwise_or("\xF0")   # => "\xFF"
 "\xFF".bitwise_not          # => "\x00"
@@ -55,7 +99,11 @@ s.bit_count           # => 1
 ## Implementation notes
 
 The bulk kernels (`bit_count` and the `bitwise_*` family) process one
-machine word per iteration with 4x unrolling. The word width follows
+machine word per iteration with 4x unrolling. A bit region is split
+into a partial first byte, whole middle bytes, and a partial last
+byte; the middle goes through `memset` or the same word-wide kernels,
+so a region call costs about as much as the equivalent whole-string
+call rather than one method call per bit. The word width follows
 the pointer width of the target, so 32-bit targets (common for mruby)
 use 32-bit words and avoid emulated 64-bit arithmetic. On
 GNU-compatible compilers, word-aligned buffers are accessed directly

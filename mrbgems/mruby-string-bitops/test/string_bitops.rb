@@ -98,8 +98,125 @@ assert('String#bit_count') do
   assert_equal 0, "\x00".bit_count
   assert_equal 8, "\xFF".bit_count
   assert_equal 8, "\xAA\xF0".bit_count
+  # lsb_first only changes the numbering within a byte; a whole-string
+  # count is the same either way, and the keyword is accepted anyway.
+  assert_equal 8, "\xAA\xF0".bit_count(lsb_first: false)
+  assert_equal 8, "\xAA\xF0".bit_count(lsb_first: true)
+  assert_raise(ArgumentError) { "\x00".bit_count(lsb_first: nil) }
+  # No one-bit form: a lone offset is neither bit_get nor "to the end".
   assert_raise(ArgumentError) { "\x00".bit_count(0) }
-  assert_raise(ArgumentError) { "\x00".bit_count(lsb_first: false) }
+end
+
+assert('String#bit_set, #bit_clear, #bit_flip (region)') do
+  # [Feature #22279]: (offset, length) and a Range name the same run.
+  s = "\x00\x00\x00"
+  assert_equal s.object_id, s.bit_set(4, 8).object_id
+  assert_equal "\xF0\x0F\x00", s
+  assert_equal "\xF0\x0F\x00", "\x00\x00\x00".bit_set(4..11)
+  assert_equal "\xF0\x0F\x00", "\x00\x00\x00".bit_set(4...12)
+  assert_equal s.object_id, s.bit_clear(6..9).object_id
+  assert_equal "\x30\x0C\x00", s
+  assert_equal s.object_id, s.bit_flip(0...24).object_id
+  assert_equal "\xCF\xF3\xFF", s
+
+  # A run within one byte, and one spanning whole middle bytes.
+  assert_equal "\x3C", "\x00".bit_set(2, 4)
+  assert_equal "\xC3", "\xFF".bit_clear(2, 4)
+  assert_equal "\xC3", "\xFF".bit_flip(2, 4)
+  assert_equal "\x80\xFF\xFF\x01", ("\x00" * 4).bit_set(7..24)
+  assert_equal "\x7F\x00\x00\xFE", ("\xFF" * 4).bit_clear(7..24)
+  assert_equal "\x7F\x00\x00\xFE", ("\xFF" * 4).bit_flip(7..24)
+  # Long enough for the word-wide not kernel in the middle.
+  assert_equal "\x01" + "\x00" * 40 + "\x80", ("\xFF" * 42).bit_flip(1...335)
+
+  # Beginless and endless ranges reach the first and the last bit.
+  assert_equal "\x0F\x00", "\x00\x00".bit_set(..3)
+  assert_equal "\x00\xF0", "\x00\x00".bit_set(12..)
+  assert_equal "\xFF\xFF", "\x00\x00".bit_set(0..)
+  assert_equal "\xFF\xFF", "\x00\x00".bit_set(nil..nil)
+
+  # lsb_first: false mirrors the run within each byte.
+  assert_equal "\xF0", "\x00".bit_set(0, 4, lsb_first: false)
+  assert_equal "\x1F\xF8", "\x00\x00".bit_set(3..12, lsb_first: false)
+  assert_equal "\xE0\x07", "\xFF\xFF".bit_clear(3..12, lsb_first: false)
+  assert_equal "\x1F\xF8", "\x00\x00".bit_flip(3..12, lsb_first: false)
+
+  # An empty region is a no-op, but must start no later than the
+  # position after the last bit, as "abc"[3, 0] is "" and "abc"[4, 0]
+  # is nil.
+  assert_equal "\x00", "\x00".bit_set(8, 0)
+  assert_equal "\x00", "\x00".bit_set(8...8)
+  assert_equal "\x00", "\x00".bit_set(3, 0)
+  assert_equal "\x00", "\x00".bit_set(5..2)
+  assert_equal "\x00", "\x00".bit_flip(8..)
+  assert_raise(IndexError) { "\x00".bit_set(9, 0) }
+  assert_raise(IndexError) { "\x00".bit_set(9...9) }
+  assert_raise(IndexError) { "\x00".bit_set(9..) }
+
+  # Overrun is refused before any bit changes.
+  s = "\x00\x00"
+  assert_raise(IndexError) { s.bit_set(12, 5) }
+  assert_raise(IndexError) { s.bit_set(12..16) }
+  assert_raise(IndexError) { s.bit_flip(0, 17) }
+  assert_equal "\x00\x00", s
+  assert_raise(IndexError) { "\x00".bit_set(-1, 1) }
+  assert_raise(IndexError) { "\x00".bit_set(-1..2) }
+  assert_raise(IndexError) { "\x00".bit_set(0..-1) }
+  assert_raise(ArgumentError) { "\x00".bit_set(0, -1) }
+  assert_raise(ArgumentError) { "\x00".bit_set(0..1, 2) }
+  assert_raise(TypeError) { "\x00".bit_set(0, nil) }
+  assert_raise(TypeError) { "\x00".bit_set(0, "1") }
+  assert_raise(TypeError) { "\x00".bit_set("a".."b") }
+  assert_raise(ArgumentError) { "\x00".bit_set(0, 1, lsb_first: nil) }
+
+  # A frozen receiver is refused even for an empty region, but an
+  # out-of-range one is still reported first.
+  assert_raise(FrozenError) { "\x00".freeze.bit_set(0, 0) }
+  assert_raise(FrozenError) { "\x00".freeze.bit_clear(0..3) }
+  assert_raise(IndexError) { "\x00".freeze.bit_set(9, 0) }
+
+  shared = "fooXbar".split("X").last
+  shared.bit_set(0, 2)
+  assert_equal "car", shared
+end
+
+assert('String#bit_count (region)') do
+  s = "\xF0\x0F\xAA"
+  assert_equal 12, s.bit_count(0, 24)
+  assert_equal 12, s.bit_count(0..)
+  assert_equal 0, s.bit_count(0, 4)
+  assert_equal 4, s.bit_count(4, 4)
+  assert_equal 8, s.bit_count(4..11)
+  assert_equal 8, s.bit_count(4...12)
+  assert_equal 4, s.bit_count(..7)
+  assert_equal 4, s.bit_count(16..)
+  assert_equal 2, s.bit_count(17..20)
+  assert_equal 4, s.bit_count(0, 4, lsb_first: false)
+  assert_equal 0, s.bit_count(4, 4, lsb_first: false)
+  assert_equal 2, s.bit_count(17..20, lsb_first: false)
+  # Long enough for the word-wide count in the middle.
+  assert_equal 8 * 40 + 7 + 7, ("\xFF" * 42).bit_count(1...335)
+  assert_equal 8 * 40 + 7 + 7, ("\xFF" * 42).bit_count(1...335, lsb_first: false)
+
+  # A count clamps to the bits that exist and gives 0, not nil, for
+  # an empty intersection: it feeds arithmetic such as length - count.
+  assert_equal 4, "\xFF".bit_count(4, 100)
+  assert_equal 4, "\xFF".bit_count(4..)
+  assert_equal 0, "\xFF".bit_count(8, 4)
+  assert_equal 0, "\xFF".bit_count(9, 0)
+  assert_equal 0, "\xFF".bit_count(100..200)
+  assert_equal 0, "\xFF".bit_count(3, 0)
+  assert_equal 0, "\xFF".bit_count(5..2)
+  assert_equal 0, "".bit_count(0..)
+
+  assert_raise(IndexError) { "\xFF".bit_count(-1, 1) }
+  assert_raise(IndexError) { "\xFF".bit_count(-1..2) }
+  assert_raise(IndexError) { "\xFF".bit_count(0..-1) }
+  assert_raise(ArgumentError) { "\xFF".bit_count(0, -1) }
+  assert_raise(ArgumentError) { "\xFF".bit_count(0..1, 2) }
+  assert_raise(TypeError) { "\xFF".bit_count(0, nil) }
+  assert_raise(TypeError) { "\xFF".bit_count(nil, 1) }
+  assert_raise(ArgumentError) { "\xFF".bit_count(0, 1, lsb_first: nil) }
 end
 
 assert('String#bit_count (long strings)') do
