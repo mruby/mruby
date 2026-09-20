@@ -351,7 +351,6 @@ def backref_scope_dm_def
 end
 
 assert("$~ - a def written inside a define_method body owns its scope") do
-  skip unless Object.new.respond_to?(:singleton_class)
   assert_equal [nil, nil], backref_scope_dm_def
 end
 

@@ -465,17 +465,6 @@ assert("Regexp#dup and Regexp#clone") do
   # a copy of a subclass instance is compiled the same way
   sub = Class.new(Regexp).new("a+")
   assert_true sub.dup.match?("aaa")
-  # clone carries the frozen state, and a frozen original still copies
-  frozen = Regexp.new("a", Regexp::IGNORECASE).freeze
-  assert_true frozen.clone.frozen?
-  assert_true frozen.clone.match?("A")
-  assert_false frozen.dup.frozen?
-end
-
-assert("Regexp#dup names the captures of the pattern it compiled") do
-  # Replacing @source is how the test tells a compiled pattern apart from
-  # the IVs a copy inherits; the writer is mruby-metaprog's.
-  skip unless Object.new.respond_to?(:instance_variable_set)
   # the capture names belong to the pattern the copy compiled, not to the
   # table it inherited, so a source that names nothing leaves it none
   n = Regexp.new("(?<n>a)")
@@ -485,6 +474,11 @@ assert("Regexp#dup names the captures of the pattern it compiled") do
   m = Regexp.new("(?<n>a)")
   m.instance_variable_set(:@source, "(?<z>b)")
   assert_equal ["z"], m.dup.names
+  # clone carries the frozen state, and a frozen original still copies
+  frozen = Regexp.new("a", Regexp::IGNORECASE).freeze
+  assert_true frozen.clone.frozen?
+  assert_true frozen.clone.match?("A")
+  assert_false frozen.dup.frozen?
 end
 
 assert("Regexp readers on a copy that never reached initialize_copy") do
@@ -511,11 +505,8 @@ assert("Regexp readers on a copy that never reached initialize_copy") do
   # inspect answers rather than raising, but it answers about the object it
   # has, not about the source it inherited
   assert_true d.inspect.start_with?("#<")
-end
 
-assert("Regexp readers ignore what an IV write puts in place of the pattern") do
-  skip unless Object.new.respond_to?(:instance_variable_set)
-  # an IV write alone cannot make an uninitialized Regexp answer
+  # nor can an IV write alone make an uninitialized Regexp answer
   a = Regexp.allocate
   a.instance_variable_set(:@source, "a")
   a.instance_variable_set(:@flags, 0)
@@ -537,11 +528,6 @@ assert("Regexp#initialize_copy") do
   # an original with no source has nothing to compile the copy from
   assert_raise(TypeError) { Regexp.allocate.dup }
   assert_raise(TypeError) { Regexp.allocate.clone }
-end
-
-assert("Regexp#initialize_copy called directly") do
-  # the private method is reached through `send`, which mruby-metaprog owns
-  skip unless Object.new.respond_to?(:send)
   # reachable directly, so it refuses what dup and clone cannot hand it
   assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, Regexp.new("b")) }
   assert_raise(TypeError) { Regexp.new("a").dup.send(:initialize_copy, "b") }
