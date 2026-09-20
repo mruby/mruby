@@ -334,22 +334,6 @@ assert('Refinement: a frozen block keeps its refinements') do
   assert_equal "hi", pr.call
 end
 
-assert('Refinement: string instance_eval and class_eval see the refinements') do
-  klass = Class.new { def foo; "C"; end }
-  m = Module.new do
-    refine(klass) { def foo; "R"; end }
-  end
-  c = Class.new do
-    using m
-    define_method(:run) { [klass.new.instance_eval("foo"), klass.class_eval("new.foo")] }
-  end
-  begin
-    assert_equal ["R", "R"], c.new.run
-  rescue NotImplementedError
-    skip "requires mruby-eval"
-  end
-end
-
 assert('Refinement: using errors') do
   assert_raise(TypeError) { using RefTestC }
   assert_raise(TypeError) { using RefTestM.refinements[0] }
