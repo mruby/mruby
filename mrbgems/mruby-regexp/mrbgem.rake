@@ -65,15 +65,12 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_test_dependency 'mruby-eval', :core => 'mruby-eval'
   end
 
-  # Same deal for taking a method back off a class. The test that pins `$&`
-  # and `$1` reading the match rather than `MatchData#[]` redefines `[]` and
-  # parks the original under another name, and dropping that name afterwards
-  # is `remove_method`, which mruby-metaprog owns. Where the build has none
-  # the test leaves the parked name behind, which costs the tests after it
-  # nothing.
-  if build.gems.any? {|g| g.name == 'mruby-metaprog'}
-    spec.add_test_dependency 'mruby-metaprog', :core => 'mruby-metaprog'
-  end
+  # The tests reach for `remove_method`, `singleton_class`,
+  # `instance_variable_set` and `send`, all mruby-metaprog's. A test
+  # dependency costs a build nothing outside mrbtest, so unlike the gems
+  # above this one is declared outright rather than left to the test to
+  # skip around.
+  spec.add_test_dependency 'mruby-metaprog', :core => 'mruby-metaprog'
 
   # The unicode_* and ascii_* test files assert opposite things about the
   # same patterns (one that /i folds them, the other that /i refuses to
