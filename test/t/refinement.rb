@@ -580,4 +580,21 @@ assert('Refinement: survives GC and scope slots are reused') do
   assert_equal "refined", k.new.base
 end
 
+assert('string interpolation with refinement') do
+  Module.new do
+    c = Class.new
+    o = c.new
+    using Module.new {
+      refine c do
+        def to_s
+          "with refinement!"
+        end
+      end
+    }
+    assert_equal "string with refinement!" do
+      "string #{o}"
+    end
+  end
 end
+
+end # defined? Refinement
