@@ -57,5 +57,5 @@ jobs:
         with:
           draft: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
-          body_path: NEWS
+          body_path: NEWS.md
           files: packages/*
