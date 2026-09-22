@@ -809,19 +809,28 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
          cannot distinguish "full of garbage" (reclaim!) from "full of live
          data" (grow!). live_after_mark from the last completed cycle is the
          garbage-free estimate of the true live set: sweep decrements it as
-         objects are freed. Only reclaim when the accounting shows real slack
-         (live below 90% of capacity); otherwise a working set that is
-         genuinely growing (or just sitting near capacity) would collect
-         before every page-add and just burn time re-marking a heap that's
-         still mostly live, so grow directly. Walking the page list here is
-         fine: growth events are
-         rare and the walk is a few pointer hops per page. (mrb_full_gc() is
-         also a no-op while GC is disabled or iterating; we grow then, too.) */
+         objects are freed. Only reclaim when the accounting shows real slack;
+         otherwise a working set that is genuinely growing (or just sitting
+         near capacity) would collect before every page-add and just burn
+         time re-marking a heap that is still mostly live, so grow directly.
+         Walking the page list here is fine: growth events are rare and the
+         walk is a few pointer hops per page. (mrb_full_gc() is also a no-op
+         while GC is disabled or iterating; we grow then, too.)
+
+         How much slack is "real" is a tenth of the heap, which settles the
+         heap at about 1.11 times the live set however big that is, but never
+         less than the half page the absolute test asked for before. The two
+         cross at five pages: taking the tenth alone below that asks for LESS
+         slack than the old test did, and a small heap of mostly garbage --
+         the size mruby runs at, and the case the reclaim exists for -- then
+         collects where it used to grow. */
       size_t capacity = 0;
       for (mrb_heap_page *page = gc->heaps; page; page = page->next) {
         capacity += MRB_HEAP_PAGE_SIZE;
       }
-      if (gc->live_after_mark + capacity/10 < capacity) {
+      size_t slack = capacity/10;
+      if (slack < MRB_HEAP_PAGE_SIZE/2) slack = MRB_HEAP_PAGE_SIZE/2;
+      if (gc->live_after_mark + slack < capacity) {
         mrb_full_gc(mrb);
       }
     }
