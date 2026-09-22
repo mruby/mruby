@@ -810,16 +810,18 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
          data" (grow!). live_after_mark from the last completed cycle is the
          garbage-free estimate of the true live set: sweep decrements it as
          objects are freed. Only reclaim when the accounting shows real slack
-         (live well below capacity); otherwise a working set that is genuinely
-         growing would collect before every page-add and just burn time, so
-         grow directly. Walking the page list here is fine: growth events are
+         (live below 90% of capacity); otherwise a working set that is
+         genuinely growing (or just sitting near capacity) would collect
+         before every page-add and just burn time re-marking a heap that's
+         still mostly live, so grow directly. Walking the page list here is
+         fine: growth events are
          rare and the walk is a few pointer hops per page. (mrb_full_gc() is
          also a no-op while GC is disabled or iterating; we grow then, too.) */
       size_t capacity = 0;
       for (mrb_heap_page *page = gc->heaps; page; page = page->next) {
         capacity += MRB_HEAP_PAGE_SIZE;
       }
-      if (gc->live_after_mark + MRB_HEAP_PAGE_SIZE/2 < capacity) {
+      if (gc->live_after_mark + capacity/10 < capacity) {
         mrb_full_gc(mrb);
       }
     }
