@@ -2188,8 +2188,12 @@ prepare_exec_strcat(mrb_state *mrb, uint32_t a)
     OP_RETURN,  0         // OP_RETURN    R0            ; unreachable
   };
   static const mrb_irep prepare_exec_strcat_irep = MRB_MAKE_STATIC_IREP(3, 4, prepare_exec_strcat_iseq, prepare_exec_strcat_syms);
-  static const struct RProc prepare_exec_strcat_proc = MRB_MAKE_STATIC_PROC_FROM_IREP(prepare_exec_strcat_irep);
-  static const struct RProc prepare_exec_strcat_post_proc = MRB_MAKE_STATIC_PROC_FROM_FUNC(prepare_exec_strcat_post_func);
+  /* Both become an mrb_value, whose word-boxed form keeps the type tag in
+     the low bits of the pointer; the alignment a static object is given
+     otherwise is the compiler's to choose (see the static procs in proc.c
+     and class.c, aligned the same way). */
+  mrb_alignas(8) static const struct RProc prepare_exec_strcat_proc = MRB_MAKE_STATIC_PROC_FROM_IREP(prepare_exec_strcat_irep);
+  mrb_alignas(8) static const struct RProc prepare_exec_strcat_post_proc = MRB_MAKE_STATIC_PROC_FROM_FUNC(prepare_exec_strcat_post_func);
 
   MRB_PRESYM_INIT_SYMBOLS(mrb, prepare_exec_strcat_syms);
 
