@@ -360,6 +360,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           obj = va_arg(ap, mrb_value);
         L_cat_obj:
           str = (inspect ? mrb_inspect : mrb_obj_as_string)(mrb, obj);
+        L_cat_str:
           if (mrb_type(str) != MRB_TT_STRING) {
             chars = "void (no string conversion)";
             len = strlen(chars);
@@ -372,8 +373,13 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
         case 'C':
           cls = va_arg(ap, struct RClass*);
         L_cat_class:
-          obj = mrb_obj_value(cls);
-          goto L_cat_obj;
+          /* A class is named here by its class path, not by what it answers
+             to to_s: a message is built while an exception is being raised,
+             and naming the class is not a reason to run Ruby there. It is
+             also what `Module#inspect` answers, so `%!C` needs no arm of its
+             own. */
+          str = mrb_mod_to_s(mrb, mrb_obj_value(cls));
+          goto L_cat_str;
         case 'T':
           obj = va_arg(ap, mrb_value);
         L_cat_real_class_of:

@@ -3115,15 +3115,16 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
  * For strings, it returns the object itself.
  * For symbols, it returns the symbol's name as a string.
  * For integers, it converts the integer to a string (base 10).
- * For classes/modules, it returns their name.
  * For other types, it calls the `to_s` method on the object.
  *
- * Every type spelled here is a built-in whose string the VM knows how to
- * write, and writes with the same C function the type's own `to_s` is: an
- * override installed on one of those core classes is not read back here,
- * the way mruby's other C paths over built-ins (`mrb_cmp()`, the index
- * opcodes before #7198) do not read one either. `to_s` is sent for the
- * objects the VM has no spelling of its own for.
+ * The line is between a value and an object. A value is spelled by what it
+ * is, and the spelling is written here with the same C function the type's
+ * own `to_s` is, so an override installed on one of those core classes is
+ * not read back -- the way mruby's other C paths over built-ins
+ * (`mrb_cmp()`, the index opcodes before #7198) do not read one either.
+ * Everything else is an object that may answer for itself, a class among
+ * them: `def self.to_s` is a method on one object rather than an override
+ * of a core class, and it is answered here.
  */
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
@@ -3147,10 +3148,6 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
     return mrb_nil_p(obj) ? mrb_nil_to_s(mrb, obj) : mrb_false_to_s(mrb, obj);
   case MRB_TT_TRUE:
     return mrb_true_to_s(mrb, obj);
-  case MRB_TT_SCLASS:
-  case MRB_TT_CLASS:
-  case MRB_TT_MODULE:
-    return mrb_mod_to_s(mrb, obj);
   default:
     return mrb_type_convert(mrb, obj, MRB_TT_STRING, MRB_SYM(to_s));
   }

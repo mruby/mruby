@@ -1526,13 +1526,12 @@ assert('String interpolation calls #to_s') do
   assert_equal "1.5 Infinity NaN", "#{1.5} #{1.0 / 0} #{0.0 / 0.0}" if 1.respond_to?(:to_f)
 end
 
-assert('String interpolation spells a built-in itself') do
-  # Every built-in the VM has a spelling of its own for is written by that
-  # spelling, not by sending to_s: an override on one of those core classes
-  # is not read back, as mruby's other C paths over built-ins do not read
-  # one either. What has no such spelling is sent to_s (see above).
+assert('String interpolation spells a built-in value itself') do
+  # A value is spelled by what it is, with the C function the type's own
+  # to_s is: an override on one of those core classes is not read back, as
+  # mruby's other C paths over built-ins do not read one either. An object
+  # answers for itself instead (see below).
   assert_equal "1 s  true false", "#{1} #{:s} #{nil} #{true} #{false}"
-  assert_equal "Integer", "#{Integer}"
   assert_equal "1.5", "#{1.5}" if 1.respond_to?(:to_f)
 
   # An integer too wide to store inline is spelled here too. The shift count
@@ -1551,6 +1550,27 @@ assert('String interpolation spells a built-in itself') do
   # interpolation cannot drift apart.
   vals = [1, :s, nil, true, false]
   assert_equal vals.map { |v| "#{v}" }.join(","), vals.join(",")
+end
+
+assert('String interpolation asks a class what it spells') do
+  # A class is an object, not a value: `def self.to_s` is a method on one
+  # object rather than an override of a core class, so it is answered.
+  k = Class.new { def self.to_s; "named"; end }
+  assert_equal "a named", "a #{k}"
+  assert_equal "named", [k].join
+  m = Module.new { def self.to_s; "mod"; end }
+  assert_equal "mod", "#{m}"
+
+  # A class that says nothing of its own is still spelled by its path.
+  assert_equal "Integer", "#{Integer}"
+
+  # Naming a class in a message does not go through that method: the message
+  # is built while an exception is raised, which is no place to run Ruby.
+  begin
+    k.new.no_such_method
+  rescue NoMethodError => e
+    assert_false e.message.include?("named")
+  end
 end
 
 assert('String#bytes') do
