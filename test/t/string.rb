@@ -1523,7 +1523,6 @@ assert('String interpolation calls #to_s') do
   assert_equal "a1b", "a#{"#{1}"}b"
   assert_equal "1 sym  Integer", "#{1} #{:sym} #{nil} #{Integer}"
   assert_equal "true false", "#{true} #{false}"
-  assert_equal "#{2 ** 100}", (2 ** 100).to_s
   assert_equal "1.5 Infinity NaN", "#{1.5} #{1.0 / 0} #{0.0 / 0.0}" if 1.respond_to?(:to_f)
 end
 
@@ -1535,7 +1534,18 @@ assert('String interpolation spells a built-in itself') do
   assert_equal "1 s  true false", "#{1} #{:s} #{nil} #{true} #{false}"
   assert_equal "Integer", "#{Integer}"
   assert_equal "1.5", "#{1.5}" if 1.respond_to?(:to_f)
-  assert_equal "1267650600228229401496703205376", "#{2 ** 100}" if (2 ** 100).is_a?(Integer)
+
+  # An integer too wide to store inline is spelled here too. The shift count
+  # is a variable because a constant shift out of mrb_int range makes the
+  # build fail rather than raise, and the whole thing is guarded because a
+  # build without mruby-bigint has no such integer to spell.
+  begin
+    k = 100
+    big = 1 << k
+    assert_equal "1267650600228229401496703205376", "#{big}"
+    assert_equal big.to_s, "#{big}"
+  rescue RangeError
+  end
 
   # The same spelling every path uses, so a join, a format and an
   # interpolation cannot drift apart.
