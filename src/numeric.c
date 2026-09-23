@@ -593,8 +593,8 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
  *     3.25.to_s  #=> 3.25
  */
 
-static mrb_value
-flo_to_s(mrb_state *mrb, mrb_value flt)
+mrb_value
+mrb_flo_to_s(mrb_state *mrb, mrb_value flt)
 {
   mrb_float f = mrb_float(flt);
   mrb_value str;
@@ -2650,8 +2650,8 @@ static const mrb_mt_entry float_rom_entries[] = {
   MRB_MT_ENTRY(flo_to_i,       MRB_SYM(to_i),     MRB_ARGS_NONE()),  /* 15.2.9.3.14 */
   MRB_MT_ENTRY(flo_truncate,   MRB_SYM(truncate), MRB_ARGS_OPT(1)),  /* 15.2.9.3.15 */
   MRB_MT_ENTRY(flo_divmod,     MRB_SYM(divmod), MRB_ARGS_REQ(1)),
-  MRB_MT_ENTRY(flo_to_s,       MRB_SYM(to_s),     MRB_ARGS_NONE()),  /* 15.2.9.3.16(x) */
-  MRB_MT_ENTRY(flo_to_s,       MRB_SYM(inspect),  MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_flo_to_s,       MRB_SYM(to_s),     MRB_ARGS_NONE()),  /* 15.2.9.3.16(x) */
+  MRB_MT_ENTRY(mrb_flo_to_s,       MRB_SYM(inspect),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(flo_nan_p,      MRB_SYM_Q(nan),    MRB_ARGS_NONE()),
   MRB_MT_ENTRY(flo_abs,        MRB_SYM(abs),      MRB_ARGS_NONE()),  /* 15.2.7.4.3 */
   MRB_MT_ENTRY(flo_hash,       MRB_SYM(hash),     MRB_ARGS_NONE()),

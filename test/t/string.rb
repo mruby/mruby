@@ -1522,6 +1522,25 @@ assert('String interpolation calls #to_s') do
   # the way a to_s of their own would spell them.
   assert_equal "a1b", "a#{"#{1}"}b"
   assert_equal "1 sym  Integer", "#{1} #{:sym} #{nil} #{Integer}"
+  assert_equal "true false", "#{true} #{false}"
+  assert_equal "#{2 ** 100}", (2 ** 100).to_s
+  assert_equal "1.5 Infinity NaN", "#{1.5} #{1.0 / 0} #{0.0 / 0.0}" if 1.respond_to?(:to_f)
+end
+
+assert('String interpolation spells a built-in itself') do
+  # Every built-in the VM has a spelling of its own for is written by that
+  # spelling, not by sending to_s: an override on one of those core classes
+  # is not read back, as mruby's other C paths over built-ins do not read
+  # one either. What has no such spelling is sent to_s (see above).
+  assert_equal "1 s  true false", "#{1} #{:s} #{nil} #{true} #{false}"
+  assert_equal "Integer", "#{Integer}"
+  assert_equal "1.5", "#{1.5}" if 1.respond_to?(:to_f)
+  assert_equal "1267650600228229401496703205376", "#{2 ** 100}" if (2 ** 100).is_a?(Integer)
+
+  # The same spelling every path uses, so a join, a format and an
+  # interpolation cannot drift apart.
+  vals = [1, :s, nil, true, false]
+  assert_equal vals.map { |v| "#{v}" }.join(","), vals.join(",")
 end
 
 assert('String#bytes') do

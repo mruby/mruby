@@ -3117,6 +3117,13 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
  * For integers, it converts the integer to a string (base 10).
  * For classes/modules, it returns their name.
  * For other types, it calls the `to_s` method on the object.
+ *
+ * Every type spelled here is a built-in whose string the VM knows how to
+ * write, and writes with the same C function the type's own `to_s` is: an
+ * override installed on one of those core classes is not read back here,
+ * the way mruby's other C paths over built-ins (`mrb_cmp()`, the index
+ * opcodes before #7198) do not read one either. `to_s` is sent for the
+ * objects the VM has no spelling of its own for.
  */
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
@@ -3128,6 +3135,18 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
     return mrb_sym_str(mrb, mrb_symbol(obj));
   case MRB_TT_INTEGER:
     return mrb_integer_to_str(mrb, obj, 10);
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bint_to_s(mrb, obj, 10);
+#endif
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    return mrb_flo_to_s(mrb, obj);
+#endif
+  case MRB_TT_FALSE:
+    return mrb_nil_p(obj) ? mrb_nil_to_s(mrb, obj) : mrb_false_to_s(mrb, obj);
+  case MRB_TT_TRUE:
+    return mrb_true_to_s(mrb, obj);
   case MRB_TT_SCLASS:
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:

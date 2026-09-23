@@ -161,8 +161,8 @@ mrb_true(mrb_state *mrb, mrb_value obj)
  *  Always returns the empty string.
  */
 
-static mrb_value
-nil_to_s(mrb_state *mrb, mrb_value obj)
+mrb_value
+mrb_nil_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_frozen(mrb, NULL, 0);
   RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
@@ -249,8 +249,8 @@ true_xor(mrb_state *mrb, mrb_value obj)
  * The string representation of `true` is "true".
  */
 
-static mrb_value
-true_to_s(mrb_state *mrb, mrb_value obj)
+mrb_value
+mrb_true_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "true");
   RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
@@ -358,8 +358,8 @@ false_or(mrb_state *mrb, mrb_value obj)
  * 'nuf said...
  */
 
-static mrb_value
-false_to_s(mrb_state *mrb, mrb_value obj)
+mrb_value
+mrb_false_to_s(mrb_state *mrb, mrb_value obj)
 {
   mrb_value str = mrb_str_new_lit_frozen(mrb, "false");
   RSTR_CODERANGE_SET(mrb_str_ptr(str), MRB_STR_CODERANGE_7BIT);
@@ -372,7 +372,7 @@ static const mrb_mt_entry nil_rom_entries[] = {
   MRB_MT_ENTRY(false_or,    MRB_OPSYM(or), MRB_ARGS_REQ(1)),  /* 15.2.4.3.2  */
   MRB_MT_ENTRY(false_xor,   MRB_OPSYM(xor), MRB_ARGS_REQ(1)),  /* 15.2.4.3.3  */
   MRB_MT_ENTRY(mrb_true,    MRB_SYM_Q(nil), MRB_ARGS_NONE()),  /* 15.2.4.3.4  */
-  MRB_MT_ENTRY(nil_to_s,    MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.4.3.5  */
+  MRB_MT_ENTRY(mrb_nil_to_s,    MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.4.3.5  */
   MRB_MT_ENTRY(nil_inspect, MRB_SYM(inspect), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(nil_match,   MRB_OPSYM(match), MRB_ARGS_REQ(1)),
 };
@@ -381,16 +381,16 @@ static const mrb_mt_entry true_rom_entries[] = {
   MRB_MT_ENTRY(true_and,  MRB_OPSYM(and), MRB_ARGS_REQ(1)),  /* 15.2.5.3.1  */
   MRB_MT_ENTRY(true_or,   MRB_OPSYM(or), MRB_ARGS_REQ(1)),  /* 15.2.5.3.2  */
   MRB_MT_ENTRY(true_xor,  MRB_OPSYM(xor), MRB_ARGS_REQ(1)),  /* 15.2.5.3.3  */
-  MRB_MT_ENTRY(true_to_s, MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.5.3.4  */
-  MRB_MT_ENTRY(true_to_s, MRB_SYM(inspect), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_true_to_s, MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.5.3.4  */
+  MRB_MT_ENTRY(mrb_true_to_s, MRB_SYM(inspect), MRB_ARGS_NONE()),
 };
 
 static const mrb_mt_entry false_rom_entries[] = {
   MRB_MT_ENTRY(false_and,  MRB_OPSYM(and), MRB_ARGS_REQ(1)),  /* 15.2.4.3.1  */
   MRB_MT_ENTRY(false_or,   MRB_OPSYM(or), MRB_ARGS_REQ(1)),  /* 15.2.4.3.2  */
   MRB_MT_ENTRY(false_xor,  MRB_OPSYM(xor), MRB_ARGS_REQ(1)),  /* 15.2.4.3.3  */
-  MRB_MT_ENTRY(false_to_s, MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.6.3.4  */
-  MRB_MT_ENTRY(false_to_s, MRB_SYM(inspect), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_false_to_s, MRB_SYM(to_s),  MRB_ARGS_NONE()),  /* 15.2.6.3.4  */
+  MRB_MT_ENTRY(mrb_false_to_s, MRB_SYM(inspect), MRB_ARGS_NONE()),
 };
 
 void

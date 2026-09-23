@@ -56,6 +56,12 @@ void mrb_class_name_class(mrb_state*, struct RClass*, struct RClass*, mrb_sym);
 mrb_bool mrb_const_name_p(mrb_state*, const char*, mrb_int);
 mrb_value mrb_class_find_path(mrb_state*, struct RClass*);
 mrb_value mrb_mod_to_s(mrb_state *, mrb_value);
+mrb_value mrb_nil_to_s(mrb_state *, mrb_value);
+mrb_value mrb_true_to_s(mrb_state *, mrb_value);
+mrb_value mrb_false_to_s(mrb_state *, mrb_value);
+#ifndef MRB_NO_FLOAT
+mrb_value mrb_flo_to_s(mrb_state *, mrb_value);
+#endif
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
 mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);

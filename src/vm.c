@@ -4798,10 +4798,18 @@ RETRY_TRY_BLOCK:
       case MRB_TT_CLASS:
       case MRB_TT_MODULE:
       case MRB_TT_SCLASS:
+      case MRB_TT_FALSE:
+      case MRB_TT_TRUE:
+#ifdef MRB_USE_BIGINT
+      case MRB_TT_BIGINT:
+#endif
+#ifndef MRB_NO_FLOAT
+      case MRB_TT_FLOAT:
+#endif
         /* What mrb_obj_as_string() spells out in C, with no method to send:
-           a frame for these would cost a call per interpolated integer. A
+           a frame for these would cost a call per interpolated value. A
            redefined to_s on them is not read here, which is what the C path
-           has always answered for the types it knows. */
+           answers for every built-in it knows. */
         mrb_str_concat(mrb, regs[a], regs[a+1]);
         ci = mrb->c->ci; // just in case
         break;
