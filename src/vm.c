@@ -4791,14 +4791,25 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STRCAT, B) {
       mrb_ensure_string_type(mrb, regs[a]);
-      if (mrb_string_p(regs[a+1])) {
+      switch (mrb_type(regs[a+1])) {
+      case MRB_TT_STRING:
+      case MRB_TT_SYMBOL:
+      case MRB_TT_INTEGER:
+      case MRB_TT_CLASS:
+      case MRB_TT_MODULE:
+      case MRB_TT_SCLASS:
+        /* What mrb_obj_as_string() spells out in C, with no method to send:
+           a frame for these would cost a call per interpolated integer. A
+           redefined to_s on them is not read here, which is what the C path
+           has always answered for the types it knows. */
         mrb_str_concat(mrb, regs[a], regs[a+1]);
         ci = mrb->c->ci; // just in case
-      }
-      else {
+        break;
+      default:
         prepare_exec_strcat(mrb, a);
         ci = mrb->c->ci;
         irep = ci->proc->body.irep;
+        break;
       }
       NEXT;
     }
