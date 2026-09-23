@@ -100,6 +100,15 @@ assert('String#rstrip') do
   assert_equal("abc", "abc  ".rstrip)
 end
 
+assert('String#strip, #lstrip and #rstrip around a multibyte character') do
+  assert_equal("あ", "  あ  ".strip)
+  assert_equal("あ  ", "  あ  ".lstrip)
+  assert_equal("  あ", "  あ  ".rstrip)
+  assert_equal("あ", "あ\t\n".strip)
+  assert_equal("あ", "あ\t\n".rstrip)
+  assert_equal("あい", " あい ".strip)
+end
+
 assert('String#strip!') do
   s = "  abc  "
   t = "abc"
@@ -1620,6 +1629,13 @@ assert('String#delete_suffix') do
   assert_equal "hello", "hello".delete_suffix("he")
   assert_equal "he", "hello".delete_suffix!("llo")
   assert_nil "hello".delete_suffix!("he")
+end
+
+assert('String#delete_prefix and #delete_suffix around a multibyte character') do
+  assert_equal "い", "あい".delete_prefix("あ")
+  assert_equal "あ", "あい".delete_suffix("い")
+  assert_equal "い", "あい".delete_prefix!("あ")
+  assert_equal "あ", "あい".delete_suffix!("い")
 end
 
 assert('String#+@') do

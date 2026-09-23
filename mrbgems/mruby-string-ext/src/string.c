@@ -1420,7 +1420,7 @@ str_del_prefix(mrb_state *mrb, mrb_value self)
   if (plen > slen) return mrb_str_dup(mrb, self);
   if (!str_prefix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
-  return mrb_str_substr(mrb, self, plen, slen-plen);
+  return mrb_str_byte_subseq(mrb, self, plen, slen-plen);
 }
 
 static mrb_bool
@@ -1481,7 +1481,7 @@ str_del_suffix(mrb_state *mrb, mrb_value self)
   if (plen > slen) return mrb_str_dup(mrb, self);
   if (!str_suffix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
-  return mrb_str_substr(mrb, self, 0, slen-plen);
+  return mrb_str_byte_subseq(mrb, self, 0, slen-plen);
 }
 
 #define lesser(a,b) (((a)>(b))?(b):(a))
@@ -1740,7 +1740,7 @@ str_lstrip(mrb_state *mrb, mrb_value self)
   }
 
   /* Return substring from first non-whitespace to end */
-  return mrb_str_substr(mrb, self, start, len - start);
+  return mrb_str_byte_subseq(mrb, self, start, len - start);
 }
 
 /*
@@ -1771,7 +1771,7 @@ str_rstrip(mrb_state *mrb, mrb_value self)
   }
 
   /* Return substring from start to last non-whitespace */
-  return mrb_str_substr(mrb, self, 0, end);
+  return mrb_str_byte_subseq(mrb, self, 0, end);
 }
 
 /*
@@ -1808,7 +1808,7 @@ str_strip(mrb_state *mrb, mrb_value self)
   }
 
   /* Return substring from first to last non-whitespace */
-  return mrb_str_substr(mrb, self, start, end - start);
+  return mrb_str_byte_subseq(mrb, self, start, end - start);
 }
 
 /*
