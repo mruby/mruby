@@ -261,3 +261,32 @@ assert('a super outside a method forwards no block') do
   assert_include result, 'SUPER'
   assert_not_include result, 'GETUPVAR'
 end
+
+assert('diagnostics past the first few are placed by line and column too') do
+  # A diagnostic is placed by counting the newlines in front of it. Past the
+  # first sixteen, the count comes from an index of where each line begins,
+  # built once, since a count per diagnostic made a source with an error on
+  # every line quadratic. Both have to place a diagnostic the same way. The
+  # `?\` at the top is a character literal holding a newline: the source's
+  # lines count it, though Prism's own newline list does not.
+  Dir.mktmpdir do |dir|
+    a = File.join(dir, 'a.rb')
+    b = File.join(dir, 'b.rb')
+    lines = ["x = ?\\", "1"] + (1..30).map { |i| format("  y%02d = $ )", i) }
+    File.write(a, lines.join("\n"))   # no newline at the end
+    File.write(b, " )z = 1\n  w = $ )\n")
+    result, = Open3.capture2e(*(cmd_list('mrbc') + ['-o', File.join(dir, 'out.mrb'), a, b]))
+    msgs = result.lines.grep(/syntax error/)
+    placed = msgs.map { |l| l[/\A(.+?):(\d+):(\d+):/] && [File.basename($1), $2.to_i, $3.to_i] }
+
+    # Every line of a.rb from the third on holds a `$` at column 9.
+    dollar = placed.select { |f, _, c| f == 'a.rb' && c == 9 }.map { |_, l, _| l }.uniq
+    assert_equal((3..32).to_a, dollar)
+    assert_true placed.count { |f, _, _| f == 'a.rb' } > 16
+
+    # b.rb begins where a.rb's last line ends, so its first line counts
+    # columns from where the file begins, and its second from the line.
+    assert_include placed, ['b.rb', 1, 2]
+    assert_include placed, ['b.rb', 2, 7]
+  end
+end

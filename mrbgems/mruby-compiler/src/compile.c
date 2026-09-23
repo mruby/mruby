@@ -233,6 +233,7 @@ mrc_pm_parser_init(mrc_parser_state *p, uint8_t **source, size_t size, mrc_ccont
   mrc_pm_options_init(cc);
 #endif
   cc->nesting = 0;
+  mrc_diagnostic_source_reset(cc);
   pm_parser_init(p, *source, size, cc->options);
   p->lex_callback = cb;
   mrc_init_presym(&p->constant_pool);

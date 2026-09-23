@@ -25,6 +25,7 @@ struct mrc_ccontext;
 
 void mrc_diagnostic_list_append(struct mrc_ccontext *c, const uint8_t *location_start, const char *message, mrc_diagnostic_code code);
 void mrc_diagnostic_list_free(struct mrc_ccontext *c);
+void mrc_diagnostic_source_reset(struct mrc_ccontext *c);
 
 MRC_END_DECL
 

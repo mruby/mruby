@@ -50,6 +50,14 @@ typedef struct mrc_ccontext {
   // TODO
   //size_t parser_nerr;
   struct mrc_diagnostic_list *diagnostic_list;
+  /* diagnostic.c alone keeps the four below; see mrc_diagnostic_list_append().
+     The last entry of diagnostic_list, so an append does not walk the list. */
+  struct mrc_diagnostic_list *diagnostic_tail;
+  /* Where each line of the parsed source begins, built only once a source
+     has had more lines looked up than a scan per lookup can afford. */
+  uint32_t *diagnostic_line_starts;
+  uint32_t diagnostic_line_count;
+  uint16_t diagnostic_lookups;
 
   // For PICOIRB
   uint16_t scope_sp;
