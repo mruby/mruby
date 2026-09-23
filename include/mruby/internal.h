@@ -280,6 +280,7 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
   { &irep }, NULL, { NULL } \
 }
 
+#if !defined(__cplusplus) || __cplusplus >= 202002L
 /* The parameter is not spelled `func`: a macro parameter is replaced in the
    member designator too, so that name would rewrite `.func` into `..` the
    argument. Naming the member is what this needs, rather than writing a
@@ -291,6 +292,35 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
   NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_CFUNC_FL | MRB_PROC_ORPHAN, \
   { .func = cfunc }, NULL, { NULL } \
 }
+#else
+/*
+ *  In C++ older than C++20, "designated initializer" is not available.
+ *  Instead, use the function-based initialization method.
+ *
+ *  However, this approach may require dynamic initialization at runtime even
+ *  for variables modified with `static const`, so the following precautions
+ *  should be taken:
+ *    - `static const`-qualified function-local variables are initialized
+ *      during the first function call. Checking whether they have been
+ *      initialized also incurs overhead associated with ensuring thread
+ *      safety.
+ *    - `static const`-qualified global variables are included as part of the
+ *      program’s initialization process. To minimize the impact of
+ *      initialization order, it is strongly recommended to keep external
+ *      references to a minimum.
+ */
+#define MRB_MAKE_STATIC_PROC_FROM_FUNC(func) mrb_make_static_proc_from_func(func)
+static inline struct RProc
+mrb_make_static_proc_from_func(mrb_func_t func)
+{
+  struct RProc p = {
+    NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_CFUNC_FL | MRB_PROC_ORPHAN,
+    {}, NULL, { NULL }
+  };
+  p.body.func = func;
+  return p;
+}
+#endif
 
 /* A closed env may carry one slot past its locals: the special-variable
  * container of the scope the env escapes from, which mrb_env_detach()
