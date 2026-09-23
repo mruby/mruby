@@ -173,6 +173,22 @@ assert 'Bigint -' do
   assert_equal(-36893488147419104229, -997 - n)
 end
 
+assert 'Bigint -/+ keeps the sign when a small operand grows the magnitude' do
+  # A magnitude that is all ones up to a limb boundary carries into a new limb
+  # when 1 is added. Doing that to a negative value used to flip the sign, so
+  # -(2**64 - 1) - 1 answered +2**64 instead of -2**64.
+  n = (1 << 64) - 1
+  assert_equal(-18446744073709551616, -n - 1)
+  assert_equal(-18446744073709551616, -n + -1)
+  assert_equal(-18446744073709551620, -n - 5)
+  assert_equal 18446744073709551616, n + 1
+  m = (1 << 128) - 1
+  assert_equal(-340282366920938463463374607431768211456, -m - 1)
+  assert_equal 340282366920938463463374607431768211456, m + 1
+  assert_equal(-n, (-n - 7) + 7)
+  assert_equal n, (n + 7) - 7
+end
+
 assert 'Bigint *' do
   n = 1<<65
   assert_equal 0, n * 0

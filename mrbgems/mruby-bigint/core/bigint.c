@@ -562,7 +562,11 @@ mpz_add_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
   if (carry != 0) {
     mpz_realloc(ctx, x, x->sz + 1);
     x->p[x->sz-1] = (mp_limb)carry;
-    x->sn = 1;
+    /* the magnitude grew; keep the sign the caller set (the routine "ignores
+       sign of x"). Forcing it positive here turned a magnitude-growing step on
+       a negative value positive, so mrb_bint_sub_n()/add_n() gave the wrong
+       sign whenever the carry crossed a limb, e.g. -(2**64-1) - 1. */
+    if (x->sn == 0) x->sn = 1;
   }
   trim(x);
 }
