@@ -274,9 +274,16 @@ void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
   { &irep }, NULL, { NULL } \
 }
 
-#define MRB_MAKE_STATIC_PROC_FROM_FUNC(func) { \
+/* The parameter is not spelled `func`: a macro parameter is replaced in the
+   member designator too, so that name would rewrite `.func` into `..` the
+   argument. Naming the member is what this needs, rather than writing a
+   function pointer through the union's first member, which is an object
+   pointer: C gives that conversion no meaning, and a target whose function
+   pointers are wider than its object pointers (the small cores mruby is
+   built for among them) would lose half of it. */
+#define MRB_MAKE_STATIC_PROC_FROM_FUNC(cfunc) { \
   NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_CFUNC_FL | MRB_PROC_ORPHAN, \
-  { (const mrb_irep*)func }, NULL, { NULL } \
+  { .func = cfunc }, NULL, { NULL } \
 }
 
 /* A closed env may carry one slot past its locals: the special-variable
