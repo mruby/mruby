@@ -2151,6 +2151,73 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   return exec_irep(mrb, self, p);
 }
 
+static mrb_value
+prepare_exec_strcat_post_func(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_get_argc(mrb) != 2) mrb_argnum_error(mrb, mrb_get_argc(mrb), 2, 2);
+
+  const mrb_value *args = mrb_get_argv(mrb);
+  mrb_check_type(mrb, args[0], MRB_TT_STRING);
+  mrb_check_type(mrb, args[1], MRB_TT_STRING);
+  return mrb_str_cat_str(mrb, args[0], args[1]);
+}
+
+static mrb_bool
+prepare_exec_strcat(mrb_state *mrb, uint32_t a)
+{
+  /*
+   *  call stack:
+   *    called:   [..., base]
+   *    returned: [..., base, strcat (, #to_s)]
+   *                            ^         ^--- called from strcat
+   *                            `--- invisible method-id
+   *
+   *  data stack:
+   *    called:   [..., string, any-object]
+   *
+   *    returned: [..., strcat_proc, string, any-object, implicit-block]
+   *                      ^                    ^           ^--- nil
+   *                      |                    `--- receiver for #to_s, its return value is a string
+   *                      `--- calls #to_s and then tailcalls prepare_exec_strcat_post_func()
+   */
+
+  MRB_PRESYM_DEFINE_VAR_AND_INITER(prepare_exec_strcat_syms, 1, MRB_SYM(to_s))
+  static const mrb_code prepare_exec_strcat_iseq[] = {
+    OP_SEND,    2, 0, 0,  // OP_SEND      R2  :to_s  n=0|nk=0
+    OP_CALL,              // OP_CALL      R0            ; tailcall to prepare_exec_strcat_post_func()
+    OP_RETURN,  0         // OP_RETURN    R0            ; unreachable
+  };
+  static const mrb_irep prepare_exec_strcat_irep = MRB_MAKE_STATIC_IREP(3, 4, prepare_exec_strcat_iseq, prepare_exec_strcat_syms);
+  static const struct RProc prepare_exec_strcat_proc = MRB_MAKE_STATIC_PROC_FROM_IREP(prepare_exec_strcat_irep);
+  static const struct RProc prepare_exec_strcat_post_proc = MRB_MAKE_STATIC_PROC_FROM_FUNC(prepare_exec_strcat_post_func);
+
+  MRB_PRESYM_INIT_SYMBOLS(mrb, prepare_exec_strcat_syms);
+
+  mrb_callinfo *ci = mrb->c->ci;
+  const struct RProc *strcat_proc = &prepare_exec_strcat_proc;
+#ifdef MRB_USE_REFINEMENTS
+  struct RArray *refscope = mrb_vm_refinements(mrb, ci);
+  if (refscope) {
+    struct RProc *refined_strcat_proc = (struct RProc*)mrb_obj_alloc_core(mrb, MRB_TT_PROC, mrb->proc_class);
+    refined_strcat_proc->body.irep = &prepare_exec_strcat_irep;
+    mrb_proc_set_refscope(mrb, refined_strcat_proc, refscope);
+    strcat_proc = refined_strcat_proc;
+  }
+#endif // MRB_USE_REFINEMENTS
+
+  ci = cipush(mrb, a, CINFO_DIRECT, mrb->object_class, NULL, NULL, 0, 2);
+  stack_extend(mrb, 4); // before expansion, ensure that the two objects are protected on the data stack
+  ci->stack[3] = mrb_nil_value();
+  ci->stack[2] = ci->stack[1];
+  ci->stack[1] = ci->stack[0];
+  ci->stack[0] = mrb_obj_value((void*)&prepare_exec_strcat_post_proc);
+  ci->cci = CINFO_NONE;
+  ci->proc = strcat_proc;
+  ci->pc = prepare_exec_strcat_iseq;
+
+  return TRUE;
+}
+
 #define RBREAK_TAG_FOREACH(f) \
   f(RBREAK_TAG_BREAK, 0) \
   f(RBREAK_TAG_JUMP, 1) \
@@ -4709,8 +4776,15 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STRCAT, B) {
       mrb_ensure_string_type(mrb, regs[a]);
-      mrb_str_concat(mrb, regs[a], regs[a+1]);
-      ci = mrb->c->ci;
+      if (mrb_string_p(regs[a+1])) {
+        mrb_str_concat(mrb, regs[a], regs[a+1]);
+        ci = mrb->c->ci; // just in case
+      }
+      else {
+        prepare_exec_strcat(mrb, a);
+        ci = mrb->c->ci;
+        irep = ci->proc->body.irep;
+      }
       NEXT;
     }
 

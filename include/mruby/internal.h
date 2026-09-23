@@ -141,6 +141,12 @@ uint32_t mrb_obj_hash_code(mrb_state *mrb, mrb_value key);
 /* irep */
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
 #ifdef MRUBY_IREP_H
+#define MRB_MAKE_STATIC_IREP(nlocals, nregs, iseq, syms) { \
+  nlocals, nregs, 0, MRB_IREP_STATIC, \
+  iseq, NULL, syms, NULL, NULL, NULL, \
+  sizeof(iseq), 0, sizeof((syms)) / sizeof((syms)[0]), 0, 0, \
+}
+
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 
 static inline const struct mrb_irep_catch_handler *
@@ -263,6 +269,16 @@ mrb_value mrb_vm_svar_get(mrb_state *mrb, enum mrb_svar_index key);
 void mrb_vm_svar_set(mrb_state *mrb, enum mrb_svar_index key, mrb_value v);
 
 #ifdef MRUBY_PROC_H
+#define MRB_MAKE_STATIC_PROC_FROM_IREP(irep) { \
+  NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT | MRB_PROC_ORPHAN, \
+  { &irep }, NULL, { NULL } \
+}
+
+#define MRB_MAKE_STATIC_PROC_FROM_FUNC(func) { \
+  NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_CFUNC_FL | MRB_PROC_ORPHAN, \
+  { (const mrb_irep*)func }, NULL, { NULL } \
+}
+
 /* A closed env may carry one slot past its locals: the special-variable
  * container of the scope the env escapes from, which mrb_env_detach()
  * moves there and svar_owner() reads back, or, for a scope that holds no
