@@ -1502,6 +1502,28 @@ assert('String interpolation (mrb_str_concat for shared strings)') do
   assert_equal "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:", "#{a}:"
 end
 
+assert('String interpolation calls #to_s') do
+  k = Class.new { def to_s; "called"; end }
+  assert_equal "x called", "x #{k.new}"
+
+  # A to_s that answers no String is not taken at its word: the object gets
+  # the default representation instead, as a conversion to String does
+  # everywhere else.
+  bad = Class.new { def to_s; 42; end }
+  assert_equal "#<", "#{bad.new}"[0, 2]
+  nils = Class.new { def to_s; nil; end }
+  assert_equal "#<", "#{nils.new}"[0, 2]
+
+  # An exception out of to_s is raised from the interpolation, not swallowed.
+  boom = Class.new { def to_s; raise "boom"; end }
+  assert_raise(RuntimeError) { "#{boom.new}" }
+
+  # Interpolations nest, and the types converted without a call are spelled
+  # the way a to_s of their own would spell them.
+  assert_equal "a1b", "a#{"#{1}"}b"
+  assert_equal "1 sym  Integer", "#{1} #{:sym} #{nil} #{Integer}"
+end
+
 assert('String#bytes') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
