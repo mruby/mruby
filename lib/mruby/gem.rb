@@ -1,4 +1,5 @@
 require 'forwardable'
+require 'rbconfig'
 autoload :TSort, 'tsort'
 autoload :Shellwords, 'shellwords'
 
@@ -149,8 +150,11 @@ module MRuby
         if build.kind_of?(MRuby::CrossBuild)
           return %w(x86_64-w64-mingw32 i686-w64-mingw32).include?(build.host_target)
         elsif build.kind_of?(MRuby::Build)
-          return ('A'..'Z').to_a.any? { |vol| Dir.exist?("#{vol}:") } ||
-                 ('a'..'z').to_a.any? { |vol| Dir.exist?("/#{vol}/") }
+          # Ask the Ruby running the build, not the file system: a
+          # one-letter directory under / (a container's `/w`) is no sign
+          # of Windows. These are the names mruby-io checked before this
+          # helper existed; Cygwin's compiler does not define _WIN32.
+          return RbConfig::CONFIG['host_os'].match?(/mswin|mingw|msys/)
         end
         return false
       end
