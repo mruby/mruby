@@ -189,6 +189,25 @@ assert 'Bigint -/+ keeps the sign when a small operand grows the magnitude' do
   assert_equal n, (n + 7) - 7
 end
 
+assert 'Bigint * where Toom-3 evaluates a negative value at -1' do
+  # Toom-3 splits an operand into thirds x2, x1, x0 and multiplies at -1 by
+  # x0 - x1 + x2, negated when x1 outweighs the other two. The negation lost
+  # its carry where limbs are 16 bits wide (MRB_NO_MPZ64BIT), so products
+  # like this one came out wrong. N is a multiple of 96, so that with limbs
+  # of either width a third falls at N/3 and the operands are past the Toom-3
+  # threshold; the middle third of `a` is all ones, which makes the value at
+  # -1 negative. `a` is a sum of powers of two, so the product needs no
+  # multiplication to check.
+  n = 3840
+  a = (1 << (n - 1)) + (1 << (2 * n / 3)) - (1 << (n / 3))
+  b = ((7 ** 1400) & ((1 << n) - 1)) | (1 << (n - 1))
+  times_a = ->(v) { (v << (n - 1)) + (v << (2 * n / 3)) - (v << (n / 3)) }
+  assert_equal times_a.(b), a * b
+  assert_equal times_a.(b), b * a
+  assert_equal times_a.(a), a * a
+  assert_equal(-times_a.(b), -a * b)
+end
+
 assert 'Bigint *' do
   n = 1<<65
   assert_equal 0, n * 0

@@ -1264,7 +1264,9 @@ mpn_neg(mp_limb *rp, const mp_limb *ap, size_t n)
 {
   mp_limb carry = 1;
   for (size_t i = 0; i < n; i++) {
-    mp_dbl_limb sum = (mp_dbl_limb)(~ap[i]) + carry;
+    /* ~ promotes a limb narrower than int, and the complement of the
+       promoted value carries ones above the limb into the sum */
+    mp_dbl_limb sum = (mp_dbl_limb)(mp_limb)~ap[i] + carry;
     rp[i] = LOW(sum);
     carry = HIGH(sum);
   }
