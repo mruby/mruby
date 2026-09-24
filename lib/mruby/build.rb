@@ -23,10 +23,12 @@ module MRuby
       end
     end
 
-    # Bind every cross build to the build it borrows `mrbc` from.
+    # Bind every build that borrows `mrbc` to the build it borrows it from:
+    # each cross build, and each other build that compiles Ruby without an
+    # `mrbc` of its own (see `Build#borrows_mrbc?`).
     #
-    # A cross build cannot settle this as it is declared, because the `host`
-    # it would borrow from may be written after it, and `Build.new` reopens a
+    # A build cannot settle this as it is declared, because the `host` it
+    # would borrow from may be written after it, and `Build.new` reopens a
     # name already taken rather than initialising it afresh: a build generated
     # then to fill the gap would swallow the `host` the config goes on to
     # declare. So the question is asked here instead, once from the Rakefile,
@@ -36,7 +38,7 @@ module MRuby
     # config alone has written this early.
     def resolve_mrbc_hosts
       mrbc_builds = {}
-      targets.values.grep(CrossBuild).each{|target| target.bind_mrbc_host(mrbc_builds)}
+      targets.values.select(&:borrows_mrbc?).each{|target| target.bind_mrbc_host(mrbc_builds)}
     end
   end
 
@@ -582,6 +584,8 @@ EOS
 
       if (gem = @gems["mruby-bin-mrbc"])
         @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
+      elsif @mrbc_host
+        @mrbcfile = MRuby.targets[@mrbc_host].mrbcfile
       elsif !host? && (host = MRuby.targets["host"])
         if (gem = host.gems["mruby-bin-mrbc"])
           @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
@@ -612,8 +616,8 @@ EOS
     # Whether this build has a `mrbc` to lend: one it was given, one it
     # generated for itself (`create_mrbc_build` hands that one over through
     # `mrbcfile=`), or one it builds from the gem. This is the question
-    # `mrbcfile` asks of `host` on behalf of a native build; a build with
-    # `disable_libmruby` and no `mruby-bin-mrbc` answers no.
+    # `bind_mrbc_host` asks of `host` on behalf of a build that borrows; a
+    # build with `disable_libmruby` and no `mruby-bin-mrbc` answers no.
     def supplies_mrbc?
       mrbcfile_external? || !@gems['mruby-bin-mrbc'].nil?
     end
@@ -621,6 +625,102 @@ EOS
     def mrbcfile_external?
       @mrbcfile_external
     end
+
+    # Whether this build compiles Ruby with an `mrbc` it does not make, and so
+    # has one bound to it by `MRuby.resolve_mrbc_hosts`: a build that makes
+    # `libmruby` without `mruby-bin-mrbc` or an `mrbc` it was given. `host`
+    # makes its own (`create_mrbc_build`), as a build generated here does.
+    # A cross build always borrows, since the `mrbc` it would make runs on
+    # the target; see `CrossBuild#borrows_mrbc?`.
+    def borrows_mrbc?
+      !host? && !internal? && libmruby_enabled? && !supplies_mrbc?
+    end
+
+    # The defines a target and the `mrbc` it borrows have to agree on.
+    #
+    # The bytecode `mrbc` emits has to be loadable on the target, and
+    # `src/load.c` refuses a whole irep over a single pool entry the target
+    # cannot represent: under `MRB_NO_FLOAT` a float literal is one, and under
+    # `MRB_INT32` an integer literal wider than 32 bits, which an `mrbc` whose
+    # integers are 64 bits wide writes as `IREP_TT_INT64`. A define that
+    # decides what a pool entry may hold belongs in this list, which is where
+    # the comparison below, the name of a generated build and the defines it
+    # carries all read the question from.
+    #
+    # The list answers for what a build config writes. A target whose
+    # integers are 32 bits wide without saying so (a 32-bit machine, or
+    # `MRB_NAN_BOXING`) is not told apart from one whose integers are 64.
+    MRBC_DEFINES = %w[MRB_NO_FLOAT MRB_INT32].freeze
+
+    # Bind this target to the build it borrows `mrbc` from, generating one
+    # where none will do.
+    #
+    # A `host` the build config declares is borrowed as it is written. Where
+    # there is none, where it has no `mrbc` to lend, or where it answers
+    # otherwise, the target borrows a build generated here, named for the
+    # answer it carries rather than for the target that asked for it: targets
+    # that agree share one, and it belongs to none of them. `mrbc_builds`
+    # carries the ones this pass has generated, so a config with several
+    # targets that borrow builds `mrbc` once per answer.
+    #
+    # The name is one the build config does not write, so a build generated
+    # here cannot take a name the config wants, and `build/mrbc` is where
+    # `mrbc` built for its own sake goes, which is where `build_config/mrbc.rb`
+    # already puts it. `build/host` is left to a `host` the config declares.
+    def bind_mrbc_host(mrbc_builds)
+      return if mrbcfile_external?
+      needed = mrbc_defines(self)
+      host = MRuby.targets['host']
+      if host && host.supplies_mrbc? && mrbc_defines(host) == needed
+        @mrbc_host = 'host'
+      else
+        @mrbc_host = (mrbc_builds[needed] ||= generate_mrbc_build(needed))
+        # `tasks/presym.rake` reads this to leave the generated build's
+        # objects to it, which a target named `mrbc` would otherwise scan as
+        # its own.
+        @mrbc_build = MRuby.targets[@mrbc_host]
+      end
+    end
+
+    def generate_mrbc_build(needed)
+      name = mrbc_build_name(needed)
+      if MRuby.targets[name]
+        fail "cannot generate the `mrbc' build for '#{@name}': " \
+             "the build config already declares a build named '#{name}'"
+      end
+      MRuby::Build.new(name, internal: true) do |conf|
+        conf.toolchain
+        conf.build_mrbc_exec
+        conf.disable_libmruby
+        conf.compilers.each {|c| c.defines.concat(needed)}
+      end
+      name
+    end
+
+    # The answer `build` gives to every question in `MRBC_DEFINES`, as the
+    # defines it says yes to.
+    #
+    # Both lists a build config writes answer, the way `Build#has_define?`
+    # reads them, because `Command::Compiler#all_flags` puts `build.defines`
+    # on the same command line as a compiler's own. `Build#has_define?` itself
+    # cannot be asked here: it refuses until the gems are set up, and every
+    # `mrbc` is bound before that.
+    def mrbc_defines(build)
+      own = build.defines.flatten.map {|d| d.to_s.split('=', 2).first}
+      MRBC_DEFINES.select do |d|
+        own.include?(d) || build.compilers.any? {|c| c.has_define?(d)}
+      end
+    end
+
+    # Name a generated build after the defines it carries, so that the name
+    # says which targets can borrow it. A build that carries none is the one a
+    # plain `host` would have been.
+    def mrbc_build_name(defines)
+      answer = defines.empty? ? 'default' :
+               defines.map {|d| d.delete_prefix('MRB_').downcase.tr('_', '-')}.join('+')
+      "mrbc/#{answer}"
+    end
+    private :generate_mrbc_build, :mrbc_defines, :mrbc_build_name
 
     def compilers
       COMPILERS.map do |c|
@@ -963,6 +1063,10 @@ EOS
       super
     end
 
+    def borrows_mrbc?
+      true
+    end
+
     def mrbcfile
       return super if mrbcfile_external?
       unless @mrbc_host
@@ -970,46 +1074,6 @@ EOS
              "binds it once the whole build config has been read"
       end
       MRuby::targets[@mrbc_host].mrbcfile
-    end
-
-    # The defines a target and the `mrbc` it borrows have to agree on.
-    #
-    # The bytecode `mrbc` emits has to be loadable on the target, and
-    # `src/load.c` refuses a whole irep over a single pool entry the target
-    # cannot represent: under `MRB_NO_FLOAT` a float literal is one. A define
-    # that decides what a pool entry may hold belongs in this list, which is
-    # where the comparison below, the name of a generated build and the
-    # defines it carries all read the question from.
-    MRBC_DEFINES = %w[MRB_NO_FLOAT].freeze
-
-    # Bind this target to the build it borrows `mrbc` from, generating one
-    # where none will do.
-    #
-    # A `host` the build config declares is borrowed as it is written. Where
-    # there is none, where it has no `mrbc` to lend, or where it answers
-    # otherwise, the target borrows a build generated here, named for the
-    # answer it carries rather than for the target that asked for it: targets
-    # that agree share one, and it belongs to none of them. `mrbc_builds`
-    # carries the ones this pass has generated, so a config with several
-    # cross targets builds `mrbc` once per answer.
-    #
-    # The name is one the build config does not write, so a build generated
-    # here cannot take a name the config wants, and `build/mrbc` is where
-    # `mrbc` built for its own sake goes, which is where `build_config/mrbc.rb`
-    # already puts it. `build/host` is left to a `host` the config declares.
-    def bind_mrbc_host(mrbc_builds)
-      return if mrbcfile_external?
-      needed = mrbc_defines(self)
-      host = MRuby.targets['host']
-      if host && host.supplies_mrbc? && mrbc_defines(host) == needed
-        @mrbc_host = 'host'
-      else
-        @mrbc_host = (mrbc_builds[needed] ||= generate_mrbc_build(needed))
-        # `tasks/presym.rake` reads this to leave the generated build's
-        # objects to it, which a target named `mrbc` would otherwise scan as
-        # its own.
-        @mrbc_build = MRuby.targets[@mrbc_host]
-      end
     end
 
     def run_test
@@ -1041,46 +1105,5 @@ EOS
     protected
 
     def create_mrbc_build; end
-
-    private
-
-    def generate_mrbc_build(needed)
-      name = mrbc_build_name(needed)
-      if MRuby.targets[name]
-        fail "cannot generate the `mrbc' build for '#{@name}': " \
-             "the build config already declares a build named '#{name}'"
-      end
-      MRuby::Build.new(name, internal: true) do |conf|
-        conf.toolchain
-        conf.build_mrbc_exec
-        conf.disable_libmruby
-        conf.compilers.each {|c| c.defines.concat(needed)}
-      end
-      name
-    end
-
-    # The answer `build` gives to every question in `MRBC_DEFINES`, as the
-    # defines it says yes to.
-    #
-    # Both lists a build config writes answer, the way `Build#has_define?`
-    # reads them, because `Command::Compiler#all_flags` puts `build.defines`
-    # on the same command line as a compiler's own. `Build#has_define?` itself
-    # cannot be asked here: it refuses until the gems are set up, and every
-    # `mrbc` is bound before that.
-    def mrbc_defines(build)
-      own = build.defines.flatten.map {|d| d.to_s.split('=', 2).first}
-      MRBC_DEFINES.select do |d|
-        own.include?(d) || build.compilers.any? {|c| c.has_define?(d)}
-      end
-    end
-
-    # Name a generated build after the defines it carries, so that the name
-    # says which targets can borrow it. A build that carries none is the one a
-    # plain `host` would have been.
-    def mrbc_build_name(defines)
-      answer = defines.empty? ? 'default' :
-               defines.map {|d| d.delete_prefix('MRB_').downcase.tr('_', '-')}.join('+')
-      "mrbc/#{answer}"
-    end
   end # CrossBuild
 end # MRuby
