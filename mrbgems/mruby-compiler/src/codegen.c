@@ -22,24 +22,6 @@
 #define printf(n) ((void)0)
 #endif
 
-#if defined(MRC_INT64)
-# define MRC_INT_BIT 64
-# define MRC_INT_MIN INT64_MIN
-# define MRC_INT_MAX INT64_MAX
-# define MRC_PRIo PRIo64
-# define MRC_PRId PRId64
-# define MRC_PRIx PRIx64
-#else
-  typedef int32_t mrc_int;
-  typedef uint32_t mrc_uint;
-# define MRC_INT_BIT 32
-# define MRC_INT_MIN INT32_MIN
-# define MRC_INT_MAX INT32_MAX
-# define MRC_PRIo PRIo32
-# define MRC_PRId PRId32
-# define MRC_PRIx PRIx32
-#endif
-
 /**
  * Function requires n arguments.
  *
