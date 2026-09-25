@@ -128,6 +128,33 @@ float_pool_roundtrip(mrb_state *mrb, mrb_value self)
   return mrb_assoc_new(mrb, mrb_bool_value(same), v);
 }
 
+/*
+ * Two parser states alive at once, the older one freed first.  A parser
+ * state keeps its compiler context, and with it everything Prism allocated
+ * for the parse, until mrb_parser_free(); a caller that holds several (an
+ * interactive shell with a context per session, say) frees them in whatever
+ * order it likes.  Answers what the source of the parser that outlived the
+ * other evaluates to.
+ */
+static mrb_value
+parsers_outlive_each_other(mrb_state *mrb, mrb_value self)
+{
+  const char *first, *second;
+  mrb_get_args(mrb, "zz", &first, &second);
+
+  mrb_ccontext *c = mrb_ccontext_new(mrb);
+  struct mrb_parser_state *p1 = mrb_parse_string(mrb, first, c);
+  struct mrb_parser_state *p2 = mrb_parse_string(mrb, second, c);
+  /* Must give back what p1 took and nothing of p2's. */
+  mrb_parser_free(p1);
+  struct RProc *proc = mrb_generate_code(mrb, p2);
+  mrb_parser_free(p2);
+  mrb_ccontext_free(mrb, c);
+  if (proc == NULL) return mrb_nil_value();
+
+  return mrb_top_run(mrb, proc, mrb_top_self(mrb), 0);
+}
+
 void
 mrb_mruby_compiler_gem_test(mrb_state *mrb)
 {
@@ -135,4 +162,5 @@ mrb_mruby_compiler_gem_test(mrb_state *mrb)
   mrb_define_method(mrb, mrb->object_class, "load_file_exc", load_file_exc, MRB_ARGS_REQ(1));
 #endif
   mrb_define_method(mrb, mrb->object_class, "__float_pool_roundtrip", float_pool_roundtrip, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->object_class, "__parsers_outlive_each_other", parsers_outlive_each_other, MRB_ARGS_REQ(2));
 }

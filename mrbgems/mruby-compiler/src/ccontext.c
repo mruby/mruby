@@ -63,17 +63,35 @@ arena_block_new(size_t need)
   return b;
 }
 
-/* Open an arena for one compiler context, putting aside the arena of the
-   context this one is being made inside of.  Contexts are made and freed in
-   the order of the calls that make them, so putting the outer one aside here
-   and back at mrc_ccontext_free() leaves each context taking from its own. */
+/* Open an arena for one compiler context.  Which arena is current is not
+   changed: contexts are not made and freed in any particular order (a
+   caller may keep several alive and compile on them in turns), so the
+   arena of a context is selected explicitly for each call that allocates
+   on its behalf, by mrc_ccontext_arena_save(). */
 static void
 arena_open(mrc_ccontext *c)
 {
-  c->prism_arena_outer = mrc_prism_arena;
+  struct mrc_prism_arena_block *prev = mrc_prism_arena;
   mrc_prism_arena = NULL;
   arena_block_new(0);
   c->prism_arena = mrc_prism_arena;
+  mrc_prism_arena = prev;
+}
+
+MRC_API void *
+mrc_ccontext_arena_save(mrc_ccontext *c)
+{
+  void *prev = mrc_prism_arena;
+  mrc_prism_arena = (struct mrc_prism_arena_block *)c->prism_arena;
+  return prev;
+}
+
+MRC_API void
+mrc_ccontext_arena_restore(mrc_ccontext *c, void *prev)
+{
+  /* Blocks added while c was current are on the chain head now. */
+  c->prism_arena = mrc_prism_arena;
+  mrc_prism_arena = (struct mrc_prism_arena_block *)prev;
 }
 
 void *
@@ -107,21 +125,22 @@ mrc_prism_arena_realloc(void *ptr, size_t size)
   return p;
 }
 
-/* Give back everything this context took, and make the arena of the context
-   it was made inside of the one that is open again. */
+/* Give back everything this context took.  Only this context's chain is
+   freed; the current arena, if it is this one, is left pointing at
+   nothing so that a stray allocation after this opens a fresh block
+   instead of writing into freed memory. */
 static void
 arena_close(mrc_ccontext *c)
 {
-  struct mrc_prism_arena_block *b = mrc_prism_arena;
+  struct mrc_prism_arena_block *b = (struct mrc_prism_arena_block *)c->prism_arena;
 
+  if (mrc_prism_arena == b) mrc_prism_arena = NULL;
   while (b != NULL) {
     struct mrc_prism_arena_block *prev = b->prev;
     arena_block_free(b);
     b = prev;
   }
   c->prism_arena = NULL;
-  mrc_prism_arena = (struct mrc_prism_arena_block *)c->prism_arena_outer;
-  c->prism_arena_outer = NULL;
 }
 #endif
 #endif
@@ -179,6 +198,7 @@ mrc_ccontext_filename(mrc_ccontext *c, const char *s)
 MRC_API void
 mrc_ccontext_free(mrc_ccontext *c)
 {
+  void *arena_prev = mrc_ccontext_arena_save(c);
   if (c->options) {
     /* pm_options_free() releases the scope and locals arrays but not the
        per-local name copies (they are PM_STRING_CONSTANT, which pm_string_free
@@ -203,6 +223,7 @@ mrc_ccontext_free(mrc_ccontext *c)
      After pm_parser_free(), which reaches into that same arena. */
   arena_close(c);
 #endif
+  mrc_ccontext_arena_restore(c, arena_prev);
   mrc_diagnostic_list_free(c);
   if (c->p->lex_callback) {
     mrc_free(c, c->p->lex_callback);

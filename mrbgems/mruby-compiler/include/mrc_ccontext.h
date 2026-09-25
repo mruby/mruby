@@ -73,12 +73,13 @@ typedef struct mrc_ccontext {
   mrc_pool *pool; // for codedump
 #endif
 
-  /* The arena everything Prism allocates for this context is taken from, and
-     the arena of the context this one was made inside of, put back when this
-     one is freed. Unused where Prism allocates through libc; see
-     prism_xallocator.h for what the arena is for. */
+  /* The arena everything Prism allocates for this context is taken from.
+     Prism's allocator has no context argument, so the arena is made the
+     current one for the duration of every call that has Prism allocate on
+     this context's behalf; see mrc_ccontext_arena_save(). Unused where
+     Prism allocates through libc; see prism_xallocator.h for what the
+     arena is for. */
   void *prism_arena;
-  void *prism_arena_outer;
 
   /* How deep the brackets stand where the lexer is, so that a nesting Prism
      would recurse through is refused instead. See src/compile.c. */
@@ -105,6 +106,20 @@ mrc_ccontext *mrc_ccontext_new(mrb_state *mrb);
 void mrc_ccontext_cleanup_local_variables(mrc_ccontext *c);
 const char *mrc_ccontext_filename(mrc_ccontext *c, const char *s);
 void mrc_ccontext_free(mrc_ccontext *c);
+
+/* Make c's arena the one Prism allocates from, answering the one that was
+   current so that the matching restore can put it back. Wrap every call
+   that has Prism allocate for c (pm_options_*, a parse, freeing the parser)
+   in the pair; the compiler's own entry points already do. Contexts may be
+   created, used and freed in any order, so nothing is inferred from
+   nesting. */
+#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
+void *mrc_ccontext_arena_save(mrc_ccontext *c);
+void mrc_ccontext_arena_restore(mrc_ccontext *c, void *prev);
+#else
+static inline void *mrc_ccontext_arena_save(mrc_ccontext *c) { (void)c; return NULL; }
+static inline void mrc_ccontext_arena_restore(mrc_ccontext *c, void *prev) { (void)c; (void)prev; }
+#endif
 
 MRC_END_DECL
 
