@@ -229,8 +229,10 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
           cur += uint32_to_bin((uint32_t)((i    ) & 0xffffffff), cur); /* i64 lo */
         }
         else {
+          /* from the 64-bit value itself: the union's i32 is its low half
+             only where the machine stores the low half first */
           cur += uint8_to_bin(IREP_TT_INT32, cur); /* data type */
-          cur += uint32_to_bin(irep->pool[pool_no].u.i32, cur); /* i32 */
+          cur += uint32_to_bin((uint32_t)i, cur); /* i32 */
         }
       }
       break;
