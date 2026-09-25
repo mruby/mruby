@@ -86,11 +86,13 @@ end
 - When defined removes floating-point numbers from mruby.
 - It makes mruby easier to handle in "Micro-controller without FPU" and "Kernel Space".
 - A floating-point literal in Ruby source is read as the Integer `0`, with a compiler warning.
+- Bytecode from an `mrbc` built with floating-point numbers still loads. Running one of its floating-point literals raises `NotImplementedError`, and code that does not reach one runs.
 
 `MRB_INT32`
 
 - When defined, or `MRB_INT64` are not defined on 32-bit CPU mode, `mrb_int` will be defined as `int32_t`.
 - Conflicts with `MRB_INT64`.
+- Bytecode from an `mrbc` whose integers are 64 bits wide still loads. Running one of its integer literals past 32 bits gives an Integer from `mruby-bigint`, or raises `RangeError` without it.
 
 `MRB_INT64`
 
