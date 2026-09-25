@@ -3406,10 +3406,14 @@ RETRY_TRY_BLOCK:
 #else
         goto L_INT_OVERFLOW;
 #endif
-#ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
+#ifndef MRB_NO_FLOAT
         VM_SET_FLOAT_VALUE(regs[a], irep->pool[b].u.f);
         break;
+#else
+        /* a float literal in bytecode an mrbc with Float wrote: what does
+           not reach it runs, and this is where it cannot go on */
+        RAISE_LIT(mrb, E_NOTIMP_ERROR, "floating-point numbers are not supported");
 #endif
       default:
         /* should not happen (tt:string) */

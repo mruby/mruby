@@ -29,3 +29,27 @@ assert('an empty source file is not a read failure') do
 
   assert_false exc
 end
+
+##
+# A float literal in bytecode, run where there is no Float
+
+assert('a float pool entry loads where Float is missing, and runs only if reached') do
+  # The literal becomes the float pool entry the helper makes; it is a
+  # string here so that this file compiles under every build.
+  src = '$__float_pool ? 1234567890123 : :skipped'
+  $__float_pool = false
+  r = __float_pool_roundtrip(src)
+  skip 'no integer pool entry in this build' if r.nil?
+  same, value = r
+  # read back and dumped again, the entry comes out as it went in
+  assert_true same
+  # what does not reach the literal runs to the end
+  assert_equal :skipped, value
+
+  $__float_pool = true
+  if Object.const_defined?(:Float)
+    assert_equal "1.5", __float_pool_roundtrip(src)[1].to_s
+  else
+    assert_raise(NotImplementedError) { __float_pool_roundtrip(src) }
+  end
+end

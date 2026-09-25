@@ -27,6 +27,11 @@ enum irep_pool_type {
 #define IREP_TT_NFLAG 1 /* number (non string) flag */
 #define IREP_TT_SFLAG 2 /* static string flag */
 
+/* The bytes a float pool entry takes in a .mrb from an mrbc with Float: an
+   IEEE 754 binary64, little endian. A build without Float keeps them as they
+   are (load.c); a build with Float reads and writes sizeof(double). */
+#define MRB_DUMP_FLOAT_SIZE 8
+
 typedef struct mrb_irep_pool {
   uint32_t tt; /* packed type and length (for string) */
   union {

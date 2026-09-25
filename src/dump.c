@@ -169,9 +169,9 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 
     case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
-      {
-        size += sizeof(double);
-      }
+      size += sizeof(double);
+#else
+      size += MRB_DUMP_FLOAT_SIZE;
 #endif
       break;
 
@@ -248,12 +248,12 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
     case IREP_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
 #ifndef MRB_NO_FLOAT
-      {
-        dump_float(mrb, cur,irep->pool[pool_no].u.f);
-        cur += sizeof(double);
-      }
+      dump_float(mrb, cur, irep->pool[pool_no].u.f);
+      cur += sizeof(double);
 #else
-      cur += uint16_to_bin(0, cur); /* zero length */
+      /* the bytes load.c kept, as they came */
+      memcpy(cur, &irep->pool[pool_no].u.i64, MRB_DUMP_FLOAT_SIZE);
+      cur += MRB_DUMP_FLOAT_SIZE;
 #endif
       break;
 
