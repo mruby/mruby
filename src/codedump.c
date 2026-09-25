@@ -180,11 +180,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       case IREP_TT_INT32:
         fprintf(out, "LOADL\t\tR%d\tL[%d]\t; %" PRId32, a, b, irep->pool[b].u.i32);
         break;
-#ifdef MRB_64BIT
       case IREP_TT_INT64:
         fprintf(out, "LOADL\t\tR%d\tL[%d]\t; %" PRId64, a, b, irep->pool[b].u.i64);
         break;
-#endif
       default:
         fprintf(out, "LOADL\t\tR%d\tL[%d]", a, b);
         break;

@@ -3381,13 +3381,19 @@ RETRY_TRY_BLOCK:
         VM_SET_INT_VALUE(regs[a], (mrb_int)irep->pool[b].u.i64);
         break;
 #else
-#if defined(MRB_64BIT)
         if (INT32_MIN <= irep->pool[b].u.i64 && irep->pool[b].u.i64 <= INT32_MAX) {
           VM_SET_INT_VALUE(regs[a], (mrb_int)irep->pool[b].u.i64);
           break;
         }
-#endif
+#ifdef MRB_USE_BIGINT
+        /* a literal past mrb_int, written by an mrbc whose integers are
+           64 bits wide: the Integer it names, as IREP_TT_BIGINT gives */
+        regs[a] = mrb_bint_new_int64(mrb, irep->pool[b].u.i64);
+        mrb_gc_arena_restore(mrb, ai);
+        break;
+#else
         goto L_INT_OVERFLOW;
+#endif
 #endif
       case IREP_TT_BIGINT:
 #ifdef MRB_USE_BIGINT

@@ -146,7 +146,6 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 
     switch (irep->pool[pool_no].tt) {
     case IREP_TT_INT64:
-#if defined(MRB_64BIT) || defined(MRB_INT64)
       {
         int64_t i = irep->pool[pool_no].u.i64;
 
@@ -156,9 +155,6 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
           size += 4;
       }
       break;
-#else
-      /* fall through */
-#endif
     case IREP_TT_INT32:
       size += 4;                /* 32 bits = 4 bytes */
       break;
@@ -220,7 +216,8 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 
     switch (irep->pool[pool_no].tt) {
     case IREP_TT_INT64:
-#if defined(MRB_64BIT) || defined(MRB_INT64)
+      /* load.c keeps an entry like this whatever mrb_int is, so a 32-bit
+         target that loaded one writes it back as it came */
       {
         int64_t i = irep->pool[pool_no].u.i64;
         if (i < INT32_MIN || INT32_MAX < i) {
@@ -236,7 +233,6 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
         }
       }
       break;
-#endif
     case IREP_TT_INT32:
       cur += uint8_to_bin(IREP_TT_INT32, cur); /* data type */
       cur += uint32_to_bin(irep->pool[pool_no].u.i32, cur); /* i32 */
