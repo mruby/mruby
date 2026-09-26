@@ -565,7 +565,10 @@ mrb_bool mrb_re_needs_case_data(uint32_t lo, uint32_t hi);
 static inline int
 mrb_re_charlen(const char *s, const char *end, mrb_bool binary)
 {
-  return binary ? 1 : (int)mrb_enc_charlen(s, end);
+  /* ASCII is answered here: this is asked at every step of a search, and
+     the scan behind mrb_enc_charlen() is a call away. */
+  if (binary || (s < end && (uint8_t)*s < 0x80)) return 1;
+  return (int)mrb_enc_charlen(s, end);
 }
 
 static inline uint32_t
