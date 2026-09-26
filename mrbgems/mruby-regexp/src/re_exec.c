@@ -319,27 +319,34 @@ typedef struct {
    allocator here jumps past the epilogue that frees the pool and releases
    the cache, and by this point the search holds all of both. */
 static mrb_bool
+pool_grow(pike_state *s)
+{
+  int new_capa = s->pool_capa * 2;
+  size_t size = sizeof(int) * new_capa * s->ncap;
+  int *p;
+  if (s->cap_pool == s->pool_inline) {
+    /* The pool leaves the state for the heap, taking what it holds. */
+    p = (int*)mrb_malloc_simple(s->mrb, size);
+    if (p) memcpy(p, s->pool_inline, sizeof(int) * s->pool_capa * s->ncap);
+  }
+  else {
+    p = (int*)mrb_realloc_simple(s->mrb, s->cap_pool, size);
+  }
+  if (!p) {
+    s->nomem = TRUE;
+    return FALSE;
+  }
+  s->cap_pool = p;
+  s->pool_capa = new_capa;
+  return TRUE;
+}
+
+/* The growth is a call of its own so that this, which runs for every slot a
+   step hands out, stays small enough to be taken inline. */
+static inline mrb_bool
 pool_alloc(pike_state *s, int *slot)
 {
-  if (s->pool_next >= s->pool_capa) {
-    int new_capa = s->pool_capa * 2;
-    size_t size = sizeof(int) * new_capa * s->ncap;
-    int *p;
-    if (s->cap_pool == s->pool_inline) {
-      /* The pool leaves the state for the heap, taking what it holds. */
-      p = (int*)mrb_malloc_simple(s->mrb, size);
-      if (p) memcpy(p, s->pool_inline, sizeof(int) * s->pool_capa * s->ncap);
-    }
-    else {
-      p = (int*)mrb_realloc_simple(s->mrb, s->cap_pool, size);
-    }
-    if (!p) {
-      s->nomem = TRUE;
-      return FALSE;
-    }
-    s->cap_pool = p;
-    s->pool_capa = new_capa;
-  }
+  if (s->pool_next >= s->pool_capa && !pool_grow(s)) return FALSE;
   *slot = s->pool_next++;
   return TRUE;
 }
