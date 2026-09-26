@@ -471,8 +471,10 @@ mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 MRC_API mrc_irep *
 mrc_load_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 {
+  void *arena_prev = mrc_ccontext_arena_save(c);
   mrc_node *root = mrc_parse_file_cxt(c, filenames, source);
   if (root == NULL) {
+    mrc_ccontext_arena_restore(c, arena_prev);
     return NULL;
   }
   mrc_irep *irep = mrc_load_exec(c, root);
@@ -480,6 +482,7 @@ mrc_load_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
      walked: see prism_xallocator.h.  Everything prism allocated for this
      parse goes with it, so nothing is left behind. */
   mrc_prism_release_tree(c, root);
+  mrc_ccontext_arena_restore(c, arena_prev);
   return irep;
 }
 #endif
@@ -499,12 +502,14 @@ mrc_parse_string_cxt(mrc_ccontext *c, const uint8_t **source, size_t length)
 MRC_API mrc_irep *
 mrc_load_string_cxt(mrc_ccontext *c, const uint8_t **source, size_t length)
 {
+  void *arena_prev = mrc_ccontext_arena_save(c);
   mrc_node *root = mrc_parse_string_cxt(c, source, length);
   mrc_irep *irep = mrc_load_exec(c, root);
   /* The tree is given back with the arena it was parsed into rather than
      walked: see prism_xallocator.h.  Everything prism allocated for this
      parse goes with it, so nothing is left behind. */
   mrc_prism_release_tree(c, root);
+  mrc_ccontext_arena_restore(c, arena_prev);
   return irep;
 }
 

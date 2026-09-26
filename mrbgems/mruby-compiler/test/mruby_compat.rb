@@ -53,3 +53,16 @@ assert('a float pool entry loads where Float is missing, and runs only if reache
     assert_raise(NotImplementedError) { __float_pool_roundtrip(src) }
   end
 end
+
+##
+# Compiler contexts that outlive each other
+
+assert('a parser state freed first leaves a younger one intact') do
+  # Everything Prism allocates for a parse comes from an arena that belongs
+  # to the parse's compiler context.  The arena that was current was the
+  # one given back, on the assumption that contexts are freed in the reverse
+  # order of their making; a caller that keeps two parser states and frees
+  # the older one first then had the younger one's tree, constant pool and
+  # options freed under it, and generating code from it read freed memory.
+  assert_equal 7, __parsers_outlive_each_other('1 + 2', 'x = 3; x + 4')
+end
