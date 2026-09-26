@@ -44,7 +44,11 @@ module MRuby
     # `rake -m` runs the tasks of a build in threads of one process, which
     # have one working directory between them, while a directory given here
     # belongs to the one child it is given to.
-    def _run(options, params={}, chdir: nil)
+    #
+    # +chdir+ is positional, not a keyword: Ruby 2.7, which a build still
+    # supports, takes a Hash passed last to a method with keywords as the
+    # keywords themselves, and every caller here passes +params+ that way.
+    def _run(options, params={}, chdir=nil)
       cmd = command_line(options, params)
       chdir ? sh(cmd, chdir: chdir) : sh(cmd)
     end
@@ -380,7 +384,7 @@ module MRuby
       opts, params = compile_invocation(outfile, infile, _defines, _include_paths, _flags)
       label = object_ext?(outfile) ? @label : "CPP"
       _pp label, infile.relative_path, outfile.relative_path
-      _run opts, params, chdir: build.compile_dir
+      _run opts, params, build.compile_dir
       # Recorded after the compile, so that a compile that failed leaves
       # nothing claiming a configuration its output was not built with.
       File.write(flags_file(outfile), flags_record(opts, params[:flags]))
