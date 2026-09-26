@@ -10,6 +10,7 @@
 #include <mruby.h>
 #include "io_hal.h"
 
+#include <winsock2.h>
 #include <windows.h>
 #include <io.h>
 #include <fcntl.h>
