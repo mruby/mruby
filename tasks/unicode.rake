@@ -33,7 +33,7 @@ UNICODE_GENERATORS = {
 UNICODE_FILES.each do |path|
   file path do
     require 'open-uri'
-    url = "#{Unicode::UCD::URL_BASE}/#{File.basename(path)}"
+    url = Unicode::UCD.url(File.basename(path))
     puts "downloading #{url}"
     mkdir_p File.dirname(path)
     File.binwrite("#{path}.tmp", URI.parse(url).open(&:read))
