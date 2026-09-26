@@ -2,5 +2,6 @@
 ignore-words = .github/linters/codespell.txt
 # corpus.rb is generated from the Unicode Character Database and carries the
 # database's own names for the scripts, which read as misspelled English: Vai
-# as "via". Nothing in it is prose.
-skip = ./build,./doc/api,./doc/capi,*/difftest/corpus.rb
+# as "via". Nothing in it is prose. re_prop.h is generated from it too, and
+# names a codepoint in hex beside every entry, U+AADD read as a misspelling.
+skip = ./build,./doc/api,./doc/capi,*/difftest/corpus.rb,*/src/re_prop.h

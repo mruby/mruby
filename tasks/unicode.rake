@@ -15,6 +15,7 @@ UNICODE_GENERATORS = {
   'core' => ['tools/gen_unicase.rb', 'src'],
   'gem:regexp:cased' => ['mrbgems/mruby-regexp/tools/gen_cased.rb', 'mrbgems/mruby-regexp/src'],
   'gem:regexp:ctype' => ['mrbgems/mruby-regexp/tools/gen_ctype.rb', 'mrbgems/mruby-regexp/src'],
+  'gem:regexp:prop' => ['mrbgems/mruby-regexp/tools/gen_prop.rb', 'mrbgems/mruby-regexp/src'],
   # Not a table the engine reads: the characters the differential test asks it
   # about. Generated here so that a version bump moves the questions with the
   # answers rather than leaving them a release apart.
