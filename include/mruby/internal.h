@@ -394,6 +394,14 @@ size_t mrb_gc_mark_range(mrb_state *mrb, struct RRange *r);
 
 /* string */
 
+/*
+ *  Converts `obj` to a string.
+ *  The difference from `mrb_obj_as_string()` is that, if there is no
+ *  mruby's built-in function to convert the object to a string, it returns
+ *  `mrb_undef_value()` instead of calling the `#to_s` method.
+ */
+mrb_value mrb_obj_as_string_nomethod(mrb_state *mrb, mrb_value obj);
+
 /* Writing what a string's bytes are read as, and what reading them came back
    with. mruby/string.h hands both fields back to anyone who asks, since what
    they hold is a fact about the string and reading a fact costs the string

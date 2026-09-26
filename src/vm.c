@@ -4807,31 +4807,16 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STRCAT, B) {
       mrb_ensure_string_type(mrb, regs[a]);
-      switch (mrb_type(regs[a+1])) {
-      case MRB_TT_STRING:
-      case MRB_TT_SYMBOL:
-      case MRB_TT_INTEGER:
-      case MRB_TT_FALSE:
-      case MRB_TT_TRUE:
-#ifdef MRB_USE_BIGINT
-      case MRB_TT_BIGINT:
-#endif
-#ifndef MRB_NO_FLOAT
-      case MRB_TT_FLOAT:
-#endif
-        /* The values mrb_obj_as_string() spells out in C, with no method
-           to send: a frame for these would cost a call per interpolated
-           value, and an override on their classes is not read there either.
-           Everything else, a class included, answers for itself below. */
-        mrb_str_concat(mrb, regs[a], regs[a+1]);
-        ci = mrb->c->ci; // just in case
-        break;
-      default:
+      mrb_value ret = mrb_obj_as_string_nomethod(mrb, regs[a+1]);
+      if (mrb_string_p(ret)) {
+        mrb_str_cat_str(mrb, regs[a], ret);
+      }
+      else {
         prepare_exec_strcat(mrb, a);
         ci = mrb->c->ci;
         irep = ci->proc->body.irep;
-        break;
       }
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
