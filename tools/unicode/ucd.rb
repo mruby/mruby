@@ -25,11 +25,23 @@ module Unicode
       'PropList.txt'              => '130dcddcaadaf071008bdfce1e7743e04fdfbc910886f017d9f9ac931d8c64dd',
       'Scripts.txt'               => '9f5e50d3abaee7d6ce09480f325c706f485ae3240912527e651954d2d6b035bf',
       'DerivedAge.txt'            => 'f8ecdf768bdc210f201abd271d9bc587825618a86a7046a8146cc816393f1998',
+      'emoji-data.txt'            => '2cb2bb9455cda83e8481541ecf5b6dfda66a3bb89efa3fa7c5297eccf607b72b',
     }.freeze
 
     FILES = CHECKSUMS.keys.freeze
 
+    # The files published in a directory of their own under ucd/ rather than
+    # beside the others. They are kept beside the others here all the same.
+    SUBDIRS = {
+      'emoji-data.txt' => 'emoji',
+    }.freeze
+
     URL_BASE = "https://www.unicode.org/Public/#{VERSION}/ucd".freeze
+
+    # Where the release publishes the file `name`.
+    def self.url(name)
+      [URL_BASE, SUBDIRS[name], name].compact.join('/')
+    end
 
     def self.dir
       File.expand_path("data/#{VERSION}", __dir__)
