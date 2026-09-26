@@ -227,17 +227,28 @@ def anchor_patterns
    "^a$", "(?m:^a$)", "a\\Z\\z"]
 end
 
-# The Unicode properties, as a sentinel rather than an axis. This engine
-# refuses `\p{...}` outright, so asking it about every property would write the
-# same refusal into the baseline once per property and would say nothing these
-# four do not. What they are for is the day it stops refusing: the refusal
-# stops being a difference, the baseline line goes GONE, and the tool has
-# reported a limitation that has stopped being one, which is the half of its
-# job that a corpus holding no property escape cannot do. Both spellings
-# README names are here, since an engine growing them need not grow both at
-# once.
+# The Unicode properties. The spellings of a property, each where it can stand: alone, negated either
+# way, inside a class of either polarity, in an intersection, beside what a
+# class can hold, and at an end of a range, which it cannot be. Then the name
+# as CRuby reads it, and the names it knows that this engine refuses. What each
+# property holds is asked of every character in the classifiers below.
+PROPERTY_NAMES = %w[Lu L Nd Zs Cn Emoji Alpha Word XDigit ASCII]
+
 def property_patterns
-  ["\\p{Alpha}", "\\P{Alpha}", "[\\p{Alpha}]", "\\p{L}"]
+  out = ["\\p{Alpha}", "\\P{Alpha}", "[\\p{Alpha}]", "\\p{L}"]
+  PROPERTY_NAMES.each do |name|
+    p = "\\p{" + name + "}"
+    out += [p, "\\P{" + name + "}", "\\p{^" + name + "}", "\\P{^" + name + "}",
+            "[" + p + "]", "[^" + p + "]", "[\\P{" + name + "}]", "[a" + p + "]",
+            "[" + p + "&&[^a]]", p + "+"]
+  end
+  out + ["[\\p{Lu}\\d_]", "[\\p{L}&&\\p{Ll}]", "[\\p{L}&&\\P{Ll}]",
+         "[[:digit:]\\p{Lu}]", "[\\p{Alpha}&&[:^lower:]]", "[[\\p{Lu}]x]",
+         "[a-\\p{L}]", "[\\p{L}-z]", "\\p{lu}", "\\p{LU}", "\\p{l_u}",
+         "\\p{L u}", "\\p{l-u}", "\\p{ alpha }", "\\p{EMOJI_PRESENTATION}",
+         "\\p{Extended-Pictographic}", "\\p{extendedpictographic}",
+         "\\p{Han}", "\\p{Alphabetic}", "\\p{Age=1.1}", "\\p{In_Basic_Latin}",
+         "\\p{Any}", "\\p{}", "\\p{^}", "\\p{Lu", "\\p{Lu}}", "\\pL", "\\p"]
 end
 
 def alternation_patterns
@@ -302,8 +313,9 @@ AXIS_CASES = [
   "^a", "a$", "\\Aa", "a\\z", "a\\Z", "\\ba", "a\\B", "\\G", "a\\K", "\\R", "\\X",
   # alternation
   "a|b", "|a", "a|", "a|b|c", "(a|b)|c",
-  # property: the sentinel, in both spellings, negated, and in a class
-  "\\p{Alpha}", "\\P{Alpha}", "[\\p{Alpha}]", "\\p{L}",
+  # property: both spellings of a complement, in a class, and refused names
+  "\\p{Alpha}", "\\P{Alpha}", "[\\p{Alpha}]", "\\p{L}", "\\p{^Lu}",
+  "[\\P{Lu}]", "\\p{Han}", "\\p{Alphabetic}",
 ]
 
 def check_corpus(patterns)
@@ -342,6 +354,12 @@ def check_corpus(patterns)
   QUANT_ATOMS.each do |a|
     QUANT_SUFFIXES.each do |q|
       missing << (a + q) unless have[a + q]
+    end
+  end
+  PROPERTY_NAMES.each do |name|
+    ["\\p{", "\\P{", "[\\p{", "[^\\p{"].each do |pre|
+      pat = pre + name + (pre.start_with?("[") ? "}]" : "}")
+      missing << pat unless have[pat]
     end
   end
   AXIS_CASES.each { |pat| missing << pat unless have[pat] }
@@ -464,10 +482,22 @@ def classifiers
   out << ["\\b", 0]
   out << ["\\B", 0]
   out << [".", 0]
+  # What each property holds: every general category, the letter that stands
+  # for all of a group of them, the emoji properties, and the POSIX names,
+  # which are the brackets above spelled another way.
+  %w[Lu Ll Lt Lm Lo Mn Mc Me Nd Nl No Pc Pd Ps Pe Pi Pf Po Sm Sc Sk So
+     Zs Zl Zp Cc Cf Co Cs Cn L M N P S Z C Emoji Emoji_Presentation
+     Extended_Pictographic].each { |name| out << ["\\p{" + name + "}", 0] }
+  POSIX_NAMES.each { |name| out << ["\\p{" + name + "}", 0] }
+  out << ["\\P{Lu}", 0]
+  out << ["[\\P{L}]", 0]
   # The same questions under /i, which reads a character through every case
-  # of it and is the one flag that changes what a class holds.
-  ["[[:upper:]]", "[[:lower:]]",
-   "[[:^upper:]]"].each { |src| out << [src, Regexp::IGNORECASE] }
+  # of it and is the one flag that changes what a class holds. A property
+  # alone negates after the fold and one in a class before it, so the two
+  # spellings of the complement are asked apart.
+  ["[[:upper:]]", "[[:lower:]]", "[[:^upper:]]", "\\p{Lu}", "\\p{Ll}",
+   "\\p{Lt}", "\\p{Upper}", "\\P{Lu}", "[\\P{Lu}]",
+   "\\p{Emoji}"].each { |src| out << [src, Regexp::IGNORECASE] }
   out
 end
 
