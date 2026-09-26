@@ -3129,6 +3129,16 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
+  mrb_value ret = mrb_obj_as_string_nomethod(mrb, obj);
+  if (mrb_undef_p(ret)) {
+    ret = mrb_type_convert(mrb, obj, MRB_TT_STRING, MRB_SYM(to_s));
+  }
+  return ret;
+}
+
+mrb_value
+mrb_obj_as_string_nomethod(mrb_state *mrb, mrb_value obj)
+{
   switch (mrb_type(obj)) {
   case MRB_TT_STRING:
     return obj;
@@ -3149,7 +3159,7 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
   case MRB_TT_TRUE:
     return mrb_true_to_s(mrb, obj);
   default:
-    return mrb_type_convert(mrb, obj, MRB_TT_STRING, MRB_SYM(to_s));
+    return mrb_undef_value();
   }
 }
 
