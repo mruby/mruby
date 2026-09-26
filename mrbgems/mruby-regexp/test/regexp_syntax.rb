@@ -3403,17 +3403,33 @@ assert("Regexp - pattern too large for its jump targets is refused") do
   assert_raise(RegexpError) { Regexp.new("(?:ab){32768}") }
 end
 
-assert("Regexp - a character property escape is refused, not read as letters") do
-  # The engine reads no character property. Left as an unknown escape,
-  # `\p{Alpha}` was the letters `p{Alpha}` and the pattern answered a request
-  # for a letter with the text of the request; inside a class it was worse,
-  # since every letter of the name became a member of the class.
+assert("Regexp - a character property escape is read, not taken as letters") do
+  # The POSIX names are the brackets under another spelling, on every build:
+  # \p{Alpha} is [[:alpha:]], and the name is read as CRuby reads it, with
+  # case, '_', '-' and ' ' making no difference.
+  assert_equal "a", "1a"[/\p{Alpha}/]
+  assert_equal "1", "a1"[/\P{Alpha}/]
+  assert_equal "1", "a1"[/\p{^Alpha}/]
+  assert_equal "a", "1a"[/\P{^Alpha}/]
+  assert_equal "a1", "a1-"[/[\p{Alpha}\p{Digit}]+/]
+  assert_equal "-", "a1-"[/[^\p{Alnum}]/]
+  assert_equal "B", "aB"[/[\p{Alpha}&&\p{Upper}]/]
+  assert_equal "_", "-_"[/\p{ w-O_r d }/]
+  assert_equal "F", "gF"[/\p{XDIGIT}/]
+  # \p{Punct} is the punctuation categories, where [[:punct:]] holds the ASCII
+  # symbols as well.
+  assert_equal "!", "$+<=>^`|~!"[/\p{Punct}/]
+  assert_equal "$", "$+<=>^`|~!"[/[[:punct:]]/]
+  assert_equal "$", "$!"[/\P{Punct}/]
+
+  # A property names a set, so it cannot end a range, and the name has to be
+  # one this engine knows; the one refused is named in the message.
   assert_raise_with_message(RegexpError,
-                            "character property is not supported: /\\p{Alpha}/") do
-    Regexp.new("\\p{Alpha}")
+                            "character property {Han} is not supported: /\\p{Han}/") do
+    Regexp.new("\\p{Han}")
   end
-  ["\\P{Alpha}", "[\\p{Han}]", "[\\P{L}]", "a\\p{Lu}b", "(?x)\\p{Space}",
-   "\\p{}", "\\p{"].each do |src|
+  ["\\p{Alphabetic}", "[\\p{Han}]", "\\p{Age=1.1}", "\\p{In_Basic_Latin}", "\\p{}",
+   "\\p{^}", "\\p{", "\\p{Alpha", "[a-\\p{Alpha}]", "[\\p{Alpha}-z]"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 

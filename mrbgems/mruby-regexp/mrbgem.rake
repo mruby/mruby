@@ -90,7 +90,8 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
        !build.has_define?('MRB_USE_ASCII_CTYPE')
       spec.test_rbfiles -= ["#{spec.dir}/test/ascii_case.rb", "#{spec.dir}/test/ascii_ctype.rb"]
     else
-      spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb", "#{spec.dir}/test/unicode_ctype.rb"]
+      spec.test_rbfiles -= ["#{spec.dir}/test/unicode_case.rb", "#{spec.dir}/test/unicode_ctype.rb",
+                            "#{spec.dir}/test/unicode_property.rb"]
     end
   end
 end

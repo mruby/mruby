@@ -39,3 +39,15 @@ assert("Regexp - a negated nested bracket is ASCII here") do
   assert_equal 0, Regexp.new("[[^[:alpha:][:digit:]]x]") =~ "-"
   assert_nil Regexp.new("[[^[:alpha:][:digit:]]x]") =~ "1"
 end
+
+assert("Regexp - \\p holds the POSIX names and refuses the rest here") do
+  # A POSIX name is its bracket, which holds ASCII here. The general
+  # categories and the emoji properties need the table this build leaves out,
+  # and are refused rather than answered from ASCII alone.
+  assert_equal "a", "1a"[/\p{Alpha}/]
+  assert_false(/\p{Alpha}/.match?("é"))
+  assert_true(/\P{Alpha}/.match?("é"))
+  ["\\p{Lu}", "\\P{L}", "[\\p{Nd}]", "\\p{Emoji}"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+end

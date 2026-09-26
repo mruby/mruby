@@ -21,6 +21,8 @@ simulation) with backtracking fallback.
 - `\d`, `\w`, `\s` digit, word, whitespace shortcuts, ASCII as in CRuby
 - `\D`, `\W`, `\S` negated shortcuts
 - `\h`, `\H` hex digit and non-hex-digit shortcuts
+- `\p{...}`, `\P{...}`, `\p{^...}` Unicode properties and their complement,
+  inside a class or outside one; see Unicode properties below
 - `(...)` capture group
 - `(?:...)` non-capturing group
 - `(?#...)` comment group
@@ -71,6 +73,33 @@ Outside a character class the list form is a sequence rather than one atom, so
 `/\u{61 62}+/` is `ab+`. Inside a class every codepoint is a member of its own
 and the one next to a `-` bounds the range, so `/[\u{61 62}-z]/` is `a` plus
 `b-z`. A range written backwards raises `RegexpError`, as in CRuby.
+
+### Unicode properties
+
+`\p{name}` holds the characters with the property, and `\P{name}` or
+`\p{^name}` the ones without it. The name is read as CRuby reads it: case,
+`_`, `-` and spaces make no difference, so `\p{extended pictographic}` is
+`\p{Extended_Pictographic}`. Three kinds of name are known:
+
+- The POSIX names `Alpha`, `Alnum`, `Word`, `Space`, `Upper`, `Lower`, `Digit`,
+  `Punct`, `Graph`, `Print`, `Blank`, `Cntrl`, `XDigit` and `ASCII`, which are
+  the brackets under another spelling: `\p{Alpha}` is `[[:alpha:]]` on every
+  build, `/i` included. `\p{Punct}` leaves out the nine ASCII symbols
+  `$`, `+`, `<`, `=`, `>`, `^`, `` ` ``, `|` and `~` that `[[:punct:]]` holds, as
+  CRuby does.
+- The general categories, two letters each (`Lu`, `Ll`, `Lt`, `Lm`, `Lo`,
+  `Mn`, `Mc`, `Me`, `Nd`, `Nl`, `No`, `Pc`, `Pd`, `Ps`, `Pe`, `Pi`, `Pf`, `Po`,
+  `Sm`, `Sc`, `Sk`, `So`, `Zs`, `Zl`, `Zp`, `Cc`, `Cf`, `Co`, `Cs`, `Cn`), and
+  the first letter alone for all of a group (`L`, `M`, `N`, `P`, `S`, `Z`,
+  `C`).
+- The emoji properties `Emoji`, `Emoji_Presentation` and
+  `Extended_Pictographic`.
+
+Under `/i` a property folds as the class of its members would, so `\p{Lu}`
+under `/i` holds `"e"`. A property outside a class negates after the fold, as
+`[^\p{Lu}]` does, and `\P{Lu}` under `/i` holds no cased letter; inside a
+class the complement is a set the fold closes, and `[\P{Lu}]` under `/i` holds
+them all. CRuby draws the same line.
 
 ### Anchors
 
@@ -255,9 +284,11 @@ Every entry is a place this engine answers a pattern differently from CRuby.
   `(?<=\g<1>|zz)(a)` raises where CRuby accepts it, and an option construct
   before the alternation does not enclose it here, so `(?<=(?i:ab|b))x` and
   `(?<=(?i)ab|b)x` are accepted where CRuby raises.
-- **No Unicode properties**: `\p{...}` raises `RegexpError` inside a class or
-  outside one. A bare `\p` or `\pL` is the letter. `[[:alpha:]]` matches a
-  letter of any script.
+- **Unicode properties are the POSIX names, the general categories and the
+  emoji properties**: a script (`\p{Han}`), a binary property
+  (`\p{Alphabetic}`), an age, a block and every other name raise `RegexpError`
+  naming the property. A bare `\p` or `\pL` is the letter. A property cannot
+  end a range: `[a-\p{L}]` raises.
 - **No `\M-X`**: always `RegexpError`; CRuby refuses it only outside a binary
   pattern.
 - **No `(?a)`, `(?d)` or `(?u)`**: `undefined group option`, in the toggle and
@@ -401,8 +432,9 @@ forks.
 
 ### What the build decides
 
-Case folding beyond ASCII and what a POSIX bracket holds above it need
-`MRB_UTF8_STRING` without `MRB_USE_ASCII_CTYPE`.
+Case folding beyond ASCII, what a POSIX bracket holds above it and the
+Unicode properties other than the POSIX names need `MRB_UTF8_STRING` without
+`MRB_USE_ASCII_CTYPE`.
 
 `/i` reads core's case table, the one `String#downcase` reads, so where the
 build folds Unicode `/Ā/i` matches `"ā"` and `[^Ā]` under `/i` stops accepting
@@ -428,13 +460,23 @@ Uppercase and Lowercase, `space` is White_Space, and the rest come from the
 general categories. Without the table a bracket holds its ASCII; `[[:xdigit:]]`
 and `[[:ascii:]]` are ASCII on any build.
 
+The general categories and the emoji properties read `re_prop.h`, 18.2KB of
+read-only data (4,144 category runs and 397 emoji runs) that
+`MRB_USE_ASCII_CTYPE` leaves out as well. Only the compiler reads it: a
+property is spelled out as the ranges of a class when the pattern is compiled,
+so matching one costs what matching a class of the same ranges does. Without
+the table `\p{Lu}`, `\p{Emoji}` and the rest of them raise `RegexpError`
+rather than answer from ASCII alone, and the POSIX names hold their ASCII as
+the brackets do. Both tables are generated from the same Unicode release
+(`rake unicode:generate`), the one CRuby 4.0 carries.
+
 ## Checking against CRuby
 
 The Limitations list is kept by hand; `tools/difftest` keeps it honest:
 
 ```console
 $ MRUBY_CONFIG=host-debug rake regexp:difftest
-6791 patterns, 353 known differences, no new ones
+7295 patterns, 357 known differences, no new ones
 ```
 
 The baseline was taken against `build_config/host-debug.rb`, whose full-core
