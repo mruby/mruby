@@ -1037,18 +1037,14 @@ class_complement(re_compiler *c, re_charclass *cc)
   cc->range_capa = capa;
 }
 
-/* TRUE when every character the class can match is ASCII, so it always
-   consumes exactly one byte. Non-ASCII codepoint ranges, a type read off the
-   table and the utf8_any catch-all (set by \D, \W, \S, \H and [[:^ascii:]])
-   all admit multibyte characters, whose width is not known until match
-   time. */
-static mrb_bool
-class_is_ascii_only(const re_charclass *cc)
+/* The byte UTF-8 begins the character `cp` with. */
+static uint32_t
+utf8_lead_byte(uint32_t cp)
 {
-#ifdef RE_UNICODE_CTYPE
-  if (RE_CLASS_HAS_CTYPE(cc)) return FALSE;
-#endif
-  return cc->num_ranges == 0 && !cc->utf8_any;
+  if (cp < 0x80) return cp;
+  if (cp < 0x800) return 0xC0 | (cp >> 6);
+  if (cp < 0x10000) return 0xE0 | (cp >> 12);
+  return 0xF0 | (cp >> 18);
 }
 
 /* Set ASCII bits for a POSIX class name (e.g. "alpha") into a 128-bit map.
@@ -4596,10 +4592,47 @@ walk_room(mrb_state *mrb, uint32_t n)
   return (uint32_t*)mrb_malloc_simple(mrb, (size_t)n * (sizeof(uint32_t) + 1));
 }
 
+/* Put the bytes a character of the class can begin with into `bm`, all 256
+   of them. A codepoint member begins with the lead byte UTF-8 spells it with,
+   which rises with the codepoint, so a range's leads are the run between its
+   ends'; a byte member (RE_CLASS_BYTE) is the byte itself. The set is only
+   ever a superset: a lead of a codepoint the subject cannot hold (a
+   byte-indexed one) costs a proposal and nothing more, and a byte the scan
+   finds inside a character is refused by the search's interior test. FALSE
+   where the class answers by type, which has no range to read. */
+static mrb_bool
+class_first_bytes(const re_charclass *cc, uint8_t *bm)
+{
+  for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
+#ifdef RE_UNICODE_CTYPE
+  if (RE_CLASS_HAS_CTYPE(cc)) return FALSE;
+#endif
+  if (cc->utf8_any) {
+    memset(bm + 16, 0xff, 16);
+    return TRUE;
+  }
+  for (uint32_t i = 0; i < cc->num_ranges; i++) {
+    uint32_t lo = cc->ranges[2*i], hi = cc->ranges[2*i + 1];
+    uint32_t b, e;
+    if (lo & RE_CLASS_BYTE) {
+      b = lo & 0xff;
+      e = hi & 0xff;
+    }
+    else {
+      b = utf8_lead_byte(lo);
+      e = utf8_lead_byte(hi > 0x10FFFF ? 0x10FFFF : hi);
+    }
+    for (; b <= e; b++) bm[b >> 3] |= (uint8_t)(1 << (b & 7));
+  }
+  return TRUE;
+}
+
 /*
  * Compute the set of bytes that could be the first consumed byte of a match.
  * Walks bytecode from pc=0, following epsilon transitions (SAVE, JMP, SPLIT).
  * Returns TRUE if the set is narrower than "any byte" (i.e., useful for skip).
+ * `bm` covers all 256 bytes; see class_first_bytes() for why a byte above
+ * 127 in it is safe to scan for.
  *
  * Every path has to answer TRUE for the set to be one, so a path that
  * answers FALSE ends the walk there; the others put their bytes in `bm` and
@@ -4645,17 +4678,12 @@ first_set_walk(const re_inst *code, uint32_t code_len,
         pc = pc + 1;
         continue;
       case RE_BYTE:
-        return FALSE;  /* always non-ASCII: bm covers ASCII only */
       case RE_CHAR:
-        if (code[pc].a >= 128) return FALSE;  /* non-ASCII: bm covers ASCII only */
-        bm[code[pc].a >> 3] |= (1 << (code[pc].a & 7));
+        bm[code[pc].a >> 3] |= (uint8_t)(1 << (code[pc].a & 7));
         goto next;
-      case RE_CLASS: {
-        const re_charclass *cc = &classes[code[pc].a];
-        for (int i = 0; i < 16; i++) bm[i] |= cc->bitmap[i];
-        if (!class_is_ascii_only(cc)) return FALSE;  /* non-ASCII possible */
+      case RE_CLASS:
+        if (!class_first_bytes(&classes[code[pc].a], bm)) return FALSE;
         goto next;
-      }
       case RE_NCLASS: {
         /* negated class: complement of bitmap. Too many bits; not useful. */
         return FALSE;
@@ -4924,12 +4952,12 @@ compute_first_set(mrb_state *mrb, const re_inst *code, uint32_t code_len,
   if (!narrow) return FALSE;
   /* Check if bitmap is all-ones (no benefit to skip) */
   int set_bits = 0;
-  for (int i = 0; i < 16; i++) {
+  for (int i = 0; i < 32; i++) {
     for (int b = 0; b < 8; b++) {
       if (bm[i] & (1 << b)) set_bits++;
     }
   }
-  return set_bits < 96;  /* useful only if fewer than 75% of bytes match */
+  return set_bits < 192;  /* useful only if fewer than 75% of bytes match */
 }
 
 /* ---- subexpression calls -------------------------------------------------
@@ -5442,19 +5470,20 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
      Used when prefix is empty (e.g. alternation, character class patterns). */
   pat->has_first_bytes = FALSE;
   if (pat->anchor != RE_ANCHOR_BOT) {
-    uint8_t bm[16];
+    uint8_t bm[32];
     memset(bm, 0, sizeof(bm));
     pat->has_first_bytes = compute_first_set(mrb, pat->code, code_len,
                                              pat->classes, bm);
     if (pat->has_first_bytes) {
-      memcpy(pat->first_bytes, bm, 16);
+      memcpy(pat->first_bytes, bm, sizeof(bm));
       /* A set of up to three bytes is also kept enumerated, so the skip can
          ask memchr for each member instead of walking the subject a byte at
          a time; see skip_to_first_byte(). Three covers the common shapes: an
-         alternation on one letter is one byte and a case-folded letter under
-         /i is two. */
+         alternation on one letter is one byte, a case-folded letter under /i
+         is two, and three with the lead of a counterpart outside ASCII ('k'
+         and U+212A KELVIN SIGN). */
       int n = 0;
-      for (int b = 0; b < 128; b++) {
+      for (int b = 0; b < 256; b++) {
         if (bm[b >> 3] & (1 << (b & 7))) {
           if (n == 3) { n = 0; break; }
           pat->first_byte[n++] = (uint8_t)b;

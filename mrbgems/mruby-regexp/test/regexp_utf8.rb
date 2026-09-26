@@ -1124,3 +1124,17 @@ assert("Regexp - an absent repeater's run stops on a character boundary") do
     assert_equal 5, pat.match(bin)[0].bytesize
   end
 end
+
+assert("Regexp - a match that begins on a character outside ASCII") do
+  # The search skips to the bytes a match can begin with, and those include
+  # the lead byte of a character outside ASCII: the counterpart /i gives 'k'
+  # (U+212A KELVIN SIGN) and 's' (U+017F), or a member of a class. A match
+  # there has to be found wherever it stands, not only at the start.
+  skip unless __ENCODING__ == "UTF-8"
+  assert_equal 4, "xyz \u{212a}appa" =~ /kappa/i
+  assert_equal 4, "xyz \u{212a}APPA".index(/Kappa/i)
+  assert_equal 2, "ab\u{17f}" =~ /S/i
+  assert_equal 3, "aaaé" =~ /[éx]/
+  assert_equal 4, "abあc\u{1f600}" =~ /[\u{1f600}-\u{1f64f}]/
+  assert_equal ["\u{212a}", "k", "K"], "a\u{212a}bkcK".scan(/k/i)
+end

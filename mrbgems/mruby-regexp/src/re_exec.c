@@ -112,7 +112,7 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
 
 /* Check if a byte is in the first-byte bitmap */
 #define FIRST_BYTE_OK(pat, ch) \
-  ((ch) >= 128 || ((pat)->first_bytes[(ch) >> 3] & (1 << ((ch) & 7))))
+  ((pat)->first_bytes[(ch) >> 3] & (1 << ((ch) & 7)))
 
 /*
  * Skip to the next position a match could start at, per the first-byte set.
@@ -123,10 +123,9 @@ skip_to_prefix(const mrb_regexp_pattern *pat, const char *sp, const char *str_en
  * A set of up to three bytes is scanned with one bounded memchr per member,
  * each next call bounded by the nearest find so far, so every byte is read at
  * most first_byte_count times and by memchr rather than one test at a time. A
- * wider set walks the bitmap as before. The bitmap walk also stops at any
- * byte above 127, which the memchr scan runs past: the set being usable at
- * all means no match starts on a non-ASCII byte (see first_set_walk()), so
- * those stops were never candidates, only where the walk gave up.
+ * wider set walks the bitmap. Either can stop on a member byte inside a
+ * character, which the search's interior test refuses as it refuses any
+ * position there; see class_first_bytes().
  */
 static const char*
 skip_to_first_byte(const mrb_regexp_pattern *pat, const char *sp, const char *str_end)

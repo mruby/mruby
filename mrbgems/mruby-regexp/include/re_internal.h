@@ -259,7 +259,7 @@ typedef struct mrb_regexp_pattern {
   mrb_bool needs_backtrack; /* true if pattern needs backtracking engine */
   uint8_t *prefix;         /* literal prefix bytes for fast skip (or NULL) */
   uint8_t prefix_len;      /* length of prefix (0 = no prefix) */
-  uint8_t first_bytes[16]; /* bitmap of possible first bytes (128-bit, ASCII) */
+  uint8_t first_bytes[32]; /* bitmap of possible first bytes, all 256 */
   mrb_bool has_first_bytes; /* true if first_bytes is usable for skipping */
   uint8_t first_byte_count; /* how many bytes first_byte[] holds (1..3), or 0
                                when the set is wider and only the bitmap
