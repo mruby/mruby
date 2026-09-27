@@ -3319,6 +3319,9 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq
   uint16_t c;
   mrb_sym mid;
   const struct mrb_irep_catch_handler *ch;
+  mrb_int acc;
+  mrb_value retval;
+  mrb_callinfo *return_ci;
 
 #ifndef MRB_USE_VM_SWITCH_DISPATCH
   static const void * const optable[] = {
@@ -4222,44 +4225,40 @@ RETRY_TRY_BLOCK:
       goto L_RETURN_FALSE;
     }
     CASE(OP_RETURN, B) {
-      mrb_int acc;
-      mrb_value v;
-      mrb_callinfo *return_ci;
-
-      v = regs[a];
+      retval = regs[a];
       goto L_RETURN;
     L_RETURN_NIL:
-      v = mrb_nil_value();
+      retval = mrb_nil_value();
       goto L_RETURN;
     L_RETURN_TRUE:
-      v = mrb_true_value();
+      retval = mrb_true_value();
       goto L_RETURN;
     L_RETURN_FALSE:
-      v = mrb_false_value();
+      retval = mrb_false_value();
     L_RETURN:
       /* cipop below may allocate (env unshare), and the returning frame's
          slots are no longer scanned after the pop, so keep a heap return
          value in the arena; immediates need no protection and skipping the
          call matters on integer-heavy return paths */
-      if (!mrb_immediate_p(v)) mrb_gc_protect(mrb, v);
+      if (!mrb_immediate_p(retval)) mrb_gc_protect(mrb, retval);
       return_ci = ci;
       CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
         if (TRUE) {
           struct RBreak *brk = (struct RBreak*)mrb->exc;
           return_ci = &mrb->c->cibase[brk->ci_break_index];
-          v = mrb_break_value_get(brk);
+          retval = mrb_break_value_get(brk);
         }
         else {
         L_UNWINDING:
           return_ci = ci;
           ci = mrb->c->ci;
-          v = ci->stack[a];
+          retval = ci->stack[a];
         }
-        if (!mrb_immediate_p(v)) mrb_gc_protect(mrb, v);
+        if (!mrb_immediate_p(retval)) mrb_gc_protect(mrb, retval);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_BREAK) {
         for (;;) {
-          UNWIND_ENSURE(mrb, ci, ci->pc, RBREAK_TAG_BREAK, return_ci, v);
+          UNWIND_ENSURE(mrb, ci, ci->pc, RBREAK_TAG_BREAK, return_ci, retval);
 
           if (ci == return_ci) {
             break;
@@ -4267,7 +4266,7 @@ RETRY_TRY_BLOCK:
           ci = cipop(mrb);
           if (ci[1].cci != CINFO_NONE) {
             mrb_assert(prev_jmp != NULL);
-            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, return_ci, v);
+            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, return_ci, retval);
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
             mrb->jmp = prev_jmp;
@@ -4284,7 +4283,7 @@ RETRY_TRY_BLOCK:
           /* toplevel return */
           mrb_gc_arena_restore(mrb, ai);
           mrb->jmp = prev_jmp;
-          return v;
+          return retval;
         }
 
 #ifdef MRB_USE_TASK_SCHEDULER
@@ -4292,7 +4291,7 @@ RETRY_TRY_BLOCK:
           mrb_gc_arena_restore(mrb, ai);
           mrb->jmp = prev_jmp;
           TASK_STOP(mrb);
-          return v;
+          return retval;
         }
 #endif
 
@@ -4302,7 +4301,7 @@ RETRY_TRY_BLOCK:
           mrb_gc_arena_restore(mrb, ai);
           c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
-          return v;
+          return retval;
         }
         ci = mrb->c->ci;
       }
@@ -4311,19 +4310,19 @@ RETRY_TRY_BLOCK:
         mrb_gc_arena_restore(mrb, ai);
         mrb->c->vmexec = FALSE;
         mrb->jmp = prev_jmp;
-        return v;
+        return retval;
       }
       acc = ci->cci;
       ci = cipop(mrb);
       if (acc == CINFO_SKIP || acc == CINFO_DIRECT) {
         mrb_gc_arena_restore(mrb, ai);
         mrb->jmp = prev_jmp;
-        return v;
+        return retval;
       }
       DEBUG(fprintf(stderr, "from :%s\n", mrb_sym_name(mrb, ci->mid)));
       irep = ci->proc->body.irep;
 
-      ci[1].stack[0] = v;
+      ci[1].stack[0] = retval;
       mrb_gc_arena_restore(mrb, ai);
       JUMP;
     }
