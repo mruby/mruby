@@ -7008,8 +7008,14 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         if (cast->rescue_clause) pop();
         gen_ensure(s, (mrc_node *)cast->ensure_clause, ensure_catch_entry, ensure_begin);
       }
-      else {
-        /* empty ensure ignored */
+      else if (!cast->rescue_clause) {
+        /* With no rescue the begin comes out one register short, which the
+           slot gen_ensure() holds on to makes up for; an empty ensure emits
+           nothing, so the slot is taken here instead. Left short, a begin
+           whose value is used shared its register with whatever came next:
+           the argument after `(begin ensure end)` overwrote it, and a splat
+           after it left the VM reading an array that was not there. */
+        push();
       }
       break;
     }

@@ -70,3 +70,15 @@ assert('ensure with an op-assign of every kind preserves the return value') do
   assert_equal 1, (a ||= 9)
   assert_equal 7, (a &&= 7)
 end
+
+assert('begin with an empty ensure keeps its value in a register of its own') do
+  # The begin came out one register short where the ensure has no body, so
+  # what came after it landed in the begin's register: the argument after it
+  # overwrote its value, and a splat after it had the VM read a packed array
+  # that was not there.
+  assert_equal [1, nil, 2], [1, (begin ensure end), 2]
+  assert_equal [nil, 1], [begin ensure end, *[1]]
+  assert_equal [1, nil, 2], [1, begin ensure end, *[2]]
+  assert_equal [1, 4, 2], [1, (begin 4 ensure end), 2]
+  assert_raise(NoMethodError) { begin ensure end[*false] }
+end
