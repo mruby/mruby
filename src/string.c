@@ -6,7 +6,9 @@
 
 #ifdef _MSC_VER
 # define _CRT_NONSTDC_NO_DEPRECATE
-# define WIN32_LEAN_AND_MEAN
+# ifndef WIN32_LEAN_AND_MEAN
+#  define WIN32_LEAN_AND_MEAN
+# endif
 #endif
 
 #include <mruby.h>
