@@ -116,7 +116,9 @@ double round(double x) {
 
 #if !defined(NO_GETTIMEOFDAY) && defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
 /* Windows gettimeofday polyfill */
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
+#endif
 #include <windows.h>
 #define gettimeofday my_gettimeofday
 
