@@ -3081,6 +3081,22 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
     }
     break;
 
+  case PM_PARENTHESES_NODE:
+    {
+      /* `(pattern)` groups a pattern, as around an alternation that is one
+         element of an array pattern; the parentheses hold the pattern itself,
+         not a statement list. Left to the default below, every such pattern
+         failed. */
+      CAST3(parentheses, pattern, paren);
+      if (paren->body == NULL) {
+        tmp = genjmp(s, OP_JMP, *fail_pos);
+        *fail_pos = tmp;
+        break;
+      }
+      codegen_pattern(s, (mrc_node *)paren->body, target, fail_pos, known_array_len, cache);
+    }
+    break;
+
   case PM_ALTERNATION_PATTERN_NODE:
     {
       CAST3(alternation_pattern, pattern, pat_alt);
