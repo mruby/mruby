@@ -3090,14 +3090,16 @@ codegen_pattern_1(mrc_codegen_scope *s, mrc_node *pattern, int target, uint32_t 
       /* Try left pattern */
       codegen_pattern(s, (mrc_node *)pat_alt->left, target, &left_fail, known_array_len, cache);
 
-      /* Optimize JMPNOT+JMP to JMPIF when possible.
-         Only when the left pattern's tail is an OP_JMPNOT (BS format, so the
-         opcode sits at left_fail-2).  Patterns that emit a plain OP_JMP (e.g.
-         unimplemented patterns falling to the default case) must not be
-         rewritten, or a neighboring byte would be corrupted. */
+      /* Optimize JMPNOT+JMP to JMPIF when possible: only when the left
+         pattern's tail is an OP_JMPNOT, which is told by decoding the last
+         instruction emitted. Reading the byte two before the operand instead
+         answered for a plain OP_JMP (the default case below emits one) with
+         the operand of whatever came before it, which once spelled OP_JMPNOT
+         by chance and had that operand rewritten. */
+      struct mrc_insn_data last = mrc_last_insn(s);
       if (nint(pat_alt->left) != PM_ALTERNATION_PATTERN_NODE &&
-          left_fail != JMPLINK_START && left_fail >= 2 && left_fail + 2 == s->pc &&
-          s->iseq[left_fail - 2] == OP_JMPNOT) {
+          left_fail != JMPLINK_START && left_fail + 2 == s->pc &&
+          last.insn == OP_JMPNOT && addr_pc(s, last.addr) + 2 == left_fail) {
         /* Extract the previous link from the JMPNOT chain */
         int16_t prev_offset = (int16_t)PEEK_S(s->iseq + left_fail);
         int32_t next_addr = (int32_t)(left_fail + 2) + prev_offset;
