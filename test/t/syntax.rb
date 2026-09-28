@@ -3230,6 +3230,6 @@ assert('case/in - an alternation after a pattern that compiles to a plain jump')
   # the code. The shape is the reported one: three clauses, the last an
   # alternation whose left side compiled that way when this was reported.
   assert_raise(NoMatchingPatternError) do
-    case itself;in Integer();in[*,su,*],{},as then in({})|{}then end
+    case object_id;in Integer();in[*,su,*],{},as then in({})|{}then end
   end
 end
