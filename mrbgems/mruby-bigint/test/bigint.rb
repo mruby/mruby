@@ -303,6 +303,30 @@ assert 'Bigint ^' do
   assert_equal(-36893488147419103231, -n ^ 1)
 end
 
+assert 'Bigint ~' do
+  n = 1<<64
+  assert_equal(-18446744073709551617, ~n)
+  assert_equal(-18446744073709551616, ~(n - 1))
+  assert_equal(-1267650600228229401496703205377, ~(1<<100))
+  assert_equal 18446744073709551615, ~(-n)
+  assert_equal 18446744073709551616, ~(-n - 1)
+  assert_equal n, ~~n
+end
+
+assert 'Bigint >> rounds a negative number toward minus infinity' do
+  n = 1<<64
+  assert_equal(-9223372036854775808, -n >> 1)
+  assert_equal(-9223372036854775809, (-n - 1) >> 1)
+  assert_equal(-1, -n >> 64)
+  assert_equal(-2, (-n - 1) >> 64)
+  assert_equal(-2, (-n + 1) >> 63)
+  assert_equal(-1, -n >> 65)
+  assert_equal(-1, -n >> 100)
+  assert_equal(-295147905179352825857, (-(1<<70) - 3) >> 2)
+  assert_equal(-295147905179352825857, (-(1<<70) - 3) << -2)
+  assert_equal 295147905179352825856, ((1<<70) + 3) >> 2
+end
+
 assert 'Bigint to_s' do
   n = 1197857166996989179607278372168909873645893814254642585755536286462800958278984531968
   assert_equal n, "11978_571669_96989179607278372168909873645893814254642585755536286462800958278984531968".to_i

@@ -6091,8 +6091,33 @@ mrb_bint_rev(mrb_state *mrb, mrb_value x)
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(ctx, &b);
   mpz_neg(ctx, &b, &a);
-  mpz_sub_int(ctx, &b, 1);
+  /* ~a is -a - 1. mpz_sub_int() and mpz_add_int() work on the magnitude,
+     so take 1 from it when -a is positive, and add 1 to it otherwise. */
+  if (b.sn > 0) {
+    mpz_sub_int(ctx, &b, 1);
+  }
+  else {
+    mpz_add_int(ctx, &b, 1);
+  }
   return bint_norm(mrb, bint_new(ctx, &b));
+}
+
+/* z = floor(x / 2^e), where mpz_div_2exp() truncates toward zero */
+static void
+mpz_fdiv_q_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
+{
+  /* a negative x that loses a set bit rounds one further down */
+  mrb_bool down = x->sn < 0 && mpz_trailing_zeros(x) < (size_t)e;
+
+  mpz_div_2exp(ctx, z, x, e);
+  if (down) {
+    if (zero_p(z)) {
+      mpz_set_int(ctx, z, -1);
+    }
+    else {
+      mpz_add_int(ctx, z, 1);   /* on the magnitude of a negative z */
+    }
+  }
 }
 
 mrb_value
@@ -6104,7 +6129,7 @@ mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(ctx, &z);
   if (width < 0) {
-    mpz_div_2exp(ctx, &z, &a, -width);
+    mpz_fdiv_q_2exp(ctx, &z, &a, -width);
   }
   else {
     mpz_mul_2exp(ctx, &z, &a, width);
@@ -6124,7 +6149,7 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
     mpz_mul_2exp(ctx, &z, &a, -width);
   }
   else {
-    mpz_div_2exp(ctx, &z, &a, width);
+    mpz_fdiv_q_2exp(ctx, &z, &a, width);
   }
   return bint_norm(mrb, bint_new(ctx, &z));
 }
