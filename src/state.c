@@ -54,8 +54,15 @@ mrb_open_core(void)
   mrb->bootstrapping = TRUE;
 
   if (mrb_core_init_protect(mrb, init_gc_and_core, NULL)) {
-    /* Return mrb with mrb->exc set for caller to inspect */
-    return mrb;
+    if (mrb->exc) {
+      /* Return mrb with mrb->exc set for caller to inspect */
+      return mrb;
+    }
+    /* Memory ran out before NoMemoryError existed (mrb_core_init_abort()),
+       so there is no exception to report: returned, the half-built state
+       would pass MRB_OPEN_FAILURE() as a working one. */
+    mrb_close(mrb);
+    return NULL;
   }
 
   mrb_method_cache_clear(mrb);
