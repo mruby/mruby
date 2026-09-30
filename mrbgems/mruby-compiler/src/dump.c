@@ -5,6 +5,9 @@
 #include "../include/mrc_parser_util.h"
 #include "../include/mrc_debug.h"
 #include "../include/mrc_irep_pool_type.h"
+#if defined(MRC_TARGET_MRUBY)
+#include <mruby/throw.h>
+#endif
 
 #if !defined(BYTE_ORDER) && defined(__BYTE_ORDER__)
 # define BYTE_ORDER __BYTE_ORDER__
@@ -778,8 +781,16 @@ lv_defined_p(const mrc_irep *irep)
   return FALSE;
 }
 
-int
-mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
+/* The symbol tables a dump builds on the way, held where the caller can give
+   them back if an allocation raises before the dump is done. */
+struct dump_tables {
+  mrc_sym *lv_syms;
+  mrc_sym *filenames;
+};
+
+static int
+dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size,
+          struct dump_tables *t)
 {
   int result = MRC_DUMP_GENERAL_FAILURE;
   size_t malloc_size;
@@ -787,13 +798,8 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
   size_t section_lineno_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
   mrc_bool const debug_info_defined = debug_info_defined_p(irep), lv_defined = lv_defined_p(irep);
-  mrc_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
-  mrc_sym *filenames = NULL; uint16_t filenames_len = 0;
-
-  if (c == NULL) {
-    *bin = NULL;
-    return MRC_DUMP_GENERAL_FAILURE;
-  }
+  uint32_t lv_syms_len = 0;
+  uint16_t filenames_len = 0;
 
   section_irep_size = sizeof(struct rite_section_irep_header);
   section_irep_size += get_irep_record_size(c, irep);
@@ -803,11 +809,11 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
     if (debug_info_defined) {
       section_lineno_size += sizeof(struct rite_section_debug_header);
       /* filename table */
-      filenames = (mrc_sym*)mrc_malloc(c, sizeof(mrc_sym) + 1);
+      t->filenames = (mrc_sym*)mrc_malloc(c, sizeof(mrc_sym) + 1);
 
       /* filename table size */
       section_lineno_size += sizeof(uint16_t);
-      section_lineno_size += get_filename_table_size(c, irep, &filenames, &filenames_len);
+      section_lineno_size += get_filename_table_size(c, irep, &t->filenames, &filenames_len);
 
       section_lineno_size += get_debug_record_size(c, irep);
     }
@@ -815,8 +821,8 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
 
   if (lv_defined) {
     section_lv_size += sizeof(struct rite_section_lv_header);
-    create_lv_sym_table(c, irep, &lv_syms, &lv_syms_len);
-    section_lv_size += get_lv_section_size(c, irep, lv_syms, lv_syms_len);
+    create_lv_sym_table(c, irep, &t->lv_syms, &lv_syms_len);
+    section_lv_size += get_lv_section_size(c, irep, t->lv_syms, lv_syms_len);
   }
 
   malloc_size = sizeof(struct rite_binary_header) +
@@ -837,7 +843,7 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
   /* write DEBUG section */
   if (flags & MRC_DUMP_DEBUG_INFO) {
     if (debug_info_defined) {
-      result = write_section_debug(c, irep, cur, filenames, filenames_len);
+      result = write_section_debug(c, irep, cur, t->filenames, filenames_len);
       if (result != MRC_DUMP_OK) {
         goto error_exit;
       }
@@ -846,7 +852,7 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
   }
 
   if (lv_defined) {
-    result = write_section_lv(c, irep, cur, lv_syms, lv_syms_len);
+    result = write_section_lv(c, irep, cur, t->lv_syms, lv_syms_len);
     if (result != MRC_DUMP_OK) {
       goto error_exit;
     }
@@ -861,8 +867,46 @@ error_exit:
     mrc_free(c, *bin);
     *bin = NULL;
   }
-  mrc_free(c, lv_syms);
-  mrc_free(c, filenames);
+  return result;
+}
+
+int
+mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
+{
+  struct dump_tables t = { NULL, NULL };
+  int result;
+
+  *bin = NULL;
+  if (c == NULL) return MRC_DUMP_GENERAL_FAILURE;
+#if defined(MRC_TARGET_MRUBY)
+  if (c->mrb && c->mrb->jmp) {
+    /* The tables and the binary come from mrb_malloc(), which raises when
+       it fails: give them back before passing the error on, or they are
+       lost with this frame. */
+    mrb_state *mrb = c->mrb;
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      result = dump_irep(c, irep, flags, bin, bin_size, &t);
+      mrb->jmp = prev_jmp;
+    } MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      mrc_free(c, *bin);
+      *bin = NULL;
+      mrc_free(c, t.lv_syms);
+      mrc_free(c, t.filenames);
+      MRB_THROW(prev_jmp);
+    } MRB_END_EXC(&c_jmp);
+  }
+  else
+#endif
+  {
+    result = dump_irep(c, irep, flags, bin, bin_size, &t);
+  }
+  mrc_free(c, t.lv_syms);
+  mrc_free(c, t.filenames);
   return result;
 }
 
