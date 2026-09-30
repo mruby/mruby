@@ -3703,12 +3703,19 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       const char *p3 = p2;
       while (p3 < pend) {
         char c = TOLOWER(*p3);
+        if (c == '_') {
+          /* "__" ends the number, as in the loop above */
+          if (p3 + 1 < pend && p3[1] == '_') break;
+          p3++;
+          continue;
+        }
         const char *p4 = strchr(mrb_digitmap, c);
-        if (p4 == NULL && c != '_') break;
+        if (p4 == NULL) break;
         if (p4 - mrb_digitmap >= base) break;
         p3++;
       }
-      if (badcheck && trailingbad(str, p, pend)) goto bad;
+      /* p is where the overflow was found, not where the digits end */
+      if (badcheck && trailingbad(str, p3, pend)) goto bad;
       return mrb_bint_new_str(mrb, p2, (mrb_int)(p3-p2), sign ? base : -base);
 #else
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);

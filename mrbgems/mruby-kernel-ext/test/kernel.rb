@@ -91,6 +91,26 @@ assert('Kernel#Integer') do
   assert_operator(123, :eql?, Integer(123.999))
 end
 
+assert('Kernel#Integer with a number too big for mrb_int') do
+  begin
+    big = 1 << 70
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal(big, Integer("1180591620717411303424"))
+  assert_equal(-big, Integer("-1180591620717411303424"))
+  assert_equal(big, Integer("1_180_591_620_717_411_303_424"))
+  assert_equal(big, Integer(" 1180591620717411303424\n"))
+  assert_equal(big, Integer("0x400000000000000000"))
+  assert_equal(big, Integer("1180591620717411303424", 10))
+  assert_raise(ArgumentError) { Integer("1180591620717411303424x") }
+  assert_raise(ArgumentError) { Integer("1180591620717411303424_") }
+  assert_raise(ArgumentError) { Integer("11805916207174113034__24") }
+  assert_raise(ArgumentError) { Integer("1180591620717411303424 5") }
+  # without the check, "__" still ends the number
+  assert_equal(Integer("11805916207174113034"), "11805916207174113034__24".to_i)
+end
+
 assert('Kernel#Float') do
   skip unless Object.const_defined?(:Float)
   assert_operator(1.0, :eql?, Float(1))
