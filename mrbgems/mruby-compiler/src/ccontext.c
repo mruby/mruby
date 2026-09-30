@@ -9,7 +9,7 @@
    it unconditionally for the mruby target, so it must exist regardless of
    MRC_ALLOC_LIBC even though only the non-libc allocator dereferences it. */
 #include <stddef.h>
-#include <mruby/throw.h>
+#include <mruby/error.h>
 
 mrb_state *global_mrb = NULL;
 
@@ -157,6 +157,16 @@ ccontext_init(mrc_ccontext *c)
 #endif
 }
 
+#if defined(MRC_TARGET_MRUBY)
+static mrb_value
+ccontext_init_body(mrb_state *mrb, void *c)
+{
+  (void)mrb;
+  ccontext_init((mrc_ccontext *)c);
+  return mrb_nil_value();
+}
+#endif
+
 MRC_API mrc_ccontext *
 mrc_ccontext_new(mrb_state *mrb)
 {
@@ -170,27 +180,25 @@ mrc_ccontext_new(mrb_state *mrb)
 #if defined(MRC_TARGET_MRUBY)
   if (mrb && mrb->jmp) {
     /* The allocations after the first raise NoMemoryError when they fail:
-       give back what was taken before passing the error on, or c is lost. */
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
+       give back what was taken before passing the error on, or c is lost.
+       Caught through mrb_protect_error() rather than MRB_TRY, which is C++
+       where mruby is built with C++ exceptions and this file is not. */
+    mrb_bool failed;
+    mrb_value exc;
 #if defined(MRC_PRISM_ARENA)
     /* arena_open() leaves the current arena unset if its block cannot be had */
     struct mrc_prism_arena_block *prev_arena = mrc_prism_arena;
 #endif
 
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      ccontext_init(c);
-      mrb->jmp = prev_jmp;
-    } MRB_CATCH(&c_jmp) {
+    exc = mrb_protect_error(mrb, ccontext_init_body, c, &failed);
+    if (failed) {
 #if defined(MRC_PRISM_ARENA)
       mrc_prism_arena = prev_arena;
 #endif
-      mrb->jmp = prev_jmp;
       if (c->p) mrc_free(c, c->p);
       mrc_free(c, c);
-      MRB_THROW(prev_jmp);
-    } MRB_END_EXC(&c_jmp);
+      mrb_exc_raise(mrb, exc);
+    }
     return c;
   }
 #endif

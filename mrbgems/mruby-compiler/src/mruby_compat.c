@@ -10,7 +10,6 @@
 #include <mruby/opcode.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
-#include <mruby/throw.h>
 #include <string.h>
 
 #include "../include/mrc_ccontext.h"
@@ -218,24 +217,42 @@ parse_into(struct mrb_parser_state *p, const char *s, size_t len, mrb_ccontext *
    that raise has nowhere to go and aborts, and with one (eval) the partly
    built state was lost. The lrama parser caught it in mrb_parser_parse()
    the same way. */
+struct parse_args {
+  struct mrb_parser_state *p;
+  const char *s;
+  size_t len;
+  mrb_ccontext *c;
+};
+
+static mrb_value
+parse_body(mrb_state *mrb, void *data)
+{
+  struct parse_args *a = (struct parse_args*)data;
+
+  a->p = (struct mrb_parser_state*)mrb_calloc(mrb, 1, sizeof(struct mrb_parser_state));
+  parser_init(a->p, mrb, a->c);
+  parse_into(a->p, a->s, a->len, a->c);
+  return mrb_nil_value();
+}
+
 static struct mrb_parser_state*
 parse_source(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *c)
 {
-  struct mrb_parser_state *volatile p = NULL;
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
+  struct parse_args a = { NULL, s, len, c };
+  struct mrb_parser_state *p;
+  mrb_bool failed;
+  mrb_value exc;
 
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
-    p = (struct mrb_parser_state*)mrb_calloc(mrb, 1, sizeof(struct mrb_parser_state));
-    parser_init(p, mrb, c);
-    parse_into(p, s, len, c);
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
-    mrb_parser_free(p);
+  /* mrb_protect_error() rather than MRB_TRY, which is C++ where mruby is
+     built with C++ exceptions and this file is not. It takes the error out
+     of mrb->exc, and here is where it is left. */
+  exc = mrb_protect_error(mrb, parse_body, &a, &failed);
+  if (failed) {
+    mrb_parser_free(a.p);
+    mrb->exc = mrb_obj_ptr(exc);
     return NULL;
-  } MRB_END_EXC(&c_jmp);
+  }
+  p = a.p;
 
   if (c) {
     c->parser_nerr = p->nerr;
@@ -501,13 +518,17 @@ report_roundtrip_error(mrc_ccontext *mc, const char *message)
 
 /* What the dump and reload below hold on the way, where a raise can find it. */
 struct roundtrip {
+  mrc_ccontext *mc;
+  mrc_irep *irep;
   uint8_t *bin;
   mrb_irep *mir;
 };
 
-static struct RProc*
-roundtrip(mrb_state *mrb, mrc_ccontext *mc, mrc_irep *irep, struct roundtrip *rt)
+static mrb_value
+roundtrip(mrb_state *mrb, void *data)
 {
+  struct roundtrip *rt = (struct roundtrip*)data;
+  mrc_ccontext *mc = rt->mc;
   size_t bin_size = 0;
   struct RProc *proc;
   /* Always carry debug info across the dump/reload that turns the mrc_irep
@@ -515,58 +536,56 @@ roundtrip(mrb_state *mrb, mrc_ccontext *mc, mrc_irep *irep, struct roundtrip *rt
      line number, and mruby reports those even when compiled without -g. */
   uint8_t flags = MRC_DUMP_DEBUG_INFO;
 
-  if (mrc_dump_irep(mc, irep, flags, &rt->bin, &bin_size) != MRC_DUMP_OK) {
+  if (mrc_dump_irep(mc, rt->irep, flags, &rt->bin, &bin_size) != MRC_DUMP_OK) {
     report_roundtrip_error(mc, "irep dump error");
-    return NULL;
+    return mrb_nil_value();
   }
   rt->mir = mrb_read_irep_buf(mrb, rt->bin, bin_size);
   mrc_free(mc, rt->bin);
   rt->bin = NULL;
   if (!rt->mir) {
     report_roundtrip_error(mc, "irep load error");
-    return NULL;
+    return mrb_nil_value();
   }
   proc = mrb_proc_new(mrb, rt->mir);
   mrb_irep_decref(mrb, rt->mir);
   rt->mir = NULL;
-  return proc;
+  return mrb_obj_value(proc);
 }
 
 /* Every step of the dump and reload allocates, and each raises when it
    fails, which a load called from C has nothing to catch: the process
-   aborted. Caught here, what was taken is given back and the error is left
-   in mrb->exc, as parse_source() leaves one, with NULL for the answer. It is
-   not passed on even where a handler waits: every caller frees the parser
-   state once this returns, and a raise past them lost it. */
+   aborted. Caught here, through mrb_protect_error() as parse_source() does,
+   what was taken is given back and the error is left in mrb->exc, as
+   parse_source() leaves one, with NULL for the answer. It is not passed on
+   even where a handler waits: every caller frees the parser state once this
+   returns, and a raise past them lost it. */
 MRB_API struct RProc*
 mrb_generate_code(mrb_state *mrb, struct mrb_parser_state *p)
 {
-  mrc_ccontext *mc;
-  mrc_irep *irep;
-  struct RProc *proc = NULL;
-  struct roundtrip rt = { NULL, NULL };
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
+  struct roundtrip rt;
+  struct RProc *proc;
+  mrb_bool failed;
+  mrb_value result;
 
   if (!p || !p->tree || p->nerr) return NULL;
-  mc = (mrc_ccontext*)p->ylval;
-  irep = (mrc_irep*)p->tree;
+  rt.mc = (mrc_ccontext*)p->ylval;
+  rt.irep = (mrc_irep*)p->tree;
+  rt.bin = NULL;
+  rt.mir = NULL;
 
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
-    proc = roundtrip(mrb, mc, irep, &rt);
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
-    mrc_free(mc, rt.bin);
+  result = mrb_protect_error(mrb, roundtrip, &rt, &failed);
+  if (failed) {
+    mrc_free(rt.mc, rt.bin);
     if (rt.mir) mrb_irep_decref(mrb, rt.mir);
+    mrb->exc = mrb_obj_ptr(result);
     return NULL;
-  } MRB_END_EXC(&c_jmp);
-
-  if (!proc) return NULL;
+  }
+  if (mrb_nil_p(result)) return NULL;
+  proc = mrb_proc_ptr(result);
   proc->c = NULL;
   proc->upper = p->upper;
-  mrc_irep_free(mc, irep);
+  mrc_irep_free(rt.mc, rt.irep);
   p->tree = NULL;
   return proc;
 }

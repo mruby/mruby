@@ -6,7 +6,7 @@
 #include "../include/mrc_debug.h"
 #include "../include/mrc_irep_pool_type.h"
 #if defined(MRC_TARGET_MRUBY)
-#include <mruby/throw.h>
+#include <mruby/error.h>
 #endif
 
 #if !defined(BYTE_ORDER) && defined(__BYTE_ORDER__)
@@ -870,6 +870,28 @@ error_exit:
   return result;
 }
 
+#if defined(MRC_TARGET_MRUBY)
+struct dump_args {
+  mrc_ccontext *c;
+  const mrc_irep *irep;
+  uint8_t flags;
+  uint8_t **bin;
+  size_t *bin_size;
+  struct dump_tables *t;
+  int result;
+};
+
+static mrb_value
+dump_body(mrb_state *mrb, void *data)
+{
+  struct dump_args *a = (struct dump_args*)data;
+
+  (void)mrb;
+  a->result = dump_irep(a->c, a->irep, a->flags, a->bin, a->bin_size, a->t);
+  return mrb_nil_value();
+}
+#endif
+
 int
 mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
@@ -882,23 +904,21 @@ mrc_dump_irep(mrc_ccontext *c, const mrc_irep *irep, uint8_t flags, uint8_t **bi
   if (c->mrb && c->mrb->jmp) {
     /* The tables and the binary come from mrb_malloc(), which raises when
        it fails: give them back before passing the error on, or they are
-       lost with this frame. */
-    mrb_state *mrb = c->mrb;
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
+       lost with this frame. Caught through mrb_protect_error() rather than
+       MRB_TRY, which is C++ where mruby is built with C++ exceptions and
+       this file is not. */
+    struct dump_args a = { c, irep, flags, bin, bin_size, &t, MRC_DUMP_GENERAL_FAILURE };
+    mrb_bool failed;
+    mrb_value exc = mrb_protect_error(c->mrb, dump_body, &a, &failed);
 
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      result = dump_irep(c, irep, flags, bin, bin_size, &t);
-      mrb->jmp = prev_jmp;
-    } MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
+    if (failed) {
       mrc_free(c, *bin);
       *bin = NULL;
       mrc_free(c, t.lv_syms);
       mrc_free(c, t.filenames);
-      MRB_THROW(prev_jmp);
-    } MRB_END_EXC(&c_jmp);
+      mrb_exc_raise(c->mrb, exc);
+    }
+    result = a.result;
   }
   else
 #endif

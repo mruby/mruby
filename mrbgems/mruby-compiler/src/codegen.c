@@ -13,7 +13,7 @@
 
 #if defined(MRC_TARGET_MRUBY)
 #include "../include/mrc_proc.h"
-#include <mruby/throw.h>
+#include <mruby/error.h>
 #endif
 
 #ifdef MRBC_REQUIRE_32BIT_ALIGNMENT
@@ -467,9 +467,28 @@ scope_add_irep(mrc_codegen_scope *s)
   }
 }
 
+#if defined(MRC_TARGET_MRUBY)
+struct scope_alloc_args {
+  mrc_pool *pool;
+  mrc_codegen_scope *s;
+};
+
+static mrb_value
+scope_alloc_body(mrb_state *mrb, void *data)
+{
+  struct scope_alloc_args *a = (struct scope_alloc_args *)data;
+
+  (void)mrb;
+  a->s = (mrc_codegen_scope *)mrc_pool_alloc(a->pool, sizeof(mrc_codegen_scope));
+  return mrb_nil_value();
+}
+#endif
+
 /* A scope is the first thing its pool holds.  The pool page is allocated
    with mrb_malloc(), which raises when it fails, and the pool would be lost
-   with the raise: give it back on the way. */
+   with the raise: give it back on the way.  Caught through
+   mrb_protect_error() rather than MRB_TRY, which is C++ where mruby is built
+   with C++ exceptions and this file is not. */
 static mrc_codegen_scope*
 scope_alloc(mrc_ccontext *c, mrc_pool *pool)
 {
@@ -477,20 +496,15 @@ scope_alloc(mrc_ccontext *c, mrc_pool *pool)
   mrb_state *mrb = c->mrb;
 
   if (pool && mrb && mrb->jmp) {
-    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-    struct mrb_jmpbuf c_jmp;
-    mrc_codegen_scope *s = NULL;
+    struct scope_alloc_args a = { pool, NULL };
+    mrb_bool failed;
+    mrb_value exc = mrb_protect_error(mrb, scope_alloc_body, &a, &failed);
 
-    MRB_TRY(&c_jmp) {
-      mrb->jmp = &c_jmp;
-      s = (mrc_codegen_scope *)mrc_pool_alloc(pool, sizeof(mrc_codegen_scope));
-      mrb->jmp = prev_jmp;
-    } MRB_CATCH(&c_jmp) {
-      mrb->jmp = prev_jmp;
+    if (failed) {
       mrc_pool_close(pool);
-      MRB_THROW(prev_jmp);
-    } MRB_END_EXC(&c_jmp);
-    return s;
+      mrb_exc_raise(mrb, exc);
+    }
+    return a.s;
   }
 #else
   (void)c;
@@ -1877,35 +1891,48 @@ gen_setxv(mrc_codegen_scope *s, uint8_t op, uint16_t dst, mrc_sym sym, int val)
 }
 
 #if defined(MRC_TARGET_MRUBY)
+struct codegen_args {
+  mrc_codegen_scope *scope;
+  mrc_node *node;
+  int val;
+};
+
+static mrb_value
+codegen_body(mrb_state *mrb, void *data)
+{
+  struct codegen_args *a = (struct codegen_args *)data;
+
+  (void)mrb;
+  codegen(a->scope, a->node, a->val);
+  return mrb_nil_value();
+}
+
 /* The codegen allocates through mrb_malloc(), which raises NoMemoryError when
    it fails.  The raise goes to mrb->jmp, past codegen_error() and the catch in
    generate_code(), and would leave every scope being compiled behind: give
-   them back and pass it on. */
+   them back and pass it on.  A codegen_error() leaves mrb_protect_error()
+   through the jump it takes to generate_code(), which puts mrb->jmp back. */
 static void
 codegen_top(mrc_codegen_scope *scope, mrc_node *node, int val, struct mrc_jmpbuf *prev_jmp)
 {
   mrc_ccontext *c = scope->c;
   mrb_state *mrb = c->mrb;
-  struct mrb_jmpbuf *prev_mrb_jmp;
-  struct mrb_jmpbuf mrb_jmp;
+  struct codegen_args a = { scope, node, val };
+  mrb_bool failed;
+  mrb_value exc;
 
   if (!mrb || !mrb->jmp) {
     codegen(scope, node, val);
     return;
   }
-  prev_mrb_jmp = mrb->jmp;
-  MRB_TRY(&mrb_jmp) {
-    mrb->jmp = &mrb_jmp;
-    codegen(scope, node, val);
-    mrb->jmp = prev_mrb_jmp;
-  } MRB_CATCH(&mrb_jmp) {
-    mrb->jmp = prev_mrb_jmp;
+  exc = mrb_protect_error(mrb, codegen_body, &a, &failed);
+  if (failed) {
     scope_unwind(scope->innermost);
     if (scope->irep) mrc_irep_free(c, scope->irep);
     mrc_pool_close(scope->mpool);
     c->jmp = prev_jmp;
-    MRB_THROW(prev_mrb_jmp);
-  } MRB_END_EXC(&mrb_jmp);
+    mrb_exc_raise(mrb, exc);
+  }
 }
 #else
 #define codegen_top(scope, node, val, prev_jmp) codegen(scope, node, val)
