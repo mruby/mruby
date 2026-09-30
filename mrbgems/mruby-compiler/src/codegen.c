@@ -13,6 +13,7 @@
 
 #if defined(MRC_TARGET_MRUBY)
 #include "../include/mrc_proc.h"
+#include <mruby/throw.h>
 #endif
 
 #ifdef MRBC_REQUIRE_32BIT_ALIGNMENT
@@ -140,9 +141,60 @@ typedef struct scope {
 
   int rlev;                     /* recursion levels */
   uint16_t for_depth;           /* number of for-loop scopes above */
+
+  /* Kept in the scope generate_code() made: the scope being compiled, from
+     which the scopes are given back when an error leaves the codegen */
+  struct scope *innermost;
 } mrc_codegen_scope;
 
 static void codegen(mrc_codegen_scope *s, mrc_node *tree, int val);
+
+static mrc_codegen_scope*
+scope_root(mrc_codegen_scope *s)
+{
+  while (s->prev) s = s->prev;
+  return s;
+}
+
+/* Give back the scopes from s up to the one generate_code() made, and answer
+   that one, which generate_code() gives back itself.  scope_finish() hands
+   the buffers of a scope to its irep one at a time and clears each one it
+   has handed over, so a scope finishing when the error came is taken apart
+   without freeing anything twice. */
+static mrc_codegen_scope*
+scope_unwind(mrc_codegen_scope *s)
+{
+  while (s->prev) {
+    mrc_codegen_scope *tmp = s->prev;
+    if (s->irep) {
+      mrc_free(s->c, s->iseq);
+      if (s->pool) {
+        for (int i=0; i<s->irep->plen; i++) {
+          mrc_pool_value *pv = &s->pool[i];
+          if ((pv->tt & 0x3) == IREP_TT_STR || pv->tt == IREP_TT_BIGINT) {
+            mrc_free(s->c, (void*)pv->u.str);
+          }
+        }
+        mrc_free(s->c, s->pool);
+      }
+      mrc_free(s->c, s->syms);
+      mrc_free(s->c, s->catch_table);
+      if (s->reps) {
+        /* Compiler ireps are singly owned (refcnt is only ever set to 1), so
+           freeing each child outright is equivalent to decref-to-zero. */
+        for (int i=0; i<s->irep->rlen; i++) {
+          if (s->reps[i])
+            mrc_irep_free(s->c, (mrc_irep*)s->reps[i]);
+        }
+        mrc_free(s->c, s->reps);
+      }
+      mrc_free(s->c, s->lines);
+    }
+    mrc_pool_close(s->mpool);
+    s = tmp;
+  }
+  return s;
+}
 
 static void
 codegen_error(mrc_codegen_scope *s, const char *message)
@@ -163,33 +215,7 @@ codegen_error(mrc_codegen_scope *s, const char *message)
     }
   }
 #endif
-  while (s->prev) {
-    mrc_codegen_scope *tmp = s->prev;
-    if (s->irep) {
-      mrc_free(s->c, s->iseq);
-      for (int i=0; i<s->irep->plen; i++) {
-        mrc_pool_value *pv = &s->pool[i];
-        if ((pv->tt & 0x3) == IREP_TT_STR || pv->tt == IREP_TT_BIGINT) {
-          mrc_free(s->c, (void*)pv->u.str);
-        }
-      }
-      mrc_free(s->c, s->pool);
-      mrc_free(s->c, s->syms);
-      mrc_free(s->c, s->catch_table);
-      if (s->reps) {
-        /* Compiler ireps are singly owned (refcnt is only ever set to 1), so
-           freeing each child outright is equivalent to decref-to-zero. */
-        for (int i=0; i<s->irep->rlen; i++) {
-          if (s->reps[i])
-            mrc_irep_free(s->c, (mrc_irep*)s->reps[i]);
-        }
-        mrc_free(s->c, s->reps);
-      }
-      mrc_free(s->c, s->lines);
-    }
-    mrc_pool_close(s->mpool);
-    s = tmp;
-  }
+  s = scope_unwind(s);
   MRC_THROW(s->c->jmp);
 }
 
@@ -430,13 +456,46 @@ scope_add_irep(mrc_codegen_scope *s)
     if (prev->irep->rlen == UINT16_MAX) {
       codegen_error(s, "too many nested blocks/methods");
     }
-    s->irep = irep = mrc_add_irep(s->c);
+    /* room first, so that the irep is in prev->reps, where scope_unwind()
+       finds it, as soon as it exists */
     if (prev->irep->rlen == prev->rcapa) {
+      prev->reps = (mrc_irep **)mrc_realloc(s->c, prev->reps, sizeof(mrc_irep *)*prev->rcapa*2);
       prev->rcapa *= 2;
-      prev->reps = (mrc_irep **)mrc_realloc(s->c, prev->reps, sizeof(mrc_irep *)*prev->rcapa);
     }
+    s->irep = irep = mrc_add_irep(s->c);
     prev->reps[prev->irep->rlen++] = irep;
   }
+}
+
+/* A scope is the first thing its pool holds.  The pool page is allocated
+   with mrb_malloc(), which raises when it fails, and the pool would be lost
+   with the raise: give it back on the way. */
+static mrc_codegen_scope*
+scope_alloc(mrc_ccontext *c, mrc_pool *pool)
+{
+#if defined(MRC_TARGET_MRUBY)
+  mrb_state *mrb = c->mrb;
+
+  if (pool && mrb && mrb->jmp) {
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+    mrc_codegen_scope *s = NULL;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      s = (mrc_codegen_scope *)mrc_pool_alloc(pool, sizeof(mrc_codegen_scope));
+      mrb->jmp = prev_jmp;
+    } MRB_CATCH(&c_jmp) {
+      mrb->jmp = prev_jmp;
+      mrc_pool_close(pool);
+      MRB_THROW(prev_jmp);
+    } MRB_END_EXC(&c_jmp);
+    return s;
+  }
+#else
+  (void)c;
+#endif
+  return (mrc_codegen_scope *)mrc_pool_alloc(pool, sizeof(mrc_codegen_scope));
 }
 
 static mrc_codegen_scope *
@@ -444,8 +503,9 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
 {
   static const mrc_codegen_scope codegen_scope_zero = { 0 };
   mrc_pool *pool = mrc_pool_open(c);
-  mrc_codegen_scope *s = (mrc_codegen_scope *)mrc_pool_alloc(pool, sizeof(mrc_codegen_scope));
+  mrc_codegen_scope *s = scope_alloc(c, pool);
   if (!s) {
+    mrc_pool_close(pool);
     if (prev)
       codegen_error(prev, "unexpected scope");
     return NULL;
@@ -457,8 +517,14 @@ scope_new(mrc_ccontext *c, mrc_codegen_scope *prev, mrc_constant_id_list *nlv)
     s->c = c;
   }
   s->mpool = pool;
-  if (!prev) return s;
+  if (!prev) {
+    s->innermost = s;
+    return s;
+  }
   s->prev = prev;
+  /* What this scope takes from here on is given back with it if an error
+     leaves the codegen; see generate_code() */
+  scope_root(prev)->innermost = s;
   s->ainfo = 0;
   s->mscope = 0;
   /* inherited before the first check that can fail, so that a scope refused
@@ -1142,6 +1208,7 @@ scope_finish(mrc_codegen_scope *s)
   if (s->iseq) {
     size_t catchsize = sizeof(struct mrc_irep_catch_handler) * irep->clen;
     irep->iseq = (const mrc_code *)mrc_realloc(s->c, s->iseq, sizeof(mrc_code)*s->pc + catchsize);
+    s->iseq = NULL;
     irep->ilen = s->pc;
     if (0 < irep->clen) {
       memcpy((void *)(irep->iseq + irep->ilen), s->catch_table, catchsize);
@@ -1153,18 +1220,23 @@ scope_finish(mrc_codegen_scope *s)
   mrc_free(s->c, s->catch_table);
   s->catch_table = NULL;
   irep->pool = (const mrc_pool_value *)simple_realloc(s->c, s->pool, sizeof(mrc_pool_value)*irep->plen);
+  s->pool = NULL;
   irep->syms = (const mrc_sym *)simple_realloc(s->c, s->syms, sizeof(mrc_sym)*irep->slen);
+  s->syms = NULL;
   irep->reps = (const mrc_irep **)simple_realloc(s->c, s->reps, sizeof(mrc_irep *)*irep->rlen);
+  s->reps = NULL;
   if (s->filename) {
     const char *filename = mrc_parser_get_filename(s->c, s->filename_index);
     mrc_debug_info_append_file(s->c, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);
   }
   mrc_free(s->c, s->lines);
+  s->lines = NULL;
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
 
   mrc_gc_arena_restore(s->c, s->ai);
+  scope_root(s)->innermost = s->prev;
   mrc_pool_close(s->mpool);
 }
 
@@ -1182,7 +1254,12 @@ lit_pool_extend(mrc_codegen_scope *s)
     s->pool = (mrc_pool_value*)mrc_realloc(s->c, s->pool, sizeof(mrc_pool_value)*s->pcapa);
   }
 
-  return &s->pool[s->irep->plen++];
+  /* An empty string until the caller fills it in: a string the caller then
+     fails to allocate leaves a null pointer for scope_unwind() to free, not
+     whatever the pool held there. */
+  mrc_pool_value *pv = &s->pool[s->irep->plen++];
+  memset(pv, 0, sizeof(*pv));
+  return pv;
 }
 
 #ifndef MRC_NO_FLOAT
@@ -1799,12 +1876,50 @@ gen_setxv(mrc_codegen_scope *s, uint8_t op, uint16_t dst, mrc_sym sym, int val)
   genop_2(s, op, dst, idx);
 }
 
+#if defined(MRC_TARGET_MRUBY)
+/* The codegen allocates through mrb_malloc(), which raises NoMemoryError when
+   it fails.  The raise goes to mrb->jmp, past codegen_error() and the catch in
+   generate_code(), and would leave every scope being compiled behind: give
+   them back and pass it on. */
+static void
+codegen_top(mrc_codegen_scope *scope, mrc_node *node, int val, struct mrc_jmpbuf *prev_jmp)
+{
+  mrc_ccontext *c = scope->c;
+  mrb_state *mrb = c->mrb;
+  struct mrb_jmpbuf *prev_mrb_jmp;
+  struct mrb_jmpbuf mrb_jmp;
+
+  if (!mrb || !mrb->jmp) {
+    codegen(scope, node, val);
+    return;
+  }
+  prev_mrb_jmp = mrb->jmp;
+  MRB_TRY(&mrb_jmp) {
+    mrb->jmp = &mrb_jmp;
+    codegen(scope, node, val);
+    mrb->jmp = prev_mrb_jmp;
+  } MRB_CATCH(&mrb_jmp) {
+    mrb->jmp = prev_mrb_jmp;
+    scope_unwind(scope->innermost);
+    if (scope->irep) mrc_irep_free(c, scope->irep);
+    mrc_pool_close(scope->mpool);
+    c->jmp = prev_jmp;
+    MRB_THROW(prev_mrb_jmp);
+  } MRB_END_EXC(&mrb_jmp);
+}
+#else
+#define codegen_top(scope, node, val, prev_jmp) codegen(scope, node, val)
+#endif
+
 static mrc_irep *
 generate_code(mrc_ccontext *c, mrc_node *node, int val)
 {
   mrc_codegen_scope *scope = scope_new(c, NULL, NULL);
   struct mrc_jmpbuf *prev_jmp = c->jmp;
   struct mrc_jmpbuf jmpbuf;
+#if defined(MRC_TARGET_MRUBY)
+  struct mrb_jmpbuf *prev_mrb_jmp = c->mrb ? c->mrb->jmp : NULL;
+#endif
 
   c->jmp = &jmpbuf;
 
@@ -1813,7 +1928,7 @@ generate_code(mrc_ccontext *c, mrc_node *node, int val)
   scope->filename = (const char *)c->filename_table[0].filename;
 
   MRC_TRY(c->jmp) {
-    codegen(scope, node, val);
+    codegen_top(scope, node, val, prev_jmp);
     // TODO: mrc_ccontext has an upper Proc if MRC_TARGET_MRUBY
     //proc->c = NULL;
     //if (mrb->c->cibase && mrb->c->cibase->proc == proc->upper) {
@@ -1826,6 +1941,10 @@ generate_code(mrc_ccontext *c, mrc_node *node, int val)
     return irep;
   }
   MRC_CATCH(c->jmp) {
+#if defined(MRC_TARGET_MRUBY)
+    /* codegen_error() jumped here over the handler in codegen_top() */
+    if (c->mrb) c->mrb->jmp = prev_mrb_jmp;
+#endif
     /* scope->irep is the root irep (shared with the top-level scope). It is
        NULL only if codegen failed before the first scope_add_irep(). */
     if (scope->irep) mrc_irep_free(c, scope->irep);

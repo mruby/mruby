@@ -162,8 +162,12 @@ mrc_debug_info_append_file(mrc_ccontext *c, mrc_irep_debug_info *d,
     }
   }
 
-  mrc_irep_debug_info_file *f = (mrc_irep_debug_info_file*)mrc_malloc(c, sizeof(*f));
+  /* The array first and then an empty entry in it, so that what raises below
+     (these allocations, and interning the filename) leaves nothing that
+     mrc_debug_info_free() cannot free. */
   d->files = (mrc_irep_debug_info_file**)mrc_realloc(c, d->files, sizeof(mrc_irep_debug_info_file*) * (d->flen + 1));
+  mrc_irep_debug_info_file *f = (mrc_irep_debug_info_file*)mrc_malloc(c, sizeof(*f));
+  memset(f, 0, sizeof(*f));
   d->files[d->flen++] = f;
 
   uint32_t file_pc_count = end_pos - start_pos;
