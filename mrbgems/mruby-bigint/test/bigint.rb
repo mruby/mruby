@@ -363,6 +363,26 @@ assert 'Bigint Integer#remainder large operand' do
   assert_equal (2**400) % ((2**130) + 1), (2**400).remainder((2**130) + 1)
 end
 
+assert 'Bigint Integer#remainder takes the sign of the receiver' do
+  n = 1<<70
+  assert_equal 1, n.remainder(3)
+  assert_equal 1, n.remainder(-3)
+  assert_equal(-1, (-n).remainder(3))
+  assert_equal(-1, (-n).remainder(-3))
+  assert_equal 1, (n + 1).remainder(-(1<<65))
+end
+
+assert 'Bigint Integer#pow(e, m) with a negative base or one past m**2' do
+  n = 1<<70
+  assert_equal 6, (-n).pow(3, 7)
+  assert_equal(-1, (-n).pow(3, -7))
+  assert_equal 1180591620717411303181, (-3).pow(5, n)
+  m = (2**300) + 2
+  assert_equal 729, ((2**600) + 5).pow(3, m)
+  assert_equal ((-(2**300) - 12345) ** 3) % m, (-(2**300) - 12345).pow(3, m)
+  assert_equal ((-(2**300) - 12345) ** 3) % (2**300), (-(2**300) - 12345).pow(3, 2**300)
+end
+
 assert 'Bigint Integer#remainder with a non-numeric argument' do
   # The bigint arm of int_remainder() has its own copy of the fallthrough
   # the fixnum arm reaches: re-dispatch through Float where Float exists,

@@ -26,6 +26,14 @@ assert('Integer#pow') do
   assert_equal(361, 9.pow(1024,1000))
 end
 
+assert('Integer#pow(e, m) takes the sign of m') do
+  assert_equal(2, (-7).pow(3, 5))
+  assert_equal(4, (-7).pow(2, 5))
+  assert_equal(-3, (-7).pow(3, -5))
+  assert_equal(-2, 7.pow(3, -5))
+  assert_equal(0, (-5).pow(3, 5))
+end
+
 assert('Integer#gcd') do
   assert_equal(1, 2.gcd(3))
   assert_equal(5, 10.gcd(15))
