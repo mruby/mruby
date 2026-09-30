@@ -173,12 +173,19 @@ mrc_ccontext_new(mrb_state *mrb)
        give back what was taken before passing the error on, or c is lost. */
     struct mrb_jmpbuf *prev_jmp = mrb->jmp;
     struct mrb_jmpbuf c_jmp;
+#if defined(MRC_PRISM_ARENA)
+    /* arena_open() leaves the current arena unset if its block cannot be had */
+    struct mrc_prism_arena_block *prev_arena = mrc_prism_arena;
+#endif
 
     MRB_TRY(&c_jmp) {
       mrb->jmp = &c_jmp;
       ccontext_init(c);
       mrb->jmp = prev_jmp;
     } MRB_CATCH(&c_jmp) {
+#if defined(MRC_PRISM_ARENA)
+      mrc_prism_arena = prev_arena;
+#endif
       mrb->jmp = prev_jmp;
       if (c->p) mrc_free(c, c->p);
       mrc_free(c, c);

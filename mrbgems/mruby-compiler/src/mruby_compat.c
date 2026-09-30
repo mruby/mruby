@@ -400,7 +400,9 @@ mrb_parser_parse(struct mrb_parser_state *p, mrb_ccontext *c)
   len = (size_t)(p->send - p->s);
   parsed = parse_source(p->mrb, p->s, len, c);
   if (!parsed) {
-    /* out of memory: mrb->exc holds the NoMemoryError */
+    /* Out of memory: mrb->exc holds the NoMemoryError. p->s is still the
+       caller's buffer, which mrb_parser_free() must not free. */
+    p->s = p->send = NULL;
     p->nerr++;
     return;
   }
