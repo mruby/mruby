@@ -1934,9 +1934,6 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
 {
   struct RClass *task_class;
 
-  /* Initialize HAL (timer and interrupts) */
-  mrb_hal_task_init(mrb);
-
   /* Initialize main task to NULL and scheduler_lock to 0 */
   mrb->task.main_task = NULL;
   mrb->task.scheduler_lock = 0;
@@ -1987,6 +1984,11 @@ mrb_mruby_task_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(sleep),    mrb_f_sleep,    MRB_ARGS_OPT(1));
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(usleep),   mrb_f_usleep,   MRB_ARGS_REQ(1));
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(sleep_ms), mrb_f_sleep_ms, MRB_ARGS_REQ(1));
+
+  /* Initialize HAL (timer and interrupts) last: it registers the state with
+     a process-wide timer that only mrb_mruby_task_gem_final() removes, and
+     the gem is not finalized if anything above raises. */
+  mrb_hal_task_init(mrb);
 }
 
 void
