@@ -704,3 +704,21 @@ assert('mrb_integer_to_bytes and mrb_integer_from_bytes') do
   assert_raise(TypeError) { BigintTest.to_bytes("1") }
   assert_raise(TypeError) { BigintTest.to_bytes(nil) }
 end
+
+assert('Bigint#remainder and #pow(e, m) with a negative operand and a mid-sized modulus') do
+  # A modulus of 4 to 16 limbs against a dividend up to twice as wide takes
+  # Barrett reduction, which was handed the signed operands: a negative x
+  # came back unreduced, and a positive x over a negative m never returned.
+  # The answers are checked against the quotient division gives, which does
+  # not take that path.
+  xs = [2**600+5, -(2**600+5), 2**400+12345, -(2**400+12345)]
+  ms = [2**300+2, -(2**300+2), 7**100, -(7**100)]
+  xs.each do |x|
+    ms.each do |m|
+      q = x.abs / m.abs
+      q = -q if (x < 0) != (m < 0)
+      assert_equal x - q * m, x.remainder(m), "#{x < 0 ? '-' : '+'}x.remainder(#{m < 0 ? '-' : '+'}m)"
+      assert_equal x - (x / m) * m, x.pow(1, m), "#{x < 0 ? '-' : '+'}x.pow(1, #{m < 0 ? '-' : '+'}m)"
+    end
+  end
+end

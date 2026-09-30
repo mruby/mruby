@@ -3064,11 +3064,16 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
    * violate it and the algorithm silently truncates high limbs. Fall through
    * to general division for those. */
   if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 && x->sz <= 2 * y->sz) {
+    /* Barrett reads its operands as signed, so it is handed their
+       magnitudes, as the division below is: given a negative x it found
+       x < m and answered x unreduced. The sign goes on afterwards. */
+    mpz_t ax = *x, ay = *y;
     mpz_t mu;
+    ax.sn = ay.sn = 1;
     mpz_init_temp(ctx, &mu, y->sz + 1);
-    mpz_barrett_mu(ctx, &mu, y);
+    mpz_barrett_mu(ctx, &mu, &ay);
     mpz_realloc(ctx, r, y->sz);
-    mpz_barrett_reduce(ctx, r, x, y, &mu);
+    mpz_barrett_reduce(ctx, r, &ax, &ay, &mu);
     r->sn = sn;
     if (uzero_p(r))
       r->sn = 0;
