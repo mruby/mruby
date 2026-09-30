@@ -187,25 +187,28 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
   if (flags & FSPACE) sign = ' ';
 
   int len = mrb_format_float(f, buf, buf_size, fmt, prec, sign);
+  int sign_len = 0;
 
   // buf[0] < '0' returns true if the first character is space, + or -
   // buf[1] < '9' matches a digit, and doesn't match when we get back +nan or +inf
   if (buf[0] < '0' && buf[1] <= '9' && zero_pad) {
+    // the sign stays in front, and the zeros go after it
     buf++;
     width--;
     len--;
+    sign_len = 1;
   }
   if (*buf < '0' || *buf >= '9') {
     // For inf or nan, we don't want to zero pad.
     zero_pad = 0;
   }
   if (len >= width) {
-    return len;
+    return sign_len + len;
   }
   buf[width] = '\0';
   if (left_align) {
     memset(&buf[len], ' ', width - len);
-    return width;
+    return sign_len + width;
   }
   memmove(&buf[width - len], buf, len);
   if (zero_pad) {
@@ -214,7 +217,7 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
   else {
     memset(buf, ' ', width - len);
   }
-  return width;
+  return sign_len + width;
 }
 #endif
 

@@ -17,6 +17,18 @@ assert('String#%') do
   assert_equal "0012345.12", "%010.2f" % 12345.1234
 end
 
+assert('String#% with the 0 flag and a sign') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal "-001.500", "%08.3f" % -1.5
+  assert_equal "+001.500", "%+08.3f" % 1.5
+  assert_equal " 001.500", "% 08.3f" % 1.5
+  assert_equal "-1.500", "%05.3f" % -1.5
+  assert_equal "-1.5", "%0.1f" % -1.5
+  assert_equal "-01.50e+00", "%010.2e" % -1.5
+  assert_equal "-00001.5", "%08.3g" % -1.5
+  assert_equal "-1.500  ", "%-08.3f" % -1.5
+end
+
 assert('String#% with inf') do
   skip unless Object.const_defined?(:Float)
   inf = Float::INFINITY
