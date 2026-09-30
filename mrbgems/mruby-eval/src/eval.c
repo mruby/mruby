@@ -100,9 +100,10 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   proc = mrb_generate_code(mrb, p);
   if (proc == NULL) {
-    /* codegen error */
+    /* codegen error, or memory ran out with the NoMemoryError in mrb->exc */
     mrb_parser_free(p);
     mrb_ccontext_free(mrb, cxt);
+    if (mrb->exc) mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
   if (c->ci > c->cibase) {
