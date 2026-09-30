@@ -3052,10 +3052,10 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
-  /* Fast path for single-limb modulus */
+  /* Fast path for single-limb modulus; the remainder takes the sign of x,
+     as in the other paths, whatever the sign of y */
   if (y->sz == 1) {
     mpz_mod_limb(ctx, r, x, y->p[0]);
-    if (y->sn < 0) r->sn = -r->sn;
     return;
   }
 
@@ -5924,8 +5924,17 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     }
   }
 
+  /* Take the base modulo |m|, into [0, |m|): the reductions below expect
+     that, and one that is negative or at least m**2 gave a wrong result. */
+  mpz_t r;
+  mpz_init(ctx, &r);
+  mpz_mod(ctx, &r, &a, &c);
+  if (r.sn < 0 && !uzero_p(&r)) {
+    mpz_add(ctx, &r, &r, &c);
+  }
+
   /* Check for zero base case: 0^n = 0 for n > 0 */
-  if (zero_p(&a) || uzero_p(&a)) {
+  if (zero_p(&r) || uzero_p(&r)) {
     mrb_bool exp_positive;
     if (mrb_bigint_p(exp)) {
       bint_as_mpz(RBIGINT(exp), &b);
@@ -5936,6 +5945,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     }
     if (exp_positive) {
       /* 0^n mod m = 0 for n > 0 */
+      mpz_clear(ctx, &r);
       if (mrb_integer_p(mod)) mpz_clear(ctx, &c);
       return mrb_fixnum_value(0);
     }
@@ -5945,13 +5955,14 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
   if (mrb_bigint_p(exp)) {
     bint_as_mpz(RBIGINT(exp), &b);
     if (b.sn < 0) goto raise;
-    mpz_powm(ctx, &z, &a, &b, &c);
+    mpz_powm(ctx, &z, &r, &b, &c);
   }
   else {
     mrb_int e = mrb_integer(exp);
     if (e < 0) goto raise;
-    mpz_powm_i(ctx, &z, &a, e, &c);
+    mpz_powm_i(ctx, &z, &r, e, &c);
   }
+  mpz_clear(ctx, &r);
 
   /* Apply signed modulo adjustment for negative modulus */
   /* Ruby: result + m for non-zero result when m is negative */
@@ -5963,6 +5974,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
   return bint_norm(mrb, bint_new(ctx, &z));
 
  raise:
+  mpz_clear(ctx, &r);
   if (mrb_integer_p(mod)) mpz_clear(ctx, &c);
   mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
   /* not reached */

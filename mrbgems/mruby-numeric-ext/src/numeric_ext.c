@@ -264,6 +264,10 @@ int_powm(mrb_state *mrb, mrb_value x)
     base = tmp % mod;
   }
 
+  /* A negative base leaves a negative result (C's % keeps the sign of the
+     dividend): bring it into [0, mod) */
+  if (result < 0) result += mod;
+
   /* Apply signed modulo adjustment for negative modulus */
   /* Ruby: result + m for non-zero result when m is negative */
   if (neg_mod && result != 0) {
