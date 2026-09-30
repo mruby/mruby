@@ -3693,9 +3693,14 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
     if (mrb_int_mul_overflow(n, base, &n)) goto overflow;
     if (MRB_INT_MAX - c < n) {
       if (sign == 0 && MRB_INT_MAX - n == c - 1) {
-        n = MRB_INT_MIN;
-        sign = 1;
-        break;
+        /* MRB_INT_MIN fits, if no digit follows (past one '_') */
+        const char *q = (p+1 < pend && p[1] == '_') ? p+2 : p+1;
+        if (q >= pend || conv_digit(*q) < 0 || conv_digit(*q) >= base) {
+          n = MRB_INT_MIN;
+          sign = 1;
+          p++;                  /* past the last digit, for trailingbad() */
+          break;
+        }
       }
     overflow:
 #ifdef MRB_USE_BIGINT
