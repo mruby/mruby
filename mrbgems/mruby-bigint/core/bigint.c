@@ -5918,6 +5918,12 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     if (zero_p(&c) || uzero_p(&c)) {
       mrb_int_zerodiv(mrb);
     }
+    /* The limit mpz_powm() enforces, checked before the base is reduced
+       into a temporary as wide as the modulus: raised from in there, that
+       temporary was never freed. */
+    if ((size_t)c.sz * DIG_SIZE > MRB_BIGINT_BIT_LIMIT / 2) {
+      mrb_raise(mrb, E_RANGE_ERROR, "modulus too large");
+    }
     if (c.sn < 0) {
       neg_mod = TRUE;
       c.sn = 1;  /* use absolute value */
