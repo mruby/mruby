@@ -182,17 +182,19 @@ void
 mrb_mt_init_rom(mrb_state *mrb, struct RClass *c,
                 const mrb_mt_entry *entries, int size)
 {
+  /* register for cleanup at mrb_close, before the wrapper is allocated:
+     if that raises, the node is all there is, and mrb_close frees it */
+  struct mrb_mt_rom_list *node =
+    (struct mrb_mt_rom_list*)mrb_malloc(mrb, sizeof(struct mrb_mt_rom_list));
+  node->tbl = NULL;
+  node->next = mrb->rom_mt;
+  mrb->rom_mt = node;
+
   mrb_mt_tbl *rom = (mrb_mt_tbl*)mrb_malloc(mrb, sizeof(mrb_mt_tbl));
   rom->size = size;
   rom->alloc = size | MRB_MT_READONLY_BIT;
   rom->ptr = (mrb_mt_entry*)entries;
-
-  /* register for cleanup at mrb_close */
-  struct mrb_mt_rom_list *node =
-    (struct mrb_mt_rom_list*)mrb_malloc(mrb, sizeof(struct mrb_mt_rom_list));
   node->tbl = rom;
-  node->next = mrb->rom_mt;
-  mrb->rom_mt = node;
 
   /* push ROM layer */
   mrb_mt_tbl *t = c->mt;

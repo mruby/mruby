@@ -49,8 +49,17 @@ mrb_state *mrb = mrb_open_core();  /* create state without gems */
 mrb_close(mrb);                    /* close and free state */
 ```
 
-`mrb_open()` returns `NULL` on allocation failure. Always check the
-return value.
+When initialization fails, `mrb_open()` and `mrb_open_core()` return
+`NULL`, or a state with `mrb->exc` set to the error. Always check the
+return value with `MRB_OPEN_FAILURE()`, and close a state that came back:
+
+```c
+mrb_state *mrb = mrb_open();
+if (MRB_OPEN_FAILURE(mrb)) {
+  if (mrb) mrb_close(mrb);
+  return EXIT_FAILURE;
+}
+```
 
 ## Values
 
@@ -710,6 +719,10 @@ mrbc -Bscript_bytecode script.rb
 #include "script.mrb.h"
 
 mrb_state *mrb = mrb_open_core();  /* no compiler needed */
+if (MRB_OPEN_FAILURE(mrb)) {
+  if (mrb) mrb_close(mrb);
+  return EXIT_FAILURE;
+}
 mrb_load_irep(mrb, script_bytecode);
 ```
 
