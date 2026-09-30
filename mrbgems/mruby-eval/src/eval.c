@@ -66,9 +66,11 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   p = mrb_parse_nstring(mrb, s, len, cxt);
 
-  /* only occur when memory ran out */
+  /* only occur when memory ran out, with the NoMemoryError the compile met
+     left in mrb->exc: that is the error to pass on */
   if (!p) {
     mrb_ccontext_free(mrb, cxt);
+    if (mrb->exc) mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
     mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state (out of memory)");
   }
 
