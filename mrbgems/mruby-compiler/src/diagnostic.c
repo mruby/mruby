@@ -132,25 +132,16 @@ mrc_diagnostic_code_to_string(mrc_diagnostic_code code)
 void
 mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, const char *message, mrc_diagnostic_code code)
 {
-  mrc_diagnostic_list *list = (mrc_diagnostic_list *)mrc_calloc(c, 1, sizeof(mrc_diagnostic_list));
-  const uint8_t *file_start = c->p->start;
-  list->filename = NULL;
-  if (c->filename_table && 0 < c->filename_table_length && location_start) {
-    uint32_t offset = (uint32_t)(location_start - c->p->start);
-    int file_idx = 0;
-    for (int i = 1; i < c->filename_table_length; i++) {
-      if (offset < c->filename_table[i].start) break;
-      file_idx = i;
-    }
-    list->filename = c->filename_table[file_idx].filename;
-    file_start = c->p->start + c->filename_table[file_idx].start;
-  }
-  line_and_column(c, file_start, location_start, &list->line, &list->column);
   char buf[256];
   const char *diagnostic_code_str = mrc_diagnostic_code_to_string(code);
   snprintf(buf, sizeof(buf), "%s, %s", diagnostic_code_str, message);
   size_t len = strlen(buf);
-  list->message = (char *)mrc_malloc(c, len + 1);
+  /* The entry and its message are one allocation, and the entry is in the
+     list before anything else is allocated (line_and_column() can be): an
+     allocation that fails raises with mrb_malloc(), and leaves nothing here
+     that mrc_diagnostic_list_free() does not reach. */
+  mrc_diagnostic_list *list = (mrc_diagnostic_list *)mrc_calloc(c, 1, sizeof(mrc_diagnostic_list) + len + 1);
+  list->message = (char *)(list + 1);
   memcpy(list->message, buf, len + 1);
   list->code = code;
 
@@ -170,6 +161,20 @@ mrc_diagnostic_list_append(mrc_ccontext *c, const uint8_t * location_start, cons
   }
   c->diagnostic_tail = list;
 
+  const uint8_t *file_start = c->p->start;
+  list->filename = NULL;
+  if (c->filename_table && 0 < c->filename_table_length && location_start) {
+    uint32_t offset = (uint32_t)(location_start - c->p->start);
+    int file_idx = 0;
+    for (int i = 1; i < c->filename_table_length; i++) {
+      if (offset < c->filename_table[i].start) break;
+      file_idx = i;
+    }
+    list->filename = c->filename_table[file_idx].filename;
+    file_start = c->p->start + c->filename_table[file_idx].start;
+  }
+  line_and_column(c, file_start, location_start, &list->line, &list->column);
+
   if (code == MRC_PARSER_ERROR || code == MRC_GENERATOR_ERROR) {
     c->capture_errors = TRUE;
   }
@@ -181,8 +186,7 @@ mrc_diagnostic_list_free(mrc_ccontext *c)
   mrc_diagnostic_list *p = c->diagnostic_list;
   while (p) {
     mrc_diagnostic_list *next = p->next;
-    mrc_free(c, p->message);
-    mrc_free(c, p);
+    mrc_free(c, p);   /* the message is in the same allocation */
     p = next;
   }
   c->diagnostic_list = NULL;
