@@ -59,6 +59,11 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
     pm_options_scopes_init(options, 1);
     scope = &options->scopes[0];
     pm_options_scope_init(scope, (size_t)src->slen);
+    /* Before the names are copied: those allocations raise when they fail,
+       and mrc_ccontext_free() then gives back the copies made so far.  Not
+       before the two calls above, which set a count ahead of allocating the
+       array it counts. */
+    dst->options = options;
     for (int i = 0; i < src->slen; i++) {
       const char *name = mrb_sym_name(dst->mrb, src->syms[i]);
       if (name) {
@@ -68,7 +73,6 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
         pm_string_constant_init(&scope->locals[i], copy, len);
       }
     }
-    dst->options = options;
     mrc_ccontext_arena_restore(dst, arena_prev);
   }
 }

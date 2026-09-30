@@ -167,7 +167,7 @@ mrc_ccontext_new(mrb_state *mrb)
   temp_c.mrb = mrb;
   mrc_ccontext *c = (mrc_ccontext *)mrc_calloc((&temp_c), 1, sizeof(mrc_ccontext));
   c->mrb = temp_c.mrb;
-#if defined(MRC_TARGET_MRUBY) && !defined(MRC_ALLOC_LIBC)
+#if defined(MRC_TARGET_MRUBY)
   if (mrb && mrb->jmp) {
     /* The allocations after the first raise NoMemoryError when they fail:
        give back what was taken before passing the error on, or c is lost. */
