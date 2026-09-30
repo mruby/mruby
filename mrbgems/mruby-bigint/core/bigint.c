@@ -6106,8 +6106,17 @@ mrb_bint_rev(mrb_state *mrb, mrb_value x)
 static void
 mpz_fdiv_q_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
+  mrb_bool down;
+
+#if MRB_INT_MAX > SIZE_MAX
+  if (e > (mrb_int)SIZE_MAX) {
+    /* wider than any Bigint, and than a size_t: only the sign is left */
+    mpz_set_int(ctx, z, x->sn < 0 ? -1 : 0);
+    return;
+  }
+#endif
   /* a negative x that loses a set bit rounds one further down */
-  mrb_bool down = x->sn < 0 && mpz_trailing_zeros(x) < (size_t)e;
+  down = x->sn < 0 && mpz_trailing_zeros(x) < (size_t)e;
 
   mpz_div_2exp(ctx, z, x, e);
   if (down) {
