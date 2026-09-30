@@ -3867,11 +3867,11 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 
     if (!badcheck) return 0.0;
     x = mrb_str_len_to_integer(mrb, p, pend-p, 0, badcheck);
-    if (mrb_integer_p(x))
-      d = (double)mrb_integer(x);
-    else /* if (mrb_float_p(x)) */
-      d = mrb_float(x);
-    return d;
+#ifdef MRB_USE_BIGINT
+    if (mrb_bigint_p(x))
+      return mrb_bint_as_float(mrb, x);
+#endif
+    return (double)mrb_integer(x);
   }
   while (p < pend) {
     if (!*p) {

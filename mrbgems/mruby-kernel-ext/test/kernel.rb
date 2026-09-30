@@ -137,6 +137,17 @@ assert('Kernel#Float') do
   assert_raise(ArgumentError) { Float('1_2.3__4') }
 end
 
+assert('Kernel#Float with a hexadecimal number too big for mrb_int') do
+  skip unless Object.const_defined?(:Float)
+  begin
+    big = 1 << 64
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal(big.to_f, Float("0x10000000000000000"))
+  assert_equal((big * big - 1).to_f, Float("0xffffffffffffffffffffffffffffffff"))
+end
+
 assert('Kernel#String') do
   assert_equal("main", String(self))
   assert_equal("Object", String(self.class))
