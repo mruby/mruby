@@ -3693,9 +3693,14 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
     if (mrb_int_mul_overflow(n, base, &n)) goto overflow;
     if (MRB_INT_MAX - c < n) {
       if (sign == 0 && MRB_INT_MAX - n == c - 1) {
-        n = MRB_INT_MIN;
-        sign = 1;
-        break;
+        /* MRB_INT_MIN fits, if no digit follows (past one '_') */
+        const char *q = (p+1 < pend && p[1] == '_') ? p+2 : p+1;
+        if (q >= pend || conv_digit(*q) < 0 || conv_digit(*q) >= base) {
+          n = MRB_INT_MIN;
+          sign = 1;
+          p++;                  /* past the last digit, for trailingbad() */
+          break;
+        }
       }
     overflow:
 #ifdef MRB_USE_BIGINT
@@ -3703,12 +3708,19 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       const char *p3 = p2;
       while (p3 < pend) {
         char c = TOLOWER(*p3);
+        if (c == '_') {
+          /* "__" ends the number, as in the loop above */
+          if (p3 + 1 < pend && p3[1] == '_') break;
+          p3++;
+          continue;
+        }
         const char *p4 = strchr(mrb_digitmap, c);
-        if (p4 == NULL && c != '_') break;
+        if (p4 == NULL) break;
         if (p4 - mrb_digitmap >= base) break;
         p3++;
       }
-      if (badcheck && trailingbad(str, p, pend)) goto bad;
+      /* p is where the overflow was found, not where the digits end */
+      if (badcheck && trailingbad(str, p3, pend)) goto bad;
       return mrb_bint_new_str(mrb, p2, (mrb_int)(p3-p2), sign ? base : -base);
 #else
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
@@ -3860,11 +3872,11 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 
     if (!badcheck) return 0.0;
     x = mrb_str_len_to_integer(mrb, p, pend-p, 0, badcheck);
-    if (mrb_integer_p(x))
-      d = (double)mrb_integer(x);
-    else /* if (mrb_float_p(x)) */
-      d = mrb_float(x);
-    return d;
+#ifdef MRB_USE_BIGINT
+    if (mrb_bigint_p(x))
+      return mrb_bint_as_float(mrb, x);
+#endif
+    return (double)mrb_integer(x);
   }
   while (p < pend) {
     if (!*p) {

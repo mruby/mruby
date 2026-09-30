@@ -91,6 +91,46 @@ assert('Kernel#Integer') do
   assert_operator(123, :eql?, Integer(123.999))
 end
 
+assert('Kernel#Integer with a number too big for mrb_int') do
+  begin
+    big = 1 << 70
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal(big, Integer("1180591620717411303424"))
+  assert_equal(-big, Integer("-1180591620717411303424"))
+  assert_equal(big, Integer("1_180_591_620_717_411_303_424"))
+  assert_equal(big, Integer(" 1180591620717411303424\n"))
+  assert_equal(big, Integer("0x400000000000000000"))
+  assert_equal(big, Integer("1180591620717411303424", 10))
+  assert_raise(ArgumentError) { Integer("1180591620717411303424x") }
+  assert_raise(ArgumentError) { Integer("1180591620717411303424_") }
+  assert_raise(ArgumentError) { Integer("11805916207174113034__24") }
+  assert_raise(ArgumentError) { Integer("1180591620717411303424 5") }
+  # without the check, "__" still ends the number
+  assert_equal(Integer("11805916207174113034"), "11805916207174113034__24".to_i)
+  # a digit after the smallest 64-bit mrb_int
+  min10 = -(1 << 63) * 10
+  assert_equal(min10, Integer("-92233720368547758080"))
+  assert_equal(min10, "-92233720368547758080".to_i)
+  assert_equal(min10, "-9223372036854775808_0".to_i)
+  assert_equal(-(1 << 63), Integer("-0x8000000000000000"))
+end
+
+assert('Kernel#Integer with the smallest mrb_int') do
+  begin
+    min = -(1 << 62) * 2
+  rescue RangeError
+    skip 'mrb_int narrower than 64 bits, and no mruby-bigint'
+  end
+  assert_equal(min, Integer("-9223372036854775808"))
+  assert_equal(min, Integer("-9223372036854775808 "))
+  assert_equal(min, "-9223372036854775808".to_i)
+  assert_equal(min, "-9223372036854775808x".to_i)
+  assert_raise(ArgumentError) { Integer("-9223372036854775808x") }
+  assert_raise(ArgumentError) { Integer("-9223372036854775808_") }
+end
+
 assert('Kernel#Float') do
   skip unless Object.const_defined?(:Float)
   assert_operator(1.0, :eql?, Float(1))
@@ -115,6 +155,17 @@ assert('Kernel#Float') do
   assert_raise(ArgumentError) { Float('_68') }
   assert_raise(ArgumentError) { Float(' _68') }
   assert_raise(ArgumentError) { Float('1_2.3__4') }
+end
+
+assert('Kernel#Float with a hexadecimal number too big for mrb_int') do
+  skip unless Object.const_defined?(:Float)
+  begin
+    big = 1 << 64
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal(big.to_f, Float("0x10000000000000000"))
+  assert_equal((big * big - 1).to_f, Float("0xffffffffffffffffffffffffffffffff"))
 end
 
 assert('Kernel#String') do
