@@ -2175,7 +2175,10 @@ mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base)
 MRB_API mrb_value
 mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 {
-  char buf[MRB_INT_BIT+1];
+  /* The widest conversion is base 2 of the smallest Integer, whose magnitude
+     spends every one of MRB_INT_BIT digits and still takes a sign in front of
+     them, so the terminator makes MRB_INT_BIT+2. */
+  char buf[MRB_INT_BIT+2];
 
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
