@@ -28,6 +28,17 @@ repos:
         additional_dependencies: ["prettier@3.7.4"]
         pass_filenames: false
         stages: [manual]
+      # Where mruby is built with C++ exceptions, MRB_TRY is C++ and only the
+      # core's vm.c, error.c and gc.c are compiled as C++, so any other source
+      # that includes the header stops compiling there (#7647). C code catches
+      # a raise with mrb_protect_error() instead.
+      - id: no-throw-h-outside-core
+        name: check that only the core's C++ sources include mruby/throw.h
+        description: mruby/throw.h needs C++ under MRB_USE_CXX_EXCEPTION
+        entry: '^\s*#\s*include\s*[<"]mruby/throw\.h[>"]'
+        language: pygrep
+        files: \.(c|h)$
+        exclude: ^src/(vm|error|gc)\.c$
       - id: check-makefile-indentation
         name: check Makefiles are indented with tabs
         description: ensures that Makefiles are indented with tabs
