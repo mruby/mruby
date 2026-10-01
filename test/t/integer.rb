@@ -435,6 +435,22 @@ assert('Integer#to_s', '15.2.8.3.25') do
   assert_raise(ArgumentError) { 10.to_s(37) }
 end
 
+assert('Integer#to_s(2) with the smallest Integer') do
+  # The magnitude of the smallest Integer spends every bit an mrb_int has, so
+  # base 2 is the one conversion that writes MRB_INT_BIT digits and still
+  # takes a sign in front of them. Both widths are asked, so that this
+  # build's is among them; the other one names a value that fits, or one out
+  # of range without mruby-bigint, which is skipped.
+  [31, 63].each do |e|
+    begin
+      min = -(1 << (e - 1)) * 2
+    rescue RangeError
+      next
+    end
+    assert_equal "-1" + "0" * e, min.to_s(2)
+  end
+end
+
 assert('Integer#truncate', '15.2.8.3.26') do
   assert_equal 1, 1.truncate
   assert_equal 1, 1.truncate(2)
