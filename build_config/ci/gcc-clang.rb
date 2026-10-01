@@ -167,3 +167,19 @@ MRuby::Build.new('no-bigint') do |conf|
   conf.enable_test
 end
 end
+
+# MRUBY_CI_CXX_EXCEPTION: C++ exceptions in a C build, which no other target
+# here is. MRB_TRY is C++ try/catch there and only the core's vm.c, error.c
+# and gc.c are compiled as C++ (tasks/core.rake), so a C source elsewhere
+# that uses it stops compiling; cxx_abi cannot show that, every file being
+# C++ in it (#7647). What this checks is how the build is put together
+# rather than the machine, so one runner asks for it.
+unless ENV['MRUBY_CI_CXX_EXCEPTION'].to_s.empty?
+MRuby::Build.new('cxx_exception') do |conf|
+  conf.toolchain
+
+  conf.gembox 'full-core'
+  conf.enable_cxx_exception
+  conf.enable_test
+end
+end
