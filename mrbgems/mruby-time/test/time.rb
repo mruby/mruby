@@ -226,6 +226,20 @@ assert('Time#to_i wider than mrb_int') do
   assert_equal(sec, i.to_f)
 end
 
+assert('Time.at past the year a struct tm holds') do
+  skip unless Object.const_defined?(:Float)
+  begin
+    Time.at(-4294967296.0 * 20)
+  rescue RangeError
+    skip "time_t is not wider than 32 bits"
+  end
+  # Time.utc refuses a year for which tm_year + 1900 is not an int, and
+  # seconds landing past it are out of range the same way: #year read year
+  # 2147484972 back as -2147482324 while #to_s still printed it.
+  assert_equal(36812, Time.at(1099511627776.0).utc.year)
+  assert_raise(RangeError) { Time.at(6.77680180379136e16) }
+end
+
 assert('Time#usec', '15.2.19.7.26') do
   assert_equal(0, Time.at(1300000000).usec)
   skip unless Object.const_defined?(:Float)

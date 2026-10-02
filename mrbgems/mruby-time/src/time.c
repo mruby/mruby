@@ -414,7 +414,10 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
   else {
     aid = localtime_r(&t, &self->datetime);
   }
-  if (!aid) {
+  /* time_mktime() refuses a year for which tm_year + TM_YEAR_BASE is not an
+     int, and a broken-down time the platform hands back has to hold to the
+     same bound: Time#year and Time#asctime add the two in int. */
+  if (!aid || aid->tm_year > INT_MAX - TM_YEAR_BASE) {
     if (dealloc) mrb_free(mrb, self);
     time_out_of_range(mrb, time_value_from_time_t(mrb, t));
     /* not reached */
