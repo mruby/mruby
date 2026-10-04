@@ -830,8 +830,25 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
       }
       size_t slack = capacity/10;
       if (slack < MRB_HEAP_PAGE_SIZE/2) slack = MRB_HEAP_PAGE_SIZE/2;
-      if (gc->live_after_mark + slack < capacity) {
+
+      /* live_after_mark is refreshed only when a cycle completes, so while
+         the live set grows between cycles it falls behind, and the test above
+         came true at every tenth of growth: a heap building a large structure
+         paid a full collection of nearly all live objects for each tenth it
+         grew, freeing a few percent each time (#7651). A reclaim that finds
+         less garbage than the slack it looked for is evidence the heap is
+         live, so the next one waits until the heap has grown by half again,
+         which keeps the cost to a constant number of collections per doubling.
+         A heap that shrank since has had its garbage collected, and the
+         verdict no longer applies. A heap mostly garbage frees enough each
+         time and is never held. */
+      if (capacity < gc->reclaim_hold) gc->reclaim_hold = 0;
+      if (gc->live_after_mark + slack < capacity &&
+          (gc->reclaim_hold == 0 || capacity >= gc->reclaim_hold + gc->reclaim_hold/2)) {
+        size_t before = gc->live;
         mrb_full_gc(mrb);
+        size_t freed = before > gc->live ? before - gc->live : 0;
+        gc->reclaim_hold = freed < slack ? capacity : 0;
       }
     }
     if (gc->free_heaps == NULL) {
