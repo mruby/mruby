@@ -91,6 +91,30 @@ assert("String#% %b") do
   assert_equal("..10115", "%0b5" % -5)
 end
 
+assert("String#% %x, %o and %b of a negative number and with a sign flag") do
+  assert_equal("..F01", "%X" % -255)
+  assert_equal("0X..F01", "%#X" % -255)
+  assert_equal("..1011", "%B" % -5)
+  assert_equal("+FF", "%+X" % 255)
+  assert_equal("-FF", "%+X" % -255)
+  assert_equal("+ff", "%+x" % 255)
+  assert_equal(" 101", "% b" % 5)
+  assert_equal("-10", "% o" % -8)
+end
+
+assert("String#% %d of a big integer with a sign") do
+  k = 70
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal("-00000001180591620717411303424", "%030d" % -big)
+  assert_equal("+1180591620717411303424", "%+d" % big)
+  assert_equal(" 1180591620717411303424", "% d" % big)
+  assert_equal("-0001180591620717411303424", "%.25d" % -big)
+end
+
 assert("String#% %d") do
   assert_equal("  10",   "%4d" % 10)
   assert_equal("1000",   "%4d" % 1000)
