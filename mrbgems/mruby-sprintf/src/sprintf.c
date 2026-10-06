@@ -674,7 +674,8 @@ retry:
 
           /* Determine base and signedness from lookup table */
           base = spec.base;
-          if (spec.subtype == 1) { /* signed formats: d, i, u */
+          /* d, i and u are signed; the other bases are too with a + or space flag */
+          if (base == 10 || (flags & (FPLUS|FSPACE))) {
             sign = 1;
           }
 
@@ -700,7 +701,7 @@ retry:
           case MRB_TT_BIGINT:
             {
               mrb_int n = (mrb_bint_cmp(mrb, val, mrb_fixnum_value(0)));
-              mrb_bool need_dots = ((flags & FPLUS) == 0) && (base == 16 || base == 8 || base == 2) && n < 0;
+              mrb_bool need_dots = !sign && n < 0;
               if (need_dots) {
                 val = mrb_bint_2comp(mrb, val);
                 dots = 1;
@@ -709,6 +710,19 @@ retry:
               mrb_value str = mrb_bint_to_s(mrb, val, base);
               s = RSTRING_PTR(str);
               len = (int)RSTRING_LEN(str);
+              /* emit the sign through sc, as for mrb_int, so the 0 flag pads after it */
+              if (*s == '-') {
+                sc = '-';
+                s++; len--; width--;
+              }
+              else if (sign && (flags & FPLUS)) {
+                sc = '+';
+                width--;
+              }
+              else if (sign && (flags & FSPACE)) {
+                sc = ' ';
+                width--;
+              }
             }
             goto str_skip;
 #endif
