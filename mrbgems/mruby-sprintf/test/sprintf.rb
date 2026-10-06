@@ -115,6 +115,23 @@ assert("String#% pads the two's complement of a negative number") do
   assert_equal("0x..f0", "%#x" % -16)
 end
 
+assert("String#% %o keeps a leading 1 or 3 digit of a negative number") do
+  assert_equal("..71", "%o" % -7)
+  assert_equal("..710", "%o" % -56)
+  assert_equal("..7177777777", "%o" % -100663297)
+  assert_equal("..70", "%o" % -8)
+  assert_equal("..7", "%o" % -1)
+end
+
+assert("String#% %o keeps other leading digits of a negative big integer") do
+  begin
+    big = 1 << 93
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal("..767777777777777777777777777777770", "%o" % (-big - 8))
+end
+
 assert("String#% %d of a big integer with a sign") do
   k = 70
   begin
