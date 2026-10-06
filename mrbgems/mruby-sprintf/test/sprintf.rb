@@ -102,6 +102,19 @@ assert("String#% %x, %o and %b of a negative number and with a sign flag") do
   assert_equal("-10", "% o" % -8)
 end
 
+assert("String#% pads the two's complement of a negative number") do
+  assert_equal("     ..f", "%8x" % -1)
+  assert_equal("..ffffff", "%08x" % -1)
+  assert_equal("..ffffffffff", "%.12x" % -1)
+  assert_equal("   0x..f", "%#8x" % -1)
+  assert_equal("0x..f   ", "%-#8.3x" % -1)
+  assert_equal("0X..FF01", "%#08X" % -255)
+  assert_equal("..770", "%#.5o" % -8)
+  assert_equal("..110   ", "%-8.5B" % -2)
+  assert_equal("..f0", "%.3x" % -16)
+  assert_equal("0x..f0", "%#x" % -16)
+end
+
 assert("String#% %d of a big integer with a sign") do
   k = 70
   begin
