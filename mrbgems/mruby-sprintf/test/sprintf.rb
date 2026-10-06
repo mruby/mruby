@@ -132,6 +132,16 @@ assert("String#% %o keeps other leading digits of a negative big integer") do
   assert_equal("..767777777777777777777777777777770", "%o" % (-big - 8))
 end
 
+assert("String#% %o keeps the sign digits of a big integer's two's complement") do
+  begin
+    big = 3 << 62
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal("..76400000000000000000000", "%o" % -big)
+  assert_equal("..7777776400000000000000000000", "%.30o" % -big)
+end
+
 assert("String#% %d of a big integer with a sign") do
   k = 70
   begin
