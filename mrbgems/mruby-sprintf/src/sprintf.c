@@ -710,6 +710,10 @@ retry:
               mrb_value str = mrb_bint_to_s(mrb, val, base);
               s = RSTRING_PTR(str);
               len = (int)RSTRING_LEN(str);
+              /* the top octal digit holds the sign bits left over by the limbs */
+              if (dots && base == 8 && (*s == '1' || *s == '3')) {
+                s++; len--;
+              }
               /* emit the sign through sc, as for mrb_int, so the 0 flag pads after it */
               if (*s == '-') {
                 sc = '-';
@@ -782,9 +786,6 @@ retry:
         }
 
         if (dots) {
-          if (base == 8 && (*s == '1' || *s == '3')) {
-            s++; len--;
-          }
           while (*s == fc) {
             s++; len--;
           }
