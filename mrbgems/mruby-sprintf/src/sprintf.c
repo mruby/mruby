@@ -198,7 +198,7 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
     len--;
     sign_len = 1;
   }
-  if (*buf < '0' || *buf >= '9') {
+  if (*buf < '0' || *buf > '9') {
     // For inf or nan, we don't want to zero pad.
     zero_pad = 0;
   }

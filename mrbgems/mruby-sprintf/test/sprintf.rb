@@ -29,6 +29,15 @@ assert('String#% with the 0 flag and a sign') do
   assert_equal "-1.500  ", "%-08.3f" % -1.5
 end
 
+assert('String#% with the 0 flag and a leading 9') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal "009.5", "%05.1f" % 9.5
+  assert_equal "-009.5", "%06.1f" % -9.5
+  assert_equal "+009.5", "%+06.1f" % 9.5
+  assert_equal "009.50e+00", "%010.2e" % 9.5
+  assert_equal "0099.5", "%06g" % 99.5
+end
+
 assert('String#% with inf') do
   skip unless Object.const_defined?(:Float)
   inf = Float::INFINITY
