@@ -6282,7 +6282,7 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
   mpz_init(ctx, &z);
   mrb_assert(a.sn < 0);
   size_t size = a.sz;
-  mpz_realloc(ctx, &z, size);
+  mpz_realloc(ctx, &z, size+1);
   mp_limb *ds = a.p;
   mp_limb *dd = z.p;
   char carry = 1;
@@ -6291,6 +6291,8 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
     make_2comp(xv, carry);
     dd[i] = xv;
   }
+  /* a limb of sign bits keeps the leading zeros of the complement */
+  dd[size] = ~(mp_limb)0;
   z.sn = 1;
 
   struct RBigint *b2 = bint_new(ctx, &z);
