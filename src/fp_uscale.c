@@ -1235,7 +1235,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     }
     else { /* g */
       *s++ = '0';
-      if (alt_form && prec > 1) {
+      if (alt_form) {
         int i;
         *s++ = '.';
         for (i = 1; i < prec; i++) *s++ = '0';
