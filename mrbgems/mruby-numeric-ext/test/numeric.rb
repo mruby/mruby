@@ -8,6 +8,28 @@ end
 assert('Float#div') do
   skip unless Object.const_defined?(:Float)
   assert_float 52, 365.2425.div(7)
+  assert_equal(-3, 7.5.div(-2.5))
+  assert_equal(-3, 6.5.div(-3))
+  assert_equal(-1, -0.5.div(1))
+  assert_equal 5, 2.5.div(0.5)
+  assert_raise(ZeroDivisionError) { 1.5.div(0) }
+  assert_raise(ZeroDivisionError) { 1.5.div(0.0) }
+  assert_raise(FloatDomainError) { 1.5.div(Float::NAN) }
+end
+
+assert('Integer#div with a Float') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal 2, 7.div(2.5)
+  assert_equal(-3, 7.div(-2.5))
+  assert_equal 14, 7.div(0.5)
+  assert_equal 10, 1.div(0.1)
+  assert_equal 0, 7.div(Float::INFINITY)
+  assert_raise(ZeroDivisionError) { 7.div(0.0) }
+  begin
+    assert_equal 472236648286964547584, (2**70).div(2.5)
+  rescue RangeError
+    skip
+  end
 end
 
 assert('Integer#zero?') do

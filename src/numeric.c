@@ -381,6 +381,20 @@ int_div(mrb_state *mrb, mrb_value x)
  *  Returns most exact division.
  */
 
+#ifndef MRB_NO_FLOAT
+static mrb_value flo_rounding_int(mrb_state *mrb, mrb_float f);
+
+/* `div` with a Float on either side is `(x / y).floor`, as in CRuby */
+static mrb_value
+flo_floor_div(mrb_state *mrb, mrb_float x, mrb_float y)
+{
+  if (y == 0.0) mrb_int_zerodiv(mrb);
+  mrb_float f = floor(x / y);
+  mrb_check_num_exact(mrb, f);
+  return flo_rounding_int(mrb, f);
+}
+#endif
+
 /*
  * call-seq:
  *   int.div(other)  ->  int
@@ -390,6 +404,11 @@ int_div(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_idiv(mrb_state *mrb, mrb_value x)
 {
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(mrb_get_arg1(mrb))) {
+    return flo_floor_div(mrb, mrb_as_float(mrb, x), mrb_float(mrb_get_arg1(mrb)));
+  }
+#endif
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     return mrb_bint_div(mrb, x, mrb_get_arg1(mrb));
@@ -483,18 +502,7 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
-  mrb_float x = mrb_float(xv);
-  mrb_check_num_exact(mrb, x);
-  mrb_int y = mrb_as_int(mrb, mrb_get_arg1(mrb));
-  /* (mrb_int)x is UB when x is outside mrb_int range. */
-  if (!FIXABLE_FLOAT(x)) {
-#ifdef MRB_USE_BIGINT
-    return mrb_bint_div(mrb, mrb_bint_new_float(mrb, x), mrb_int_value(mrb, y));
-#else
-    mrb_int_overflow(mrb, "div");
-#endif
-  }
-  return mrb_div_int_value(mrb, (mrb_int)x, y);
+  return flo_floor_div(mrb, mrb_float(xv), mrb_as_float(mrb, mrb_get_arg1(mrb)));
 }
 
 mrb_float
