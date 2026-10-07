@@ -389,7 +389,11 @@ static mrb_value
 flo_floor_div(mrb_state *mrb, mrb_float x, mrb_float y)
 {
   if (y == 0.0) mrb_int_zerodiv(mrb);
-  mrb_float f = floor(x / y);
+  /* The quotient is a Float before it is floored, as CRuby's x / y is: on
+     x87 an expression stays in extended precision, and 1.div(0.1) floored
+     9.999... instead of 10.0. */
+  volatile mrb_float q = x / y;
+  mrb_float f = floor(q);
   mrb_check_num_exact(mrb, f);
   return flo_rounding_int(mrb, f);
 }
