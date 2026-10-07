@@ -38,6 +38,14 @@ assert('String#% with the 0 flag and a leading 9') do
   assert_equal "0099.5", "%06g" % 99.5
 end
 
+assert('String#% %#g of zero keeps the decimal point') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal "0.", "%#.0g" % 0.0
+  assert_equal "0.", "%#.1g" % 0.0
+  assert_equal "  -0.", "%#5.1g" % -0.0
+  assert_equal "0.0", "%#.2g" % 0.0
+end
+
 assert('String#% with inf') do
   skip unless Object.const_defined?(:Float)
   inf = Float::INFINITY
