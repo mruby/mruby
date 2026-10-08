@@ -76,9 +76,13 @@ assert('Integer#%', '15.2.8.3.5') do
   assert_equal 0, g
   assert_equal 0, h
   assert_equal 0, i
+  assert_raise(ZeroDivisionError) { 0%0 }
   skip unless Object.const_defined?(:Float)
   j = 1%1.0
   assert_equal 0.0, j
+  assert_equal 0.0, 0%2.5
+  assert_kind_of Float, 0%2.5
+  assert_raise(ZeroDivisionError) { 0%0.0 }
 end
 
 assert('Integer#<=>', '15.2.9.3.6') do
