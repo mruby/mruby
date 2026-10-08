@@ -1370,7 +1370,11 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
-      t.tv_sec = (mrb_int)mrb_float(time);
+      /* The seconds go through the checked conversion: a Float no mrb_int
+         holds, Infinity and NaN among them, is out of range rather than
+         whatever the cast makes of it.  The microseconds are the fraction
+         left over, which is bounded once the seconds are. */
+      t.tv_sec = mrb_as_int(mrb, time);
       t.tv_usec = (mrb_int)((mrb_float(time) - t.tv_sec) * 1000000.0);
       break;
 #endif

@@ -249,7 +249,11 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
 
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(arg)) {
-    return random_rand(mrb, t, (mrb_int)mrb_float(arg));
+    /* The limit is truncated through the checked conversion: a Float that
+       stands for no Integer, Infinity and NaN among them, is out of range
+       rather than whatever the cast makes of it, and one wider than mrb_int
+       reaches the big integer limit below the way 10**30 does. */
+    arg = mrb_ensure_integer_type(mrb, arg);
   }
 #endif
 
