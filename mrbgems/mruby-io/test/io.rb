@@ -978,4 +978,16 @@ assert('IO#autoclose?, IO#autoclose=') do
   io.close
 end
 
+assert('IO.select with a Float timeout that stands for no Integer') do
+  # The seconds are truncated toward zero, so a Float no `mrb_int` holds spells
+  # no timeout at all and is out of range rather than whatever the C cast makes
+  # of it: the cast read `Float::NAN` as a zero timeout on AArch64, so the
+  # select returned at once instead of saying the timeout was unusable.
+  skip unless Object.const_defined?(:Float)
+  assert_raise(RangeError) { IO.select(nil, nil, nil, Float::INFINITY) }
+  assert_raise(RangeError) { IO.select(nil, nil, nil, -Float::INFINITY) }
+  assert_raise(RangeError) { IO.select(nil, nil, nil, Float::NAN) }
+  assert_raise(RangeError) { IO.select(nil, nil, nil, 1e30) }
+end
+
 MRubyIOTestUtil.io_test_cleanup

@@ -199,3 +199,22 @@ assert("Kernel#rand integer range overflow") do
     end
   end
 end
+
+assert("Kernel#rand with a Float limit that stands for no Integer") do
+  # The limit is truncated toward zero, so a Float no `mrb_int` holds spells no
+  # limit at all and is out of range rather than whatever the C cast makes of
+  # it: the cast turned `rand(Float::INFINITY)` into a draw from an arbitrary
+  # limit, one per CPU.
+  skip unless Object.const_defined?(:Float)
+  assert_raise(RangeError) { rand(Float::INFINITY) }
+  assert_raise(RangeError) { rand(-Float::INFINITY) }
+  assert_raise(RangeError) { rand(Float::NAN) }
+
+  # a limit a Float does stand for is still truncated toward zero
+  srand(234)
+  10.times do
+    v = rand(5.9)
+    assert_kind_of(Integer, v)
+    assert_true(0 <= v && v < 5)
+  end
+end

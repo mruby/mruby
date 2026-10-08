@@ -1320,7 +1320,10 @@ aget_index(mrb_state *mrb, mrb_value index)
   }
 #ifndef MRB_NO_FLOAT
   else if (mrb_float_p(index)) {
-    return (mrb_int)mrb_float(index);
+    /* The conversion the length argument of the same method already takes:
+       a Float no mrb_int holds, Infinity and NaN among them, is out of range
+       rather than whatever the cast makes of it. */
+    return mrb_as_int(mrb, index);
   }
 #endif
   else {

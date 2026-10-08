@@ -65,6 +65,31 @@ assert('Array#[]', '15.2.12.5.4') do
   assert_equal("b", a[1.1])
 end
 
+assert('Array#[] with a Float index that stands for no Integer') do
+  # The index is truncated toward zero, so a Float no `mrb_int` holds spells no
+  # index at all and is out of range rather than whatever the C cast makes of
+  # it: the cast read `Float::NAN` as 0 on AArch64 and as `MRB_INT_MIN` on
+  # x86-64, so the same script answered "a" on one and nil on the other. The
+  # length argument of the same method has always been read this way.
+  skip unless Object.const_defined?(:Float)
+  a = [ "a", "b", "c" ]
+  inf = Float::INFINITY
+  nan = Float::NAN
+
+  assert_raise(RangeError) { a[inf] }
+  assert_raise(RangeError) { a[-inf] }
+  assert_raise(RangeError) { a[nan] }
+  assert_raise(RangeError) { a[1e30] }
+  assert_raise(RangeError) { a[inf, 1] }
+  assert_raise(RangeError) { a.slice(nan) }
+  assert_raise(RangeError) { a[nan] = 1 }
+  assert_equal([ "a", "b", "c" ], a)
+
+  # an index a Float does stand for is still truncated toward zero
+  assert_equal("b", a[1.9])
+  assert_equal("c", a[-1.9])
+end
+
 assert('Array#[] redefined on Array itself reaches the redefinition') do
   # `OP_GETIDX` answers `a[1]` from C and `OP_GETIDX0` answers `a[0]` the same
   # way whenever the receiver's class is exactly `Array`, which they may only
