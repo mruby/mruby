@@ -7112,12 +7112,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         /* What `$!` held before this begin, kept below the exception register
            so that a clause body cannot reuse it, and read on the way in so
            that leaving a clause can put it back.  Only an exception reaches
-           here, so a begin whose body raises nothing never touches the name. */
+           here, so a begin whose body raises nothing never touches the name.
+           The handler takes the exception first: until it does, a task
+           switch or preemption between two instructions sees one in flight
+           (#7662).  Taking it leaves `$!` alone, so the name is read after. */
         errsave = cursp();
-        genop_2(s, OP_GETGV, errsave, new_sym(s, MRC_SYM_2(errinfo)));
         push();
         exc = cursp();
         genop_1(s, OP_EXCEPT, exc);
+        genop_2(s, OP_GETGV, errsave, new_sym(s, MRC_SYM_2(errinfo)));
         push();
         err_catch = catch_handler_new(s);
         err_begin = s->pc;
@@ -7206,14 +7209,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       /* rescue expression - only catches StandardError */
       /* The same layout as a begin with a rescue clause: the value lands
          where the expression left its own, `$!` is saved below the exception
-         register on the way in and put back on the way out. */
+         register on the way in and put back on the way out.  The exception
+         is taken before `$!` is read, as there. */
       int landing = cursp();
       push();
       int errsave = cursp();
-      genop_2(s, OP_GETGV, errsave, new_sym(s, MRC_SYM_2(errinfo)));
       push();
       int exc = cursp();
       genop_1(s, OP_EXCEPT, exc);
+      genop_2(s, OP_GETGV, errsave, new_sym(s, MRC_SYM_2(errinfo)));
       push();
       /* check if exception is StandardError */
       genop_2(s, OP_GETCONST, cursp(), new_sym(s, MRC_SYM_1(StandardError)));
