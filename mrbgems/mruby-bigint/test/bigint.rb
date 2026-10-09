@@ -608,6 +608,28 @@ assert('Bigint Integer#round breaks a tie away from zero') do
   assert_equal(-big, (-big - 4).round(-1))
 end
 
+assert('Bigint Float#round, #floor and #ceil with a negative ndigits') do
+  skip unless Object.const_defined?(:Float)
+  skip if 1e39.infinite? # MRB_USE_FLOAT32
+  # Float#round answered a Float where the result did not fit in an mrb_int,
+  # and 0 for any ndigits below -17. Rounding the Float itself also left
+  # digits below the requested place: 1e25.floor(-3) kept ...905969664.
+  assert_equal 100000000000000000000, 1e20.round
+  assert_equal 100000000000000000000, 1e20.round(-2)
+  assert_equal 100000000000000000000, 1e20.round(-19)
+  assert_equal 20000000000000000000, 1.5e19.round(-19)
+  assert_equal 5000000000000000000, 4.9e18.round(-18)
+  assert_equal 123456789012345700000, 123456789012345678901.0.round(-5)
+  assert_equal 10 ** 300, 1e300.round(-300)
+  assert_equal(-10 ** 300, -1e300.round(-300))
+  assert_equal 10000000000000000905969000, 1e25.floor(-3)
+  assert_equal 10000000000000000906000000, 1e25.ceil(-6)
+  assert_equal(-10000000000000000906000000, -1e25.floor(-6))
+  assert_equal 10 ** 300, 1e300.floor(-299)
+  assert_equal 11 * 10 ** 299, 1e300.ceil(-299)
+  assert_equal 10 ** 300, 1e300.truncate(-299)
+end
+
 assert('Bigint int64 conversion covers the whole signed 64-bit range') do
   int64_min = -9223372036854775808
   int64_max = 9223372036854775807
