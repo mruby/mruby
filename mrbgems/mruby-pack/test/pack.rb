@@ -22,6 +22,9 @@ assert('pack("m")') do
 
   assert_equal "QQ==\n", ["A", "B"].pack("m50")
   assert_equal ["A"], "QQ==\n".unpack("m50")
+  assert_equal "YWFh\nYWFh\n", ["aaaaaa"].pack("m3")
+  assert_equal "YWFh\nYWFh\nYQ==\n", ["aaaaaaa"].pack("m3")
+  assert_equal "YWFh" * 15 + "\n", ["a" * 45].pack("m")
   assert_equal "QQ==Qg==", ["A", "B"].pack("m0 m0")
   assert_equal ["A", "B"], "QQ==Qg==".unpack("m10 m10")
   assert_pack "m0", "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==", ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
