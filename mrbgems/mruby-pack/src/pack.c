@@ -1179,7 +1179,7 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
   }
   else {
     /* line wrapping path */
-    mrb_int column = 3;
+    mrb_int column = 0;
     while (srclen >= 3) {
       unsigned long l = (unsigned char)*srcptr++ << 16;
       l += (unsigned char)*srcptr++ << 8;
@@ -1191,11 +1191,11 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
       *dstptr++ = base64chars[(l >> 6) & 0x3f];
       *dstptr++ = base64chars[l & 0x3f];
 
+      column += 3;
       if (column == count) {
         *dstptr++ = '\n';
         column = 0;
       }
-      column += 3;
     }
 
     /* handle remaining 1-2 bytes */
