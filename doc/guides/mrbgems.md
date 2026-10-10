@@ -35,6 +35,9 @@ conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
+Without `:branch`, the repository's default branch is cloned, whatever
+its name is. The branch actually cloned is recorded in the lock file.
+
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this
 version.
 

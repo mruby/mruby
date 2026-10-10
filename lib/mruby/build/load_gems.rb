@@ -98,7 +98,8 @@ module MRuby
 
       def to_s
         desc = @gemdir
-        desc += " -> #{@repo}/#{@branch}" if git?
+        desc += " -> #{@repo}" if git?
+        desc += "/#{@branch}" if git? && @branch
         desc += "/#{commit}" if commit
         return desc
       end
@@ -113,7 +114,7 @@ module MRuby
 
                      # Git repo:
                      git: nil,
-                     branch: "master",
+                     branch: nil,       # nil: the remote's default branch
                      checksum_hash: nil,
                      options: [],
                      path: nil,     # path to root relative to gem checkout
@@ -261,7 +262,7 @@ module MRuby
         list_dir = "#{@build.gem_clone_dir}/mgem-list"
         url = 'https://github.com/mruby/mgem-list.git'
 
-        git_clone_dependency(url, list_dir, nil, 'master')
+        git_clone_dependency(url, list_dir, nil, nil)
 
         conf_path = "#{list_dir}/#{mgem}.gem"
         conf_path = "#{list_dir}/mruby-#{mgem}.gem" unless
@@ -295,6 +296,9 @@ module MRuby
           branch = lock['branch']
           commit = lock['commit']
         end
+        # A lock written while the checkout was detached named the branch
+        # "HEAD", which no remote has (#6087); clone the default instead.
+        branch = nil if branch == 'HEAD'
 
         # Clone the dependency (if needed) and checkout the expected
         # revision.
@@ -306,7 +310,7 @@ module MRuby
           @build.gem_dir_to_repo_url[repo_dir] = url
           @build.locks[url] = {
             'url' => url,
-            'branch' => branch || @build.git.current_branch(repo_dir),
+            'branch' => branch || @build.git.checked_out_branch(repo_dir),
             'commit' => @build.git.commit_hash(repo_dir),
           }
         end
@@ -364,7 +368,7 @@ module MRuby
 
         options = @options.dup
         options << "--recursive"
-        options << "--branch \"#{branch}\""
+        options << "--branch \"#{branch}\"" if branch
         options << "--depth 1" unless commit
 
         @build.git.run_clone repo_dir, url, options

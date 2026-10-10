@@ -884,6 +884,16 @@ module MRuby
     def current_branch(dir)
       `#{@command} --git-dir #{shellquote(dir + '/.git')} --work-tree #{shellquote(dir)} rev-parse --abbrev-ref HEAD`.strip
     end
+
+    # The branch a clone stands for: the one checked out, or when the
+    # checkout is detached, the remote's default branch.  Never "HEAD",
+    # which a later `clone --branch` would not find; nil when unknown.
+    def checked_out_branch(dir)
+      branch = current_branch(dir)
+      return branch unless branch.empty? || branch == 'HEAD'
+      ref = `#{@command} --git-dir #{shellquote(dir + '/.git')} symbolic-ref --quiet --short refs/remotes/origin/HEAD`.strip
+      ref.empty? ? nil : ref.delete_prefix('origin/')
+    end
   end
 
   class Command::Mrbc < Command
