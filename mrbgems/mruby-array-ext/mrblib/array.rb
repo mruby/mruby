@@ -670,21 +670,6 @@ class Array
 
   ##
   # call-seq:
-  #    ary.find(ifnone = nil) { |elem| block } -> obj or nil
-  #    ary.find(ifnone = nil)                  -> Enumerator
-  #
-  # Returns the first element for which the block returns a true value.
-  # If no element matches and +ifnone+ is given, calls +ifnone+ and
-  # returns its result. Otherwise returns +nil+.
-  #
-  # This is an optimized version of Enumerable#find for arrays.
-  #
-  #    [1, 2, 3, 4].find { |x| x > 2 }        #=> 3
-  #    [1, 2, 3, 4].find { |x| x > 10 }       #=> nil
-  #    [1, 2, 3, 4].find(->{0}) { |x| x > 10 } #=> 0
-  #
-  ##
-  # call-seq:
   #   array.max -> element
   #   array.max {|a, b| ... } -> element
   #
@@ -716,6 +701,21 @@ class Array
     block ? super : __min
   end
 
+  ##
+  # call-seq:
+  #    ary.find(ifnone = nil) { |elem| block } -> obj or nil
+  #    ary.find(ifnone = nil)                  -> Enumerator
+  #
+  # Returns the first element for which the block returns a true value.
+  # If no element matches and +ifnone+ is given, calls +ifnone+ and
+  # returns its result. Otherwise returns +nil+.
+  #
+  # This is an optimized version of Enumerable#find for arrays.
+  #
+  #    [1, 2, 3, 4].find { |x| x > 2 }        #=> 3
+  #    [1, 2, 3, 4].find { |x| x > 10 }       #=> nil
+  #    [1, 2, 3, 4].find(->{0}) { |x| x > 10 } #=> 0
+  #
   def find(ifnone=nil, &block)
     return to_enum(:find, ifnone) unless block
 
