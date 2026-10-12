@@ -26,7 +26,7 @@ This gem adds the following methods to the `Proc` class:
   puts add_one.yield(5) # => 6
   ```
 
-- **`to_proc`**: Returns `self`. Useful for methods expecting a proc.
+- **`to_proc`**: Returns `self`. Useful for methods expecting a proc.
 
   ```ruby
   p = Proc.new { |x| x * 2 }
