@@ -255,6 +255,16 @@ assert 'Bigint mod' do
   assert_equal 18446744073709551616, (n / 2) % n
 end
 
+assert 'Bigint mod with a Float' do
+  n = 1<<65
+  assert_equal 2.0, n % 3.0
+  assert_equal(-1.0, n % -3.0)
+  assert_equal 1.0, -n % 3.0
+  assert_equal(-2.0, -n % -3.0)
+  assert_equal Float::INFINITY, -n % Float::INFINITY
+  assert_raise(ZeroDivisionError) { n % 0.0 }
+end
+
 assert 'Bigint divmod' do
   n = 1<<65
   assert_equal [37004501652376231, 925], n.divmod(997)
