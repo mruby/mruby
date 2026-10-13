@@ -106,6 +106,15 @@ assert('Addrinfo.unix') do
   assert_equal(Socket::SOCK_DGRAM, a2.socktype)
 end
 
+assert('Addrinfo#unix_path does not read past the sockaddr length') do
+  skip "unix is not supported on Windows" if SocketTest.win?
+  full = Socket.sockaddr_un("/tmp/" + "x" * 64)
+  short = full[0, 30]  # a sockaddr that cuts off inside sun_path
+  path = Socket.unpack_sockaddr_un(short)
+  assert_true(path.bytesize <= short.bytesize)
+  assert_equal('/tmp/sock', Socket.unpack_sockaddr_un(Socket.sockaddr_un('/tmp/sock')))
+end
+
 assert('Addrinfo#afamily') do
   skip "afamily is not supported on Windows" if SocketTest.win?
   ai4 = Addrinfo.new(Socket.sockaddr_in(1, '127.0.0.1'))
