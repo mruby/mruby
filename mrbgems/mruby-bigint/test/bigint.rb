@@ -368,6 +368,18 @@ assert 'Bigint >> rounds a negative number toward minus infinity' do
   assert_equal 295147905179352825856, ((1<<70) + 3) >> 2
 end
 
+assert 'A shift by a Bigint count moves every bit out' do
+  n = 1<<65
+  assert_equal 0, 5 >> n
+  assert_equal(-1, -5 >> n)
+  assert_equal 0, n >> n
+  assert_equal(-1, -n >> n)
+  assert_equal 0, 5 << -n
+  assert_equal(-1, -5 << -n)
+  assert_equal 0, 0 << n
+  assert_raise(RangeError) { 5 << n }
+end
+
 assert 'Bigint to_s' do
   n = 1197857166996989179607278372168909873645893814254642585755536286462800958278984531968
   assert_equal n, "11978_571669_96989179607278372168909873645893814254642585755536286462800958278984531968".to_i
