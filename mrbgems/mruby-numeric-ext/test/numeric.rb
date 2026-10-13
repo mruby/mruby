@@ -32,6 +32,17 @@ assert('Integer#div with a Float') do
   end
 end
 
+assert('Float#remainder') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal 1.5, 5.5.remainder(2.0)
+  assert_equal(-1.5, -5.5.remainder(2.0))
+  assert_equal 1.5, 5.5.remainder(-2.0)
+  # 2**65 / 3.0 is not exact, so truncating the quotient lost the remainder
+  assert_equal 2.0, (2.0**65).remainder(3.0)
+  assert_equal(-2.0, (-2.0**65).remainder(3.0))
+  assert_equal 4.0, (2.0**65).remainder(-7.0)
+end
+
 assert('Integer#zero?') do
   assert_equal true, 0.zero?
   assert_equal false, 1.zero?
