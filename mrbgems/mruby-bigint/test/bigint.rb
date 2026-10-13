@@ -263,6 +263,16 @@ assert 'Integer#div by a Bigint' do
   assert_equal 0, 0.div(n)
 end
 
+assert 'Integer#remainder by a Bigint' do
+  n = 1<<65
+  assert_equal 7, 7.remainder(n)
+  assert_equal(-7, (-7).remainder(n))
+  assert_equal 7, 7.remainder(-n)
+  assert_equal 0, 0.remainder(n)
+  assert_equal 9007199254740993, 9007199254740993.remainder(n)
+  assert_kind_of Integer, 7.remainder(n)
+end
+
 assert 'Bigint divmod' do
   n = 1<<65
   assert_equal [37004501652376231, 925], n.divmod(997)
