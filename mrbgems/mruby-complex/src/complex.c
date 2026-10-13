@@ -337,6 +337,7 @@ complex_s_rect(mrb_state *mrb, mrb_value self)
 static mrb_value
 complex_float_to_i(mrb_state *mrb, mrb_value self, mrb_float f)
 {
+  mrb_check_num_exact(mrb, f);
 #ifdef MRB_USE_BIGINT
   if (!FIXABLE_FLOAT(f)) {
     return mrb_bint_new_float(mrb, f);
