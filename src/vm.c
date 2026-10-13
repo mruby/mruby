@@ -851,6 +851,45 @@ mrb_svars_reserve(mrb_state *mrb, struct mrb_context *c)
                                          sizeof(struct RBasic*));
 }
 
+#ifdef MRB_USE_C_STACK_CHECK
+/* The machine stack against the limit the host set, if it set one. Made
+   where C enters the VM (mrb_funcall_with_block, yield_with_attr,
+   mrb_vm_run): those are the calls that nest mrb_vm_exec on the machine
+   stack. A send from Ruby to Ruby runs in the same VM loop and grows no
+   machine stack, so cipush does not check. The address of a local is where
+   the stack is now. The stack grows downward unless MRB_C_STACK_GROWS_UP
+   says otherwise. The compare is on integers: two pointers into different
+   objects have no defined order in C. */
+static inline void
+c_stack_check(mrb_state *mrb)
+{
+  if (mrb->c_stack_limit) {
+    char here;
+#ifdef MRB_C_STACK_GROWS_UP
+    if ((uintptr_t)&here > (uintptr_t)mrb->c_stack_limit) {
+#else
+    if ((uintptr_t)&here < (uintptr_t)mrb->c_stack_limit) {
+#endif
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+    }
+  }
+}
+
+MRB_API void
+mrb_c_stack_limit_set(mrb_state *mrb, void *limit)
+{
+  mrb->c_stack_limit = limit;
+}
+
+MRB_API void
+mrb_c_stack_check(mrb_state *mrb)
+{
+  c_stack_check(mrb);
+}
+#else
+#define c_stack_check(mrb) ((void)0)
+#endif
+
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_class,
        const struct RProc *proc, struct RProc *blk, mrb_sym mid, uint16_t argc)
@@ -1572,6 +1611,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     if (ci - mrb->c->cibase > MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
+    c_stack_check(mrb);
     blk = ensure_block(mrb, blk);
     ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, 0);
     funcall_args_capture(mrb, 0, argc, argv, blk, ci);
@@ -2027,6 +2067,7 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
   else {
     mid = ci->mid;
   }
+  c_stack_check(mrb);
   ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, NULL, mid, 0);
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
@@ -2597,6 +2638,7 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   if (!c->stbase) {
     stack_init(mrb);
   }
+  c_stack_check(mrb);
   if (stack_keep > nregs)
     nregs = stack_keep;
   else {
