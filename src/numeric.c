@@ -455,23 +455,27 @@ int_quo(mrb_state *mrb, mrb_value x)
 #endif
 
 #else
-  mrb_int a = mrb_integer(x);
   mrb_value y = mrb_get_arg1(mrb);
-  if (mrb_integer_p(y) && mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
-    return mrb_rational_new(mrb, a, mrb_integer(y));
+  if (mrb_integer_p(x) && mrb_integer_p(y) && mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
+    return mrb_rational_new(mrb, mrb_integer(x), mrb_integer(y));
   }
   switch (mrb_type(y)) {
-  case MRB_TT_RATIONAL:
-    x = mrb_rational_new(mrb, a, 1);
-    return mrb_rational_div(mrb, x, y);
-  default:
-#ifndef MRB_NO_FLOAT
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
-#else
-    mrb_int_noconv(mrb, y);
-    break;
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_INTEGER:
+  case MRB_TT_BIGINT:
+    if (!mrb_class_defined_id(mrb, MRB_SYM(Rational))) break;
+    /* fall through */
 #endif
+  case MRB_TT_RATIONAL:
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, x), y);
+  default:
+    break;
   }
+#ifndef MRB_NO_FLOAT
+  return mrb_float_value(mrb, mrb_div_float(mrb_as_float(mrb, x), mrb_as_float(mrb, y)));
+#else
+  mrb_int_noconv(mrb, y);
+#endif
 #endif
 }
 
