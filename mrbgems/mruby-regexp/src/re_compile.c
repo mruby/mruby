@@ -1494,6 +1494,72 @@ static const char *const prop_posix_names[] = {
 };
 
 #ifdef RE_UNICODE_CTYPE
+/* The long names of the general categories, normalized, with the short ones
+   each stands for: \p{Letter} is \p{L} and \p{Uppercase_Letter} \p{Lu}.
+   LC, a cased letter, has no category of its own and is the three it lists.
+   CRuby reads all of these. Digit, Cntrl and Punct are long names too, but
+   the POSIX names come first and hold the same characters. */
+static const struct {
+  const char *name;
+  char codes[3][3];
+} prop_gc_long_names[] = {
+  {"lc", {"Lu", "Ll", "Lt"}},
+  {"casedletter", {"Lu", "Ll", "Lt"}},
+  {"letter", {"L"}},
+  {"uppercaseletter", {"Lu"}},
+  {"lowercaseletter", {"Ll"}},
+  {"titlecaseletter", {"Lt"}},
+  {"modifierletter", {"Lm"}},
+  {"otherletter", {"Lo"}},
+  {"mark", {"M"}},
+  {"combiningmark", {"M"}},
+  {"nonspacingmark", {"Mn"}},
+  {"spacingmark", {"Mc"}},
+  {"enclosingmark", {"Me"}},
+  {"number", {"N"}},
+  {"decimalnumber", {"Nd"}},
+  {"letternumber", {"Nl"}},
+  {"othernumber", {"No"}},
+  {"punctuation", {"P"}},
+  {"connectorpunctuation", {"Pc"}},
+  {"dashpunctuation", {"Pd"}},
+  {"openpunctuation", {"Ps"}},
+  {"closepunctuation", {"Pe"}},
+  {"initialpunctuation", {"Pi"}},
+  {"finalpunctuation", {"Pf"}},
+  {"otherpunctuation", {"Po"}},
+  {"symbol", {"S"}},
+  {"mathsymbol", {"Sm"}},
+  {"currencysymbol", {"Sc"}},
+  {"modifiersymbol", {"Sk"}},
+  {"othersymbol", {"So"}},
+  {"separator", {"Z"}},
+  {"spaceseparator", {"Zs"}},
+  {"lineseparator", {"Zl"}},
+  {"paragraphseparator", {"Zp"}},
+  {"other", {"C"}},
+  {"control", {"Cc"}},
+  {"format", {"Cf"}},
+  {"privateuse", {"Co"}},
+  {"surrogate", {"Cs"}},
+  {"unassigned", {"Cn"}},
+};
+
+/* The categories the short name `code`, `n` letters long and in either case,
+   holds as a mask: a letter alone stands for every category it begins. */
+static uint32_t
+prop_gc_mask(const char *code, size_t n)
+{
+  uint32_t m = 0;
+  for (int i = 0; i < RE_PROP_GC_COUNT; i++) {
+    const char *gc = re_prop_gc_names[i];
+    if ((gc[0] | 32) == (code[0] | 32) && (n == 1 || gc[1] == (code[1] | 32))) {
+      m |= (uint32_t)1 << i;
+    }
+  }
+  return m;
+}
+
 /* TRUE where `raw`, normalized, is `norm`. */
 static mrb_bool
 prop_name_is(const char *norm, const char *raw)
@@ -1511,8 +1577,9 @@ prop_name_is(const char *norm, const char *raw)
 /* What the property `name` is, with its name normalized into `norm`: CRuby
    reads one without regard to case or to '_', '-' and ' ', and so does this.
    For a category the members are `*want` as a mask of the categories it
-   holds, a letter standing for every category it begins; for an emoji
-   property they are its bit. */
+   holds, a letter standing for every category it begins and a long name for
+   the ones prop_gc_long_names lists; for an emoji property they are its
+   bit. */
 static int
 prop_lookup(const char *name, size_t len, char *norm, uint32_t *want)
 {
@@ -1529,15 +1596,21 @@ prop_lookup(const char *name, size_t len, char *norm, uint32_t *want)
   }
 #ifdef RE_UNICODE_CTYPE
   if (n == 1 || n == 2) {
-    uint32_t m = 0;
-    for (int i = 0; i < RE_PROP_GC_COUNT; i++) {
-      const char *gc = re_prop_gc_names[i];
-      if (gc[0] + 32 == norm[0] && (n == 1 || gc[1] == norm[1])) m |= (uint32_t)1 << i;
-    }
+    uint32_t m = prop_gc_mask(norm, n);
     if (m) {
       *want = m;
       return RE_PROP_GC;
     }
+  }
+  for (size_t i = 0; i < sizeof(prop_gc_long_names) / sizeof(prop_gc_long_names[0]); i++) {
+    if (strcmp(norm, prop_gc_long_names[i].name) != 0) continue;
+    uint32_t m = 0;
+    for (int j = 0; j < 3 && prop_gc_long_names[i].codes[j][0]; j++) {
+      const char *code = prop_gc_long_names[i].codes[j];
+      m |= prop_gc_mask(code, strlen(code));
+    }
+    *want = m;
+    return RE_PROP_GC;
   }
   for (int i = 0; i < RE_PROP_EMOJI_COUNT; i++) {
     if (prop_name_is(norm, re_prop_emoji_names[i])) {

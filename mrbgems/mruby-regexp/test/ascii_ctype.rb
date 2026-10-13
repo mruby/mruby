@@ -47,7 +47,7 @@ assert("Regexp - \\p holds the POSIX names and refuses the rest here") do
   assert_equal "a", "1a"[/\p{Alpha}/]
   assert_false(/\p{Alpha}/.match?("é"))
   assert_true(/\P{Alpha}/.match?("é"))
-  ["\\p{Lu}", "\\P{L}", "[\\p{Nd}]", "\\p{Emoji}"].each do |src|
+  ["\\p{Lu}", "\\P{L}", "[\\p{Nd}]", "\\p{Emoji}", "\\p{Letter}", "\\p{LC}"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 end

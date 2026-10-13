@@ -81,3 +81,36 @@ assert("Regexp - \\p under /i") do
   end
   assert_true(/\P{Lu}/i.match?("1"))
 end
+
+assert("Regexp - \\p reads the long names of the general categories") do
+  skip unless __ENCODING__ == "UTF-8"
+  # CRuby reads each long name as its short one; LC (Lc, Cased_Letter) is Lu,
+  # Ll and Lt together, which no category is on its own.
+  s = "Aa1 _-€é́あ🔔ǅʰⅧ²(«»!+^©ः⃝  \t­͸)"
+  {
+    "Letter" => "L", "Uppercase_Letter" => "Lu", "Lowercase_Letter" => "Ll",
+    "Titlecase_Letter" => "Lt", "Modifier_Letter" => "Lm", "Other_Letter" => "Lo",
+    "Mark" => "M", "Combining_Mark" => "M", "Nonspacing_Mark" => "Mn",
+    "Spacing_Mark" => "Mc", "Enclosing_Mark" => "Me", "Number" => "N",
+    "Decimal_Number" => "Nd", "Letter_Number" => "Nl", "Other_Number" => "No",
+    "Punctuation" => "P", "Connector_Punctuation" => "Pc",
+    "Dash_Punctuation" => "Pd", "Open_Punctuation" => "Ps",
+    "Close_Punctuation" => "Pe", "Initial_Punctuation" => "Pi",
+    "Final_Punctuation" => "Pf", "Other_Punctuation" => "Po", "Symbol" => "S",
+    "Math_Symbol" => "Sm", "Currency_Symbol" => "Sc", "Modifier_Symbol" => "Sk",
+    "Other_Symbol" => "So", "Separator" => "Z", "Space_Separator" => "Zs",
+    "Line_Separator" => "Zl", "Paragraph_Separator" => "Zp", "Other" => "C",
+    "Control" => "Cc", "Format" => "Cf", "Private_Use" => "Co",
+    "Surrogate" => "Cs", "Unassigned" => "Cn",
+  }.each do |long, short|
+    assert_equal s.scan(Regexp.new("\\p{#{short}}")), s.scan(Regexp.new("\\p{#{long}}")), long
+    assert_equal s.scan(Regexp.new("\\P{#{short}}")), s.scan(Regexp.new("\\P{#{long}}")), long
+  end
+  assert_equal "Aaéǅ", s.scan(/\p{LC}/).join
+  assert_equal "Aaéǅ", s.scan(/\p{Lc}/).join
+  assert_equal "Aaéǅ", s.scan(/\p{cased-letter}/).join
+  assert_equal s.scan(/[\p{Lu}\p{Ll}\p{Lt}]/), s.scan(/\p{Cased_Letter}/)
+  assert_equal ["a", "_", "1"], "a_1!".scan(/[\p{Nd}\p{Lc}\p{Pc}]/)
+  assert_true(/\p{TITLECASE_LETTER}/.match?("ǅ"))
+  assert_true(/\b\p{letter}[^.\/:]++\./.match?("see RDoc.new"))
+end
