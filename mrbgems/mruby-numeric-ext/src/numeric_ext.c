@@ -433,7 +433,7 @@ flo_remainder(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "f", &b);
   if (b == 0) mrb_int_zerodiv(mrb);
   if (isinf(b)) return mrb_float_value(mrb, a);
-  return mrb_float_value(mrb, a-b*trunc(a/b));
+  return mrb_float_value(mrb, fmod(a, b));
 }
 #endif
 
