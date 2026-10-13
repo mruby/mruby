@@ -1726,6 +1726,15 @@ int_narrower_than_count(mrb_state *mrb, mrb_value x)
   return TRUE;
 }
 
+static mrb_bool
+int_zero_p(mrb_state *mrb, mrb_value x)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) return mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) == 0;
+#endif
+  return mrb_integer(x) == 0;
+}
+
 /* 1 for a shift count above every mrb_int, -1 for one below, 0 otherwise */
 static int
 int_count_overflow(mrb_state *mrb, mrb_value w)
@@ -1754,7 +1763,7 @@ int_lshift(mrb_state *mrb, mrb_value x)
   mrb_value w = mrb_get_arg1(mrb);
   int over = int_count_overflow(mrb, w);
 
-  if (over != 0 && mrb_integer_p(x) && mrb_integer(x) == 0) return x;
+  if (over != 0 && int_zero_p(mrb, x)) return mrb_fixnum_value(0);
   if (over < 0 && int_narrower_than_count(mrb, x)) {
     return int_shifted_out(mrb, x);
   }
@@ -1798,7 +1807,7 @@ int_rshift(mrb_state *mrb, mrb_value x)
   mrb_value w = mrb_get_arg1(mrb);
   int over = int_count_overflow(mrb, w);
 
-  if (over != 0 && mrb_integer_p(x) && mrb_integer(x) == 0) return x;
+  if (over != 0 && int_zero_p(mrb, x)) return mrb_fixnum_value(0);
   if (over > 0 && int_narrower_than_count(mrb, x)) {
     return int_shifted_out(mrb, x);
   }

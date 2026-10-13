@@ -382,6 +382,8 @@ assert 'A shift by a Bigint count moves every bit out' do
   assert_equal 4, 8 << BigintTest.unnormalized(-1)
   assert_equal 4, 8 >> BigintTest.unnormalized(1)
   assert_equal 16, 8 << BigintTest.unnormalized(1)
+  assert_equal 0, BigintTest.unnormalized(0) << n
+  assert_equal 0, BigintTest.unnormalized(0) >> -n
 end
 
 assert 'Bigint to_s' do
