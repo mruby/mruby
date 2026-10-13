@@ -630,6 +630,23 @@ assert 'Integer#quo' do
   assert_equal 6/5r, a
 end
 
+assert 'Integer#quo with a Bigint operand' do
+  k = 65
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal Rational(big / 2, 1), big.quo(2)
+  assert_equal Rational(big, 3), big.quo(3)
+  assert_equal Rational(7, big), 7.quo(big)
+  assert_equal Rational(2, 1), big.quo(big / 2)
+  assert_kind_of Rational, 7.quo(big)
+  assert_kind_of Rational, big.quo(big / 2)
+  assert_equal Rational(big * 3, 1), big.quo(Rational(1, 3))
+  assert_raise(ZeroDivisionError) { big.quo(0) }
+end
+
 assert 'Kernel#Rational with a Rational operand stays exact' do
   assert_equal Rational(1, 3), Rational(Rational(1, 3), 1)
   assert_equal Rational(3, 2), Rational(Rational(1, 2), Rational(1, 3))
