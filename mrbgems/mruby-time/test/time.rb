@@ -23,10 +23,10 @@ end
 
 assert('Time.at with a fractional microsecond argument') do
   skip unless Object.const_defined?(:Float)
-  t = Time.at(1, 999999.9)
+  t = Time.at(1, 999999.5)
   assert_equal 1, t.to_i
   assert_equal 999999, t.usec
-  assert_equal 999999900, t.nsec
+  assert_equal 999999500, t.nsec
   assert_equal 500, Time.at(1, 0.5).nsec
   assert_equal 1500, Time.at(1, 1.5).nsec
   assert_equal 0, Time.at(1, -0.5).to_i
