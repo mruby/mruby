@@ -417,6 +417,9 @@ int_idiv(mrb_state *mrb, mrb_value x)
   if (mrb_bigint_p(x)) {
     return mrb_bint_div(mrb, x, mrb_get_arg1(mrb));
   }
+  if (mrb_bigint_p(mrb_get_arg1(mrb))) {
+    return mrb_bint_div(mrb, mrb_as_bint(mrb, x), mrb_get_arg1(mrb));
+  }
 #endif
   mrb_int y = mrb_as_int(mrb,  mrb_get_arg1(mrb));
   return mrb_div_int_value(mrb, mrb_integer(x), y);
