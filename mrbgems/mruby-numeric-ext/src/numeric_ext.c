@@ -362,13 +362,14 @@ int_digits(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     int.size -> int
  *
- * Returns the number of bytes in the machine representation of int
+ * Returns the number of bytes in the machine representation of int: a
+ * fixnum's size, or the bytes of a big integer's magnitude
  * (machine dependent).
  *
  *   1.size               #=> 8
  *   -1.size              #=> 8
  *   2147483647.size      #=> 8
- *   (256**10 - 1).size   #=> 12
+ *   (256**10 - 1).size   #=> 10
  *   (256**20 - 1).size   #=> 20
  *   (256**40 - 1).size   #=> 40
  */
@@ -379,7 +380,9 @@ int_size(mrb_state *mrb, mrb_value self)
   size_t size = sizeof(mrb_int);
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
-    size = mrb_bint_memsize(self);
+    /* the magnitude's bytes, never less than a fixnum's, as CRuby answers */
+    size_t bytes = mrb_bint_abs_bytes(self);
+    if (bytes > size) size = bytes;
   }
 #endif
   return mrb_fixnum_value((mrb_int)size);

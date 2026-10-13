@@ -6237,6 +6237,22 @@ mrb_bint_sign(mrb_state *mrb, mrb_value bint)
   return RBIGINT_SIGN(RBIGINT(bint));
 }
 
+/* The bytes of the magnitude, which is what CRuby's Integer#size answers
+   for a Bignum: -(2**64) takes 9, where its two's-complement bit length
+   (64) would make it 8. */
+size_t
+mrb_bint_abs_bytes(mrb_value x)
+{
+  mpz_t z;
+  bint_as_mpz(RBIGINT(x), &z);
+  size_t n = z.sz;
+  while (n > 0 && z.p[n-1] == 0) n--;
+  if (n == 0) return 0;
+  int top = 0;
+  for (mp_limb t = z.p[n-1]; t; t >>= 1) top++;
+  return ((n - 1) * DIG_SIZE + top + 7) / 8;
+}
+
 mrb_int
 mrb_bint_bytes_size(mrb_state *mrb, mrb_value bint)
 {
