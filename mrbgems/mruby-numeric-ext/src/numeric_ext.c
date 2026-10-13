@@ -68,6 +68,9 @@ int_remainder(mrb_state *mrb, mrb_value x)
     return flo_remainder(mrb, mrb_float_value(mrb, mrb_as_float(mrb, x)));
 #endif
   }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_rem(mrb, mrb_as_bint(mrb, x), y);
+  }
 #endif
   a = mrb_integer(x);
   if (mrb_integer_p(y)) {
