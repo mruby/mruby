@@ -256,6 +256,7 @@ assert 'Bigint mod' do
 end
 
 assert 'Bigint mod with a Float' do
+  skip unless Object.const_defined?(:Float)
   n = 1<<65
   assert_equal 2.0, n % 3.0
   assert_equal(-1.0, n % -3.0)
