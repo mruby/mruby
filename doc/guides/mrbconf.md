@@ -74,6 +74,24 @@ end
 - Default value is `0x40000 - MRB_STACK_GROWTH`.
 - Raises `RuntimeError` when stack size exceeds this value.
 
+`MRB_USE_C_STACK_CHECK`
+
+- Compiles a check of the machine (C) stack into every call.
+- The host sets the floor with `mrb_c_stack_limit_set(mrb, limit)`; a call
+  that finds the stack below it raises `SystemStackError` instead of running
+  off the stack. NULL (the default) turns the check off at run time.
+- For a target with a small fixed stack, where a block called from a C
+  method, or a C method that recurses, nests the VM on the machine stack.
+- Without this macro `mrb_c_stack_limit_set` and `mrb_c_stack_check` are
+  macros that do nothing.
+
+`MRB_C_STACK_GROWS_UP`
+
+- Tells the check of `MRB_USE_C_STACK_CHECK` that the machine stack grows
+  toward higher addresses, so the limit is a ceiling.
+- Undefined by default: the stack grows downward and the limit is a floor,
+  as on x86, ARM, RISC-V, Xtensa and WebAssembly.
+
 ## Primitive type configuration
 
 `MRB_USE_FLOAT32`

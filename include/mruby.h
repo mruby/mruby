@@ -531,6 +531,12 @@ struct mrb_state {
 #ifdef MRB_USE_TASK_SCHEDULER
   mrb_task_state task;                    /* Task scheduler state */
 #endif
+
+#ifdef MRB_USE_C_STACK_CHECK
+  /* The address the machine stack may not pass while the VM runs, or
+     NULL for no check. See mrb_c_stack_limit_set(). */
+  void *c_stack_limit;
+#endif
 };
 
 /**
@@ -1821,6 +1827,45 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
  */
 #define E_FIBER_ERROR mrb_exc_get_id(mrb, MRB_ERROR_SYM(FiberError))
 MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
+
+#ifdef MRB_USE_C_STACK_CHECK
+/**
+ * Sets the address the machine (C) stack may not pass while the VM runs.
+ * The VM checks it on every call: a call that finds the stack past the
+ * limit raises SystemStackError ("stack level too deep"), as a call past
+ * MRB_CALL_LEVEL_MAX does, instead of running off the stack. Ruby
+ * recursion lives on the VM's own stack and never reaches the limit; what
+ * reaches it is nesting through C, such as a block called from a C method
+ * that calls a block from a C method again, or a C method that recurses
+ * itself. Those are the paths that overrun a small fixed stack on an MCU.
+ *
+ * Built only with MRB_USE_C_STACK_CHECK; without it the check and this
+ * function compile to nothing. NULL, the default, turns the check off.
+ * The stack is taken to grow downward, so the limit is a floor; with
+ * MRB_C_STACK_GROWS_UP it grows upward and the limit is a ceiling. Leave
+ * headroom past the limit: the raise itself, and any interrupt handler
+ * that shares the stack, run past the point the check saw. A host whose
+ * stack region is known from the linker sets, for example,
+ * `mrb_c_stack_limit_set(mrb, &__StackLimit + 2048)`.
+ *
+ * @param mrb The mruby state.
+ * @param limit The address the stack may not pass, or NULL.
+ */
+MRB_API void mrb_c_stack_limit_set(mrb_state *mrb, void *limit);
+
+/**
+ * The check the VM makes before a call, for a C function that recurses
+ * without calling back into the VM. Raises SystemStackError when the
+ * machine stack is below the limit set by mrb_c_stack_limit_set(); does
+ * nothing when no limit is set.
+ *
+ * @param mrb The mruby state.
+ */
+MRB_API void mrb_c_stack_check(mrb_state *mrb);
+#else
+#define mrb_c_stack_limit_set(mrb, limit) ((void)(mrb), (void)(limit))
+#define mrb_c_stack_check(mrb) ((void)(mrb))
+#endif
 
 /* temporary memory allocation, only effective while GC arena is kept */
 MRB_API void* mrb_temp_alloc(mrb_state *mrb, size_t);

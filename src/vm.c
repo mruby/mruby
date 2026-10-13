@@ -851,6 +851,41 @@ mrb_svars_reserve(mrb_state *mrb, struct mrb_context *c)
                                          sizeof(struct RBasic*));
 }
 
+#ifdef MRB_USE_C_STACK_CHECK
+/* The machine stack against the limit the host set, if it set one. The
+   address of a local is where the stack is now. The stack grows downward
+   unless MRB_C_STACK_GROWS_UP says otherwise. The compare is on integers:
+   two pointers into different objects have no defined order in C. */
+static inline void
+c_stack_check(mrb_state *mrb)
+{
+  if (mrb->c_stack_limit) {
+    char here;
+#ifdef MRB_C_STACK_GROWS_UP
+    if ((uintptr_t)&here > (uintptr_t)mrb->c_stack_limit) {
+#else
+    if ((uintptr_t)&here < (uintptr_t)mrb->c_stack_limit) {
+#endif
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+    }
+  }
+}
+
+MRB_API void
+mrb_c_stack_limit_set(mrb_state *mrb, void *limit)
+{
+  mrb->c_stack_limit = limit;
+}
+
+MRB_API void
+mrb_c_stack_check(mrb_state *mrb)
+{
+  c_stack_check(mrb);
+}
+#else
+#define c_stack_check(mrb) ((void)0)
+#endif
+
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_class,
        const struct RProc *proc, struct RProc *blk, mrb_sym mid, uint16_t argc)
@@ -858,6 +893,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci + 1;
 
+  c_stack_check(mrb);
   if (ci < c->ciend) {
     c->ci = ci;
   }

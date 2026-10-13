@@ -48,8 +48,15 @@ has its own `mrb_context`.
 - Minimum growth: 128 entries (`MRB_STACK_GROWTH`)
 - Max stack depth: `MRB_STACK_MAX` (0x40000 - 128)
 - Max call depth: `MRB_CALL_LEVEL_MAX` (512, or 128 with ASAN)
+- Machine stack limit (with `MRB_USE_C_STACK_CHECK`): `mrb->c_stack_limit`,
+  set by the host with `mrb_c_stack_limit_set()`, NULL for no check; a
+  floor, or a ceiling with `MRB_C_STACK_GROWS_UP`.
+  Checked in `cipush` from the address of a local, so it bounds nesting
+  through C (a block called from a C method, a C method that recurses) that
+  the call depth alone does not bound in bytes. A C function that recurses
+  without entering the VM calls `mrb_c_stack_check()` itself.
 
-Exceeding either limit raises `SystemStackError`.
+Exceeding any of these limits raises `SystemStackError`.
 
 When the value stack is reallocated, all `REnv` objects and
 `mrb_callinfo` stack pointers are adjusted by the delta
