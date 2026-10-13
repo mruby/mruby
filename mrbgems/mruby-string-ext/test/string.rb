@@ -716,6 +716,14 @@ assert('String#oct') do
   assert_equal 8, "1_0".oct
   assert_equal 8, "010".oct
   assert_equal (-8), "-10".oct
+  assert_equal 8, "0o10".oct
+  assert_equal 31, "0x1f".oct
+  assert_equal 31, "0X1F".oct
+  assert_equal 5, "0b101".oct
+  assert_equal 19, "0d19".oct
+  assert_equal (-31), "-0x1f".oct
+  assert_equal 1, "0b12".oct
+  assert_equal 0, "089".oct
 end
 
 assert('String#lines') do
