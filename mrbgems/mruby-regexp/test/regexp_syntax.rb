@@ -3552,14 +3552,14 @@ assert("Regexp - the escapes this engine does not carry are refused") do
   # Each means something in CRuby that this engine does not do, and as an
   # unknown escape each was simply its own letter: /\R/ matched an R rather
   # than a newline.
-  assert_raise_with_message(RegexpError, "\\G is not supported: /\\G/") { Regexp.new("\\G") }
   assert_raise_with_message(RegexpError, "\\K is not supported: /a\\Kb/") { Regexp.new("a\\Kb") }
-  ["\\R", "\\X", "x\\G", "\\K"].each do |src|
+  ["\\R", "\\X", "x\\X", "\\K"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 
   # Inside a character class CRuby reads them as the letter, and so does this
   assert_equal "G", "G"[/[\G]/]
+  assert_equal "K", "K"[/[\K]/]
   assert_equal "R", "R"[/[\R]/]
   assert_equal "X", "X"[/[\X]/]
   assert_equal "g", "g"[/[\g]/]
@@ -3823,4 +3823,17 @@ assert("Regexp - a set cannot be an end of a range in a class") do
   assert_equal 11, members.call("[\\d-]")
   assert_equal 10, members.call("[\\d]")
   assert_equal 26, members.call("[a-z]")
+end
+
+assert("Regexp - \\G anchors where the search started") do
+  assert_equal ["foo", "foo"], "foofoo bar".scan(/\Gfoo/)
+  assert_equal "XX xfoo", "foofoo xfoo".gsub(/\Gfoo/, "X")
+  assert_equal "A1B2", "a1b2".gsub(/\G[a-z]\d/) { |m| m.upcase }
+  assert_equal ["a,", "b,", ",", "c", ""], "a,b,,c".scan(/\G[^,]*,?/)
+  assert_equal ["a", "a"], "aaXa".scan(/\Ga/)
+  assert_nil "xfoo" =~ /\Gfoo/
+  assert_equal 0, "foo" =~ /\Gfoo/
+  assert_equal 1, /\Gfoo/.match("xfoo", 1).begin(0)
+  assert_equal 1, "xfoo".index(/\Gfoo/, 1)
+  assert_equal 1, "ab" =~ /(?<=\Ga)b/
 end

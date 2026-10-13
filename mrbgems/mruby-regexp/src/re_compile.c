@@ -2523,7 +2523,7 @@ fixed_len_walk(re_compiler *c, uint32_t start, uint32_t end, int *chars_out,
     case RE_SAVE:
       pc++;
       break;  /* zero-width */
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL: case RE_GPOS:
     case RE_WBOUND: case RE_NWBOUND:
       pc++;
       break;  /* zero-width assertions */
@@ -3935,14 +3935,22 @@ compile_atom(re_compiler *c)
         c->needs_backtrack = TRUE;  /* the Pike VM has no call stack */
       }
     }
-    else if (ch == 'G' || ch == 'K' || ch == 'R' || ch == 'X') {
+    else if (ch == 'G') {
+      /* \G, the position the search started from: the string start for a
+         plain match, the end of the previous match for a scan or gsub step.
+         Only the backtracking engine keeps that position. */
+      next_char(c);
+      emit(c, RE_GPOS, 0, 0);
+      c->needs_backtrack = TRUE;
+    }
+    else if (ch == 'K' || ch == 'R' || ch == 'X') {
       /* Each of these means something in CRuby that this engine does not do:
-         `\G` anchors at where the search began, `\K` drops what was matched
-         before it, `\R` is any linebreak and `\X` is a whole grapheme
-         cluster. Left to the fall-through each was simply its own letter, so
-         /\R/ matched an R rather than a newline. Inside a character class
-         CRuby reads them as the letter too, which is what the class parser
-         already does, so only the escape outside one is refused here. */
+         `\K` drops what was matched before it, `\R` is any linebreak and
+         `\X` is a whole grapheme cluster. Left to the fall-through each was
+         simply its own letter, so /\R/ matched an R rather than a newline.
+         Inside a character class CRuby reads them as the letter too, which is
+         what the class parser already does, so only the escape outside one is
+         refused here. */
       compile_error_str(c, mrb_format(c->mrb, "\\\\%c is not supported", (char)ch));
     }
     else if ((ch == 'p' || ch == 'P') && c->p + 1 < c->src_end && c->p[1] == '{') {
@@ -4076,7 +4084,7 @@ idempotent_assertion(const re_inst *code, uint32_t start, uint32_t end)
 {
   if (end == start + 1) {
     switch (code[start].op) {
-    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+    case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL: case RE_GPOS:
     case RE_WBOUND: case RE_NWBOUND:
       return TRUE;
     default:
@@ -4968,7 +4976,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
       seen[pc] = 1;
       switch (code[pc].op) {
       case RE_SAVE:
-      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL:
+      case RE_BOL: case RE_EOL: case RE_BOT: case RE_EOT: case RE_EOTNL: case RE_GPOS:
       case RE_WBOUND: case RE_NWBOUND:
       case RE_ATOMIC: case RE_ATOMIC_END:
         pc++;

@@ -145,11 +145,14 @@ enum re_opcode {
                         either takes an end and jumps to `offset`, or runs
                         the body once at the position it stands at and goes
                         on to the next position. */
-  RE_ABSENT_END      /* end of the absent's body, reached where the body
+  RE_ABSENT_END,     /* end of the absent's body, reached where the body
                         matched: the match is not the absent's, it is what
                         says the absent may not reach past it, so the round
                         records how far the absent may still reach and the
                         scan goes on at the next position. */
+  RE_GPOS            /* \G, assert the position this search started from,
+                        which the backtracking engine keeps as
+                        bt_state::gpos; the pattern needs that engine */
 };
 
 /* RE_LOOK_END::a. The polarity says what a matched sub-pattern means. The

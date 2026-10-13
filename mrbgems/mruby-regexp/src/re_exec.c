@@ -1152,6 +1152,7 @@ typedef struct {
   int pass;
   int pass_seq;
   mrb_bool binary;
+  const char *gpos;   /* where this search started, for \G (RE_GPOS) */
   /* The choice points not yet tried and the writes not yet taken back, both
      grown lazily on the heap. A search starts with neither allocated and
      pays only for the kind of state it holds: a fork is a choice point, a
@@ -1491,6 +1492,12 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
 
     case RE_BOT:
       if (sp != str) goto fail;
+      pc++;
+      break;
+
+    case RE_GPOS:
+      /* \G, only the position this search started from */
+      if (sp != m->gpos) goto fail;
       pc++;
       break;
 
@@ -1937,6 +1944,7 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   m.pass = 0;
   m.pass_seq = 0;
   m.binary = binary;
+  m.gpos = str + start;   /* \G */
   m.cp = NULL;
   m.cp_top = m.cp_capa = 0;
   m.undo = NULL;
