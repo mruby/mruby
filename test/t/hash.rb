@@ -691,6 +691,16 @@ assert('Hash#merge', '15.2.13.4.22') do
   end
 end
 
+assert('Hash#merge with a block and several hashes') do
+  # the block sees the value merged so far, not only the receiver's
+  assert_equal({a: 6}, {a: 1}.merge({a: 2}, {a: 3}) {|k, v1, v2| v1 + v2})
+  assert_equal({a: 1, b: 5}, {a: 1}.merge({b: 2}, {b: 3}) {|k, v1, v2| v1 + v2})
+  h = {foo: 0, bar: 1, baz: 2}
+  assert_equal({foo: 0, bar: 5, baz: 2, bat: 9, bam: 5},
+               h.merge({bat: 3, bar: 4}, {bam: 5, bat: 6}) {|k, v1, v2| v1 + v2})
+  assert_equal({foo: 0, bar: 1, baz: 2}, h)
+end
+
 assert("Hash#replace", "15.2.13.4.23") do
   cls = Class.new(Hash){attr_accessor :foo}
   e = [ar_entries, ht_entries]
