@@ -1700,6 +1700,54 @@ mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num)
   return TRUE;
 }
 
+/* What is left of `x` once a shift moves every bit out: 0, or -1 for a
+   negative number */
+static mrb_value
+int_shifted_out(mrb_state *mrb, mrb_value x)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_fixnum_value(mrb_bint_sign(mrb, x) < 0 ? -1 : 0);
+  }
+#endif
+  return mrb_fixnum_value(mrb_integer(x) < 0 ? -1 : 0);
+}
+
+/* Whether every bit of `x` lies below bit MRB_INT_MAX, so that shifting it
+   by a count no mrb_int holds moves all of them out */
+static mrb_bool
+int_narrower_than_count(mrb_state *mrb, mrb_value x)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_bytes_size(mrb, x) <= MRB_INT_MAX / 8;
+  }
+#endif
+  return TRUE;
+}
+
+static mrb_bool
+int_zero_p(mrb_state *mrb, mrb_value x)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) return mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) == 0;
+#endif
+  return mrb_integer(x) == 0;
+}
+
+/* 1 for a shift count above every mrb_int, -1 for one below, 0 otherwise */
+static int
+int_count_overflow(mrb_state *mrb, mrb_value w)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(w)) {
+    if (mrb_bint_cmp(mrb, w, mrb_int_value(mrb, MRB_INT_MAX)) > 0) return 1;
+    if (mrb_bint_cmp(mrb, w, mrb_int_value(mrb, MRB_INT_MIN)) < 0) return -1;
+  }
+#endif
+  return 0;
+}
+
 /* 15.2.8.3.12 */
 /*
  * call-seq:
@@ -1712,12 +1760,21 @@ static mrb_value
 int_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
+  mrb_value w = mrb_get_arg1(mrb);
+  int over = int_count_overflow(mrb, w);
 
-  width = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  if (over != 0 && int_zero_p(mrb, x)) return mrb_fixnum_value(0);
+  if (over < 0 && int_narrower_than_count(mrb, x)) {
+    return int_shifted_out(mrb, x);
+  }
+  width = mrb_as_int(mrb, w);
   if (width == 0) {
     return x;
   }
-  if (width == MRB_INT_MIN) mrb_int_overflow(mrb, "bit shift");
+  if (width == MRB_INT_MIN) {
+    if (int_narrower_than_count(mrb, x)) return int_shifted_out(mrb, x);
+    mrb_int_overflow(mrb, "bit shift");
+  }
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     return mrb_bint_lshift(mrb, x, width);
@@ -1747,8 +1804,14 @@ static mrb_value
 int_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
+  mrb_value w = mrb_get_arg1(mrb);
+  int over = int_count_overflow(mrb, w);
 
-  width = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  if (over != 0 && int_zero_p(mrb, x)) return mrb_fixnum_value(0);
+  if (over > 0 && int_narrower_than_count(mrb, x)) {
+    return int_shifted_out(mrb, x);
+  }
+  width = mrb_as_int(mrb, w);
   if (width == 0) {
     return x;
   }
