@@ -1831,13 +1831,15 @@ MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
 #ifdef MRB_USE_C_STACK_CHECK
 /**
  * Sets the address the machine (C) stack may not pass while the VM runs.
- * The VM checks it on every call: a call that finds the stack past the
- * limit raises SystemStackError ("stack level too deep"), as a call past
- * MRB_CALL_LEVEL_MAX does, instead of running off the stack. Ruby
- * recursion lives on the VM's own stack and never reaches the limit; what
- * reaches it is nesting through C, such as a block called from a C method
- * that calls a block from a C method again, or a C method that recurses
- * itself. Those are the paths that overrun a small fixed stack on an MCU.
+ * The VM checks it where C enters it (mrb_funcall, mrb_yield and their
+ * kin, and mrb_vm_run): an entry that finds the stack past the limit
+ * raises SystemStackError ("stack level too deep"), as a call past
+ * MRB_CALL_LEVEL_MAX does, instead of running off the stack. A send from
+ * Ruby to Ruby runs in the same VM loop and is not checked: it grows no
+ * machine stack. What reaches the limit is nesting through C, such as a
+ * block called from a C method that calls a block from a C method again,
+ * or a C method that recurses itself. Those are the paths that overrun a
+ * small fixed stack on an MCU.
  *
  * Built only with MRB_USE_C_STACK_CHECK; without it the check and this
  * function compile to nothing. NULL, the default, turns the check off.

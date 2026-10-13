@@ -76,10 +76,12 @@ end
 
 `MRB_USE_C_STACK_CHECK`
 
-- Compiles a check of the machine (C) stack into every call.
-- The host sets the floor with `mrb_c_stack_limit_set(mrb, limit)`; a call
-  that finds the stack below it raises `SystemStackError` instead of running
-  off the stack. NULL (the default) turns the check off at run time.
+- Compiles a check of the machine (C) stack into the paths where C enters
+  the VM (`mrb_funcall`, `mrb_yield` and their kin, `mrb_vm_run`); a send
+  from Ruby to Ruby is not checked, as it grows no machine stack.
+- The host sets the floor with `mrb_c_stack_limit_set(mrb, limit)`; an
+  entry that finds the stack below it raises `SystemStackError` instead of
+  running off the stack. NULL (the default) turns the check off at run time.
 - For a target with a small fixed stack, where a block called from a C
   method, or a C method that recurses, nests the VM on the machine stack.
 - Without this macro `mrb_c_stack_limit_set` and `mrb_c_stack_check` are

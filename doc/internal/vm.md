@@ -51,10 +51,12 @@ has its own `mrb_context`.
 - Machine stack limit (with `MRB_USE_C_STACK_CHECK`): `mrb->c_stack_limit`,
   set by the host with `mrb_c_stack_limit_set()`, NULL for no check; a
   floor, or a ceiling with `MRB_C_STACK_GROWS_UP`.
-  Checked in `cipush` from the address of a local, so it bounds nesting
-  through C (a block called from a C method, a C method that recurses) that
-  the call depth alone does not bound in bytes. A C function that recurses
-  without entering the VM calls `mrb_c_stack_check()` itself.
+  Checked where C enters the VM (`mrb_funcall_with_block`, `yield_with_attr`,
+  `mrb_vm_run`) from the address of a local, so it bounds nesting through C
+  (a block called from a C method, a C method that recurses) that the call
+  depth alone does not bound in bytes; a send from Ruby to Ruby stays in
+  the VM loop and is not checked. A C function that recurses without
+  entering the VM calls `mrb_c_stack_check()` itself.
 
 Exceeding any of these limits raises `SystemStackError`.
 
