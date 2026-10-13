@@ -485,9 +485,20 @@ static struct mrb_time*
 time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone timezone)
 {
   time_t tsec, tusec; /* Variables to hold converted seconds and microseconds */
-  time_t nsec;
+  time_t nsec, frac_nsec = 0;
 
   tsec = mrb_to_time_t(mrb, sec, &tusec);
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(usec)) {
+    /* Keep the fraction of a microsecond as nanoseconds, as CRuby does;
+       rounding it carried 999999.9 into the next second */
+    mrb_float f = mrb_float(usec);
+    mrb_float whole = floor(f);
+    tusec += mrb_to_time_t(mrb, mrb_float_value(mrb, whole), NULL);
+    frac_nsec = (time_t)trunc((f - whole) * 1000.0);
+  }
+  else
+#endif
   tusec += mrb_to_time_t(mrb, usec, NULL);
 
   /* Normalize microseconds to avoid overflow when converting to nanoseconds */
@@ -497,7 +508,7 @@ time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone time
     tsec += sec_adjustment;
   }
 
-  nsec = tusec * NSECS_PER_USEC;
+  nsec = tusec * NSECS_PER_USEC + frac_nsec;
   return time_alloc_time(mrb, tsec, nsec, timezone);
 }
 

@@ -21,6 +21,18 @@ assert('Time.at', '15.2.19.6.1') do
   assert_raise(FloatDomainError) { Time.at(0, -Float::INFINITY) }
 end
 
+assert('Time.at with a fractional microsecond argument') do
+  skip unless Object.const_defined?(:Float)
+  t = Time.at(1, 999999.9)
+  assert_equal 1, t.to_i
+  assert_equal 999999, t.usec
+  assert_equal 999999900, t.nsec
+  assert_equal 500, Time.at(1, 0.5).nsec
+  assert_equal 1500, Time.at(1, 1.5).nsec
+  assert_equal 0, Time.at(1, -0.5).to_i
+  assert_equal 999999500, Time.at(1, -0.5).nsec
+end
+
 assert('Time.gm', '15.2.19.6.2') do
   t = Time.gm(2012, 9, 23)
   assert_operator(2012, :eql?, t.year)
