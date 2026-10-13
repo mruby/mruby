@@ -148,7 +148,7 @@ class Hash
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
       other.each_key {|k|
-        h[k] = (self.has_key?(k))? yield(k, self[k], other[k]): other[k]
+        h[k] = (h.has_key?(k))? yield(k, h[k], other[k]): other[k]
       }
     end
     h
