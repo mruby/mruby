@@ -26,7 +26,7 @@ assert('Integer#div with a Float') do
   assert_equal 0, 7.div(Float::INFINITY)
   assert_raise(ZeroDivisionError) { 7.div(0.0) }
   begin
-    assert_equal 472236648286964547584, (2**70).div(2.5)
+    assert_equal 4722366482869645213696, (2**70).div(0.25)
   rescue RangeError
     skip
   end
