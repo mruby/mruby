@@ -298,6 +298,18 @@ assert 'Bigint divmod' do
   assert_equal [0, 18446744073709551616], (n / 2).divmod(n)
 end
 
+assert 'Float#divmod with a quotient past fixnum' do
+  skip unless Object.const_defined?(:Float)
+  q, r = (2.0**65).divmod(3.0)
+  assert_kind_of Integer, q
+  assert_equal (2.0**65 / 3.0).floor, q
+  assert_equal 2.0, r
+  q, r = (2**65).divmod(3.0)
+  assert_kind_of Integer, q
+  assert_equal 2.0, r
+  assert_raise(FloatDomainError) { Float::INFINITY.divmod(2.0) }
+end
+
 assert 'Bigint &' do
   n = 1<<65
   assert_equal 0, n & 0
