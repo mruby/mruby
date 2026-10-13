@@ -726,11 +726,12 @@ str_hex(mrb_state *mrb, mrb_value self)
   return mrb_str_to_integer(mrb, self, 16, FALSE);
 }
 
-/* Internal helper for String#oct - converts octal string to integer */
+/* Internal helper for String#oct - converts octal string to integer; a
+   negative base honors a 0b, 0o, 0d or 0x prefix, as CRuby's oct does */
 static mrb_value
 str_oct(mrb_state *mrb, mrb_value self)
 {
-  return mrb_str_to_integer(mrb, self, 8, FALSE);
+  return mrb_str_to_integer(mrb, self, -8, FALSE);
 }
 
 /*

@@ -609,7 +609,7 @@ Example:
 
 ### `String#oct`
 
-Treats leading characters of `str` as a string of octal digits (with an optional sign) and returns the corresponding number.
+Treats leading characters of `str` as a string of octal digits (with an optional sign) and returns the corresponding number. A `0b`, `0o`, `0d` or `0x` prefix selects base 2, 8, 10 or 16 instead.
 
 ```ruby
 str.oct   #=> integer
@@ -623,7 +623,9 @@ Example:
 "-10".oct     #=> -8
 "077".oct     #=> 63
 "hello".oct   #=> 0 (if no valid octal digits at start)
-"0o10".oct    #=> 8 (common prefix, depends on MRuby version)
+"0o10".oct    #=> 8
+"0x1f".oct    #=> 31
+"0b101".oct   #=> 5
 ```
 
 ### `String#chr` (on String instances)
