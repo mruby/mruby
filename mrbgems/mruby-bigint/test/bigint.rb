@@ -255,6 +255,14 @@ assert 'Bigint mod' do
   assert_equal 18446744073709551616, (n / 2) % n
 end
 
+assert 'Integer#div by a Bigint' do
+  n = 1<<65
+  assert_equal 0, 7.div(n)
+  assert_equal(-1, (-7).div(n))
+  assert_equal(-1, 7.div(-n))
+  assert_equal 0, 0.div(n)
+end
+
 assert 'Bigint divmod' do
   n = 1<<65
   assert_equal [37004501652376231, 925], n.divmod(997)
