@@ -258,6 +258,9 @@ typedef struct mrb_regexp_pattern {
   re_named_capture *named_captures;
   char *named_arena;       /* owned storage for named_captures[i].name; NULL if num_named == 0 */
   uint16_t num_named;
+  uint16_t keep_slot;      /* the even capture slot past the groups
+                              where a \K records its position, or 0 for a
+                              pattern with no \K; see keep_apply() */
   mrb_bool has_backref;    /* true if pattern uses \1-\9 */
   mrb_bool needs_backtrack; /* true if pattern needs backtracking engine */
   uint8_t *prefix;         /* literal prefix bytes for fast skip (or NULL) */

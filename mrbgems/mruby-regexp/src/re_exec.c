@@ -644,6 +644,21 @@ leave:
   s->pend_top = 0;
 }
 
+/* a pattern with a \K reports its match from where the \K last
+   stood, so group 0 takes that start, and the start of the attempt itself,
+   which `=~` answers and a search anchored at a position tests, goes into
+   the \K's own pair in exchange: re_exec_attempt() reads it there. A \K
+   the match never passed leaves group 0 where the attempt began. */
+static void
+keep_apply(const mrb_regexp_pattern *pat, int *caps)
+{
+  int k = pat->keep_slot;
+  if (!k) return;
+  int attempt = caps[0];
+  if (caps[k] >= 0) caps[0] = caps[k];
+  caps[k] = attempt;
+}
+
 static int
 pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         const char *str, mrb_int len, mrb_int start, mrb_int start_limit,
@@ -657,6 +672,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (pat->anchor == RE_ANCHOR_BOT) start_cap = str;
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
+  int nvis = ncap;  /* the slots the caller is answered; a \K's pair is past them */
+  if (pat->keep_slot) ncap += 2;
 
   int list_capa = RE_LIST_CAPA(pat->code_len, pat->loop_depth);
 
@@ -947,10 +964,11 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   }
   else if (s.matched) {
     if (captures && s.result_caps) {
+      keep_apply(pat, s.result_caps);
       int copy = ncap < captures_size ? ncap : captures_size;
       memcpy(captures, s.result_caps, sizeof(int) * copy);
     }
-    ret = ncap > 0 ? ncap : 1;
+    ret = nvis;
   }
 
   if (use_cache) {
@@ -1914,6 +1932,8 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (pat->anchor == RE_ANCHOR_BOT) start_cap = str;
   int ncap = pat->num_captures * 2;
   if (ncap == 0) ncap = 2;
+  int nvis = ncap;  /* the slots the caller is answered; a \K's pair is past them */
+  if (pat->keep_slot) ncap += 2;
 
   /* One block: the capture slots, then an entry record per pc and the pass
      that wrote it. The arrays are filled once here and put back to what they
@@ -1993,10 +2013,11 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     int r = bt_match(&m, sp, 0);
     if (r == BT_MATCH) {
       if (captures) {
+        keep_apply(pat, caps);
         int copy = ncap < captures_size ? ncap : captures_size;
         memcpy(captures, caps, sizeof(int) * copy);
       }
-      ret = ncap > 0 ? ncap : 1;
+      ret = nvis;
       break;
     }
     if (r == BT_NOMEM) {
@@ -2121,7 +2142,18 @@ mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (limit > len) limit = len;
   if (limit < 0) return 0;
 
-  int last[RE_MAX_CAPTURES * 2];
+  /* With a \K the search runs into a buffer that also holds its pair, where
+     keep_apply() leaves the start of the attempt: that is the position the
+     walk below steps from, group 0 having moved to where the \K stood. */
+  int full[RE_MAX_CAPTURES * 2 + 2];
+  int last[RE_MAX_CAPTURES * 2 + 2];
+  int *user = captures;
+  int user_size = captures_size;
+  if (pat->keep_slot) {
+    captures = full;
+    captures_size = pat->keep_slot + 2;
+  }
+  int at = pat->keep_slot;  /* the slot holding the attempt's start */
   int last_n = 0;
 
   for (mrb_int k = 1; ; k *= 2) {
@@ -2156,7 +2188,7 @@ mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
      start at, and the engine steps over one rather than seed an attempt
      there, so `+ 1` reaches the next character by itself. */
   memcpy(last, captures, sizeof(int) * captures_size);
-  mrb_int pos = captures[0] + 1;
+  mrb_int pos = captures[at] + 1;
   while (pos <= limit) {
     memset(captures, -1, sizeof(int) * captures_size);
     int n = exec_range(mrb, pat, str, len, pos, limit, captures, captures_size, binary);
@@ -2164,8 +2196,8 @@ mrb_re_rexec(mrb_state *mrb, const mrb_regexp_pattern *pat,
     if (n < 0) return n;
     last_n = n;
     memcpy(last, captures, sizeof(int) * captures_size);
-    pos = captures[0] + 1;
+    pos = captures[at] + 1;
   }
-  memcpy(captures, last, sizeof(int) * captures_size);
+  memcpy(user, last, sizeof(int) * user_size);
   return last_n;
 }

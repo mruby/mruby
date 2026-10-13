@@ -81,6 +81,9 @@ typedef struct {
   mrb_value regexp;        /* Regexp object (for named captures) */
   int *captures;           /* capture positions [start0,end0,start1,end1,...] */
   int num_captures;        /* number of capture groups (including 0) */
+  int attempt;             /* where the attempt that matched began: group 0's
+                              start, unless a \K moved that later; `=~` and
+                              `start_with?` answer from it */
 } mrb_match_data;
 
 static void matchdata_free(mrb_state *mrb, void *ptr) {
@@ -444,6 +447,7 @@ create_matchdata(mrb_state *mrb, mrb_value regexp, mrb_value str, int *captures,
   md->num_captures = ncap / 2;
   md->captures = (int*)(md + 1);
   memcpy(md->captures, captures, sizeof(int) * ncap);
+  md->attempt = captures[0];
   /* Keep `source` and `regexp` GC-reachable via instance variables.
    * The mrb_values are also held in mrb_match_data, but C-allocated
    * structs are not scanned by the GC. */
@@ -498,10 +502,13 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos,
   mrb_bool binary = re_search_binary(mrb, self, str, unread, &pat);
 
   int cap_size = pat->num_captures * 2;
-  int captures[RE_MAX_CAPTURES * 2];
-  memset(captures, -1, sizeof(int) * cap_size);
+  /* A \K's pair follows the groups, and the engine leaves the start of the
+     attempt there (keep_apply()), so the search runs into room for it. */
+  int exec_size = pat->keep_slot ? pat->keep_slot + 2 : cap_size;
+  int captures[RE_MAX_CAPTURES * 2 + 2];
+  memset(captures, -1, sizeof(int) * exec_size);
   int ncap = mrb_re_exec(mrb, pat, RSTRING_PTR(str), RSTRING_LEN(str), pos,
-                     captures, cap_size, binary);
+                     captures, exec_size, binary);
   re_check_exec_error(mrb, ncap);
 
   if (ncap == 0) {
@@ -511,7 +518,12 @@ exec_match(mrb_state *mrb, mrb_value self, mrb_value str, mrb_int pos,
   /* `literal` says the caller quoted a String pattern into `self` to have
      something to search with. Such a match carries no Regexp in CRuby until
      MatchData#regexp builds one, so the quoted one is not recorded here. */
-  return create_matchdata(mrb, literal ? mrb_nil_value() : self, str, captures, cap_size);
+  mrb_value md = create_matchdata(mrb, literal ? mrb_nil_value() : self, str, captures, cap_size);
+  if (pat->keep_slot) {
+    mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
+    m->attempt = captures[pat->keep_slot];
+  }
+  return md;
 }
 
 /*
@@ -654,7 +666,7 @@ regexp_match_op(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(md)) return mrb_nil_value();
 
   mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
-  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+  return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->attempt));
 }
 
 /*
@@ -2656,7 +2668,7 @@ str_match_op_common(mrb_state *mrb, mrb_value str)
     mrb_value md = re_search(mrb, re, str, 0, FALSE);
     if (mrb_nil_p(md)) return mrb_nil_value();
     mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
-    return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->captures[0]));
+    return mrb_int_value(mrb, re_byte_to_char(mrb, m->source, m->attempt));
   }
   return mrb_funcall_argv(mrb, re, MRB_OPSYM(match), 1, &str);
 }
@@ -3444,7 +3456,7 @@ str_start_with_p(mrb_state *mrb, mrb_value self)
       mrb_value md = re_search(mrb, arg, self, 0, FALSE);
       if (!mrb_nil_p(md)) {
         mrb_match_data *m = DATA_GET_PTR(mrb, md, &matchdata_type, mrb_match_data);
-        if (m->captures[0] == 0) return mrb_true_value();
+        if (m->attempt == 0) return mrb_true_value();
         /* A match further along is not an answer and CRuby leaves none
            behind for one, so clear what the search published. */
         clear_match_globals(mrb);

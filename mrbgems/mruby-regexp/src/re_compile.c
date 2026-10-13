@@ -214,6 +214,8 @@ typedef struct {
   uint32_t alt_from;        /* code index of the alternation's first SPLIT */
   uint32_t alt_to;          /* code index just past its last branch */
   mrb_bool has_call;        /* a \g call was emitted: resolve_calls() runs */
+  mrb_bool has_keep;        /* a \K was emitted, as an RE_SAVE to
+                               RE_KEEP_PENDING until the groups are counted */
   mrb_value pending_calls;  /* the \g references the parse could not resolve,
                                as re_pending_call records in a String the GC
                                arena keeps for the compile; nil until the
@@ -259,6 +261,10 @@ compile_error(re_compiler *c, const char *msg)
    stops matching text it describes. The check sits in emit(), the one place
    code_len grows, so it covers every producer including insert_inst(). */
 #define RE_MAX_CODE_LEN 0xffff
+
+/* The slot a \K's RE_SAVE carries until the groups are counted and its own
+   pair is known; no group's slot is this high (RE_MAX_CAPTURES). */
+#define RE_KEEP_PENDING 0xffff
 
 static uint32_t
 emit(re_compiler *c, uint8_t op, uint8_t a, uint16_t offset)
@@ -3943,14 +3949,30 @@ compile_atom(re_compiler *c)
       emit(c, RE_GPOS, 0, 0);
       c->needs_backtrack = TRUE;
     }
-    else if (ch == 'K' || ch == 'R' || ch == 'X') {
+    else if (ch == 'K') {
+      /* \K, keep: what was matched before it stays out of the match, so $&
+         and group 0 begin where it stood and the pre-match takes the rest.
+         It records its position in a pair of slots past the groups, which a
+         backtrack past it puts back as it does any capture; keep_apply()
+         moves the position into group 0 once the match is made. Inside a
+         lookaround CRuby's reading of it is not one this follows, so it is
+         refused there. */
+      for (uint32_t i = 0; i < c->level_count; i++) {
+        uint8_t k = c->levels[i].kind;
+        if (k == RE_LEVEL_LOOKAHEAD || k == RE_LEVEL_LOOKBEHIND || k == RE_LEVEL_ABSENT)
+          compile_error(c, "\\K inside a look-around or an absent operator is not supported");
+      }
+      next_char(c);
+      emit(c, RE_SAVE, 0, RE_KEEP_PENDING);
+      c->has_keep = TRUE;
+    }
+    else if (ch == 'R' || ch == 'X') {
       /* Each of these means something in CRuby that this engine does not do:
-         `\K` drops what was matched before it, `\R` is any linebreak and
-         `\X` is a whole grapheme cluster. Left to the fall-through each was
-         simply its own letter, so /\R/ matched an R rather than a newline.
-         Inside a character class CRuby reads them as the letter too, which is
-         what the class parser already does, so only the escape outside one is
-         refused here. */
+         `\R` is any linebreak and `\X` is a whole grapheme cluster. Left to
+         the fall-through each was simply its own letter, so /\R/ matched an
+         R rather than a newline. Inside a character class CRuby reads them
+         as the letter too, which is what the class parser already does, so
+         only the escape outside one is refused here. */
       compile_error_str(c, mrb_format(c->mrb, "\\\\%c is not supported", (char)ch));
     }
     else if ((ch == 'p' || ch == 'P') && c->p + 1 < c->src_end && c->p[1] == '{') {
@@ -5691,6 +5713,21 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
      references a pattern accepts. */
   if (c.max_backref > c.num_groups) {
     compile_error(&c, "invalid backref number/name");
+  }
+
+  /* \K: its slots are the pair after the last group, known only now that
+     every group is counted (at most RE_MAX_CAPTURES, so the pair still fits
+     the array re_exec_attempt() searches into); a quantifier that copied
+     one copied the placeholder too. A group a \g call runs again may hold the \K, and
+     whether its position then counts is CRuby's question this does not
+     answer, so the two are not taken together. */
+  if (c.has_keep) {
+    if (c.has_call) compile_error(&c, "\\K in a pattern that calls a group (\\g) is not supported");
+    for (uint32_t i = 0; i < c.code_len; i++) {
+      if (pat->code[i].op == RE_SAVE && pat->code[i].offset == RE_KEEP_PENDING)
+        pat->code[i].offset = (uint16_t)(c.num_captures * 2);
+    }
+    pat->keep_slot = (uint16_t)(c.num_captures * 2);
   }
 
   /* group 0 end */

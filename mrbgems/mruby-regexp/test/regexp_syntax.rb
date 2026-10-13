@@ -3552,8 +3552,13 @@ assert("Regexp - the escapes this engine does not carry are refused") do
   # Each means something in CRuby that this engine does not do, and as an
   # unknown escape each was simply its own letter: /\R/ matched an R rather
   # than a newline.
-  assert_raise_with_message(RegexpError, "\\K is not supported: /a\\Kb/") { Regexp.new("a\\Kb") }
-  ["\\R", "\\X", "x\\X", "\\K"].each do |src|
+  assert_raise_with_message(RegexpError, "\\R is not supported: /\\R/") { Regexp.new("\\R") }
+  ["\\R", "\\X", "x\\X"].each do |src|
+    assert_raise(RegexpError, src) { Regexp.new(src) }
+  end
+  # \K is carried, but not inside a lookaround or an absent operator, nor
+  # with a \g call
+  ["(?=a\\K)", "(?<=a\\K)b", "(?~a\\K)", "(?<x>a)\\K\\g<x>"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
 
@@ -3836,4 +3841,39 @@ assert("Regexp - \\G anchors where the search started") do
   assert_equal 1, /\Gfoo/.match("xfoo", 1).begin(0)
   assert_equal 1, "xfoo".index(/\Gfoo/, 1)
   assert_equal 1, "ab" =~ /(?<=\Ga)b/
+end
+
+assert("Regexp - \\K keeps what came before it out of the match") do
+  s = "foobar foobaz"
+  r = /foo\Kba./
+  # =~ answers where the attempt began, the match itself where \K stood
+  assert_equal 0, s =~ r
+  assert_equal "bar", $~[0]
+  assert_equal [3, 6], $~.offset(0)
+  assert_equal "foo", $~.pre_match
+  assert_equal 0, r =~ s
+  assert_equal 2, :foobar =~ /o\Kb/
+  assert_equal 1, "xab" =~ /(?:a\K|x)b/
+  assert_equal "bar", s[r]
+  assert_equal "fooX foobaz", s.sub(r, "X")
+  assert_equal "fooX fooX", s.gsub(r, "X")
+  assert_equal ["bar", "baz"], s.scan(r)
+  assert_equal ["foo", "ar foo", "az"], s.split(/o\Kb/)
+  assert_equal ["foo", "bar", " foobaz"], s.partition(r)
+  assert_equal ["foobar foo", "baz", ""], s.rpartition(r)
+  assert_equal "Cee", "A::B::Cee"[/::\K[^:]+\z/]
+  assert_equal "a-aa-", "aaa".gsub(/a\K/, "-")
+  assert_equal ["b", "a", "b"], "ab".match(/(a)\K(b)/).to_a
+  assert_equal "b", "aab".match(/a+\Kb/)[0]
+  assert_equal "aXb", "aab".sub(/\Ga\Ka/, "X")
+  # start_with? and the searches tied to a position test the attempt
+  assert_true s.start_with?(r)
+  assert_false "xab".start_with?(/a\Kb/)
+  assert_equal 3, s.index(r)
+  assert_nil "foobar".index(/o\Kb/, 3)
+  assert_equal 10, s.rindex(r)
+  assert_equal 2, "aaab".rindex(/a\Ka/)
+  assert_equal 1, "aaa".rindex(/a\Ka/, 0)
+  assert_equal 4, "abcabc".rindex(/a\Kbc/, 3)
+  assert_equal 3, "abab".byterindex(/a\Kb/)
 end
