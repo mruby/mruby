@@ -114,6 +114,23 @@ test_to_bytes_short(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)len);
 }
 
+/* BigintTest.unnormalized(integer) -> Integer
+ *
+ * Builds a Bignum that holds a value an mrb_int can hold, as C code using
+ * mrb_bint_new_int() can, so that a method reached with it sees a Bignum
+ * where Ruby code would only ever pass a Fixnum.
+ */
+mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
+
+static mrb_value
+test_unnormalized(mrb_state *mrb, mrb_value self)
+{
+  mrb_int i;
+
+  mrb_get_args(mrb, "i", &i);
+  return mrb_bint_new_int(mrb, i);
+}
+
 void
 mrb_mruby_bigint_gem_test(mrb_state *mrb)
 {
@@ -126,5 +143,7 @@ mrb_mruby_bigint_gem_test(mrb_state *mrb)
   mrb_define_module_function(mrb, test, "to_bytes", test_to_bytes, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, test, "from_bytes", test_from_bytes, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, test, "to_bytes_short", test_to_bytes_short,
+                             MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, test, "unnormalized", test_unnormalized,
                              MRB_ARGS_REQ(1));
 }

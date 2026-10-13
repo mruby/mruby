@@ -378,6 +378,10 @@ assert 'A shift by a Bigint count moves every bit out' do
   assert_equal(-1, -5 << -n)
   assert_equal 0, 0 << n
   assert_raise(RangeError) { 5 << n }
+  # a Bignum count that an mrb_int can hold is not wider than one
+  assert_equal 4, 8 << BigintTest.unnormalized(-1)
+  assert_equal 4, 8 >> BigintTest.unnormalized(1)
+  assert_equal 16, 8 << BigintTest.unnormalized(1)
 end
 
 assert 'Bigint to_s' do
