@@ -158,6 +158,25 @@ assert("MatchData#inspect - a match a literal String pattern made") do
   assert_equal '#<MatchData "ab">', $~.inspect
 end
 
+assert("MatchData#==, #eql? and #hash") do
+  a = /(a)(b)?/.match("zab")
+  b = /(a)(b)?/.match("zab")
+  assert_true a == b
+  assert_true a.eql?(b)
+  assert_equal a.hash, b.hash
+  assert_true a == /(a)(b)?/.match("zab", 1)
+  assert_false a == /(a)(b)?/.match("yab")
+  assert_false a == /(a)(b)?/i.match("zab")
+  assert_false a == /(a)(b)/.match("zab")
+  assert_false a == 1
+  assert_true a == a.dup
+  "ab".sub("ab") { }
+  lit = $~
+  "ab".sub(/ab/) { }
+  assert_true lit == $~
+  assert_equal lit.hash, $~.hash
+end
+
 assert("MatchData#dup and #clone carry the match") do
   m = /(a)(?<x>b)?/.match("zab")
   [m.dup, m.clone].each do |d|

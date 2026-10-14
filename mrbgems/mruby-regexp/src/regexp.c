@@ -1631,6 +1631,55 @@ matchdata_regexp(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * MatchData#== / #eql? - the same subject, an equal Regexp and the same
+ * positions, which is what CRuby's match_equal() compares. A literal match
+ * is compared through the Regexp MatchData#regexp builds for it.
+ */
+static mrb_value
+matchdata_eql(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  if (mrb_obj_eq(mrb, self, other)) return mrb_true_value();
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get_id(mrb, MRB_SYM(MatchData)))) {
+    return mrb_false_value();
+  }
+  mrb_match_data *m1 = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  mrb_match_data *m2 = DATA_GET_PTR(mrb, other, &matchdata_type, mrb_match_data);
+  if (!m1 || !m2) return mrb_false_value();
+  if (m1->num_captures != m2->num_captures) return mrb_false_value();
+  if (memcmp(m1->captures, m2->captures, sizeof(int) * m1->num_captures * 2) != 0) {
+    return mrb_false_value();
+  }
+  if (!mrb_str_equal(mrb, m1->source, m2->source)) return mrb_false_value();
+  /* Regexp#== read directly: the same source and the same flags. */
+  mrb_value re1 = matchdata_regexp(mrb, self);
+  mrb_value re2 = matchdata_regexp(mrb, other);
+  if (mrb_obj_eq(mrb, re1, re2)) return mrb_true_value();
+  if (!mrb_str_equal(mrb, re_check_initialized(mrb, re1), re_check_initialized(mrb, re2))) {
+    return mrb_false_value();
+  }
+  return mrb_bool_value(get_iflags(mrb, re1) == get_iflags(mrb, re2));
+}
+
+/*
+ * MatchData#hash - agrees with #eql?
+ */
+static mrb_value
+matchdata_hash(mrb_state *mrb, mrb_value self)
+{
+  mrb_match_data *md = DATA_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
+  if (!md) return mrb_int_value(mrb, 0);
+  uint32_t h = mrb_str_hash(mrb, md->source);
+  for (int i = 0; i < md->num_captures * 2; i++) {
+    h = h * 31 + (uint32_t)md->captures[i];
+  }
+  /* Regexp#hash mixed in: equal Regexps hash alike. */
+  h ^= (uint32_t)mrb_integer(regexp_hash(mrb, matchdata_regexp(mrb, self)));
+  return mrb_int_value(mrb, (mrb_int)h);
+}
+
+/*
  * MatchData#initialize_copy - what dup and clone leave the copy holding
  *
  * The positions live in a block one object owns, so the copy takes its own
@@ -3697,6 +3746,9 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_undef_class_method(mrb, md, "allocate");
 
   mrb_define_method(mrb, md, "initialize_copy", matchdata_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "==", matchdata_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "eql?", matchdata_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, md, "hash", matchdata_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, md, "captures", matchdata_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "to_a", matchdata_to_a, MRB_ARGS_NONE());
