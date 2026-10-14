@@ -81,10 +81,10 @@ module Benchmark
     end
 
     t0 = Process.times
-    r0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    r0 = Benchmark.__clock_ns
     yield
     t1 = Process.times
-    r1 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    r1 = Benchmark.__clock_ns
 
     objects_allocated = nil
     memory_allocated = nil
@@ -101,14 +101,20 @@ module Benchmark
 
     Tms.new(t1.utime - t0.utime, t1.stime - t0.stime,
             t1.cutime - t0.cutime, t1.cstime - t0.cstime,
-            r1 - r0, nil, objects_allocated, memory_allocated)
+            (r1 - r0) / 1e9, nil, objects_allocated, memory_allocated)
   end
 
   # Return only real time as a float
   def self.realtime
-    r0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    r0 = __clock_ns
     yield
-    Process.clock_gettime(Process::CLOCK_MONOTONIC) - r0
+    (__clock_ns - r0) / 1e9
+  end
+
+  # The monotonic clock in integer nanoseconds. Two readings subtracted as
+  # Float lose a short interval to rounding where Float is single precision.
+  def self.__clock_ns
+    Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
   end
 
   # Formatted benchmark with labeled reports
