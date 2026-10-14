@@ -248,9 +248,11 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
  *   File.basename(file_name, [suffix]) -> string
  *
  * Returns the last component of the file name.
+ * If suffix is ".*", removes the last extension.
  *
  *   File.basename("/usr/bin/ruby") #=> "ruby"
  *   File.basename("/usr/bin/ruby.exe", ".exe") #=> "ruby"
+ *   File.basename("/usr/bin/ruby.exe", ".*") #=> "ruby"
  */
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
@@ -262,7 +264,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 
   const char *endp = path + strlen(path);
   if (path == endp) {
-    return mrb_str_new_lit(mrb, ".");
+    return mrb_str_new_lit(mrb, "");
   }
 
 #ifdef _WIN32
@@ -299,10 +301,26 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 
   // Suffix removal (CRuby compatible)
   if (suffix && *suffix) {
-    mrb_int blen = endp - base;
-    mrb_int slen = strlen(suffix);
-    if (blen > slen && memcmp(endp - slen, suffix, slen) == 0) {
-      endp -= slen;
+    if (strcmp(suffix, ".*") == 0) {
+      const char *p = base;
+      // Leading dots are part of the name, not an extension.
+      while (p < endp && *p == '.') {
+        p++;
+      }
+      const char *ext = endp;
+      while (ext > p) {
+        if (*--ext == '.') {
+          endp = ext;
+          break;
+        }
+      }
+    }
+    else {
+      mrb_int blen = endp - base;
+      mrb_int slen = strlen(suffix);
+      if (blen > slen && memcmp(endp - slen, suffix, slen) == 0) {
+        endp -= slen;
+      }
     }
   }
 
