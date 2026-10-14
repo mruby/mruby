@@ -1631,6 +1631,41 @@ matchdata_regexp(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * MatchData#initialize_copy - what dup and clone leave the copy holding
+ *
+ * The positions live in a block one object owns, so the copy takes its own
+ * block with the same contents rather than the original's pointer. Without
+ * this the copy had no data and refused every reader as uninitialized.
+ */
+static mrb_value
+matchdata_init_copy(mrb_state *mrb, mrb_value self)
+{
+  mrb_value orig = mrb_get_arg1(mrb);
+
+  if (mrb_obj_eq(mrb, self, orig)) return self;
+  if (mrb_type(self) != mrb_type(orig) || mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
+  }
+  mrb_match_data *src = DATA_GET_PTR(mrb, orig, &matchdata_type, mrb_match_data);
+  if (!src) {
+    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized MatchData");
+  }
+
+  size_t len = sizeof(int) * src->num_captures * 2;
+  mrb_match_data *md = (mrb_match_data*)mrb_malloc(mrb, sizeof(mrb_match_data) + len);
+  *md = *src;
+  md->captures = (int*)(md + 1);
+  memcpy(md->captures, src->captures, len);
+  if (DATA_PTR(self)) matchdata_free(mrb, DATA_PTR(self));
+  DATA_PTR(self) = md;
+  DATA_TYPE(self) = &matchdata_type;
+  /* The instance variables are what keep the two values reachable. */
+  mrb_iv_set(mrb, self, MRB_SYM(source), md->source);
+  mrb_iv_set(mrb, self, MRB_SYM(regexp), md->regexp);
+  return self;
+}
+
+/*
  * MatchData#to_s - full match string
  */
 static mrb_value
@@ -1650,9 +1685,9 @@ matchdata_to_s(mrb_state *mrb, mrb_value self)
 static mrb_value
 matchdata_inspect(mrb_state *mrb, mrb_value self)
 {
-  /* dup/clone leave the copy without match data. inspect answers rather than
-     raising, as it does on an uninitialized Regexp, and CRuby's answer for a
-     MatchData with no data is the bare class-and-address form. */
+  /* A MatchData without match data answers rather than raising, as an
+     uninitialized Regexp does, and CRuby's answer for one is the bare
+     class-and-address form. */
   mrb_match_data *md = DATA_CHECK_GET_PTR(mrb, self, &matchdata_type, mrb_match_data);
   if (!md) return mrb_any_to_s(mrb, self);
 
@@ -3661,6 +3696,7 @@ mrb_mruby_regexp_gem_init(mrb_state *mrb)
   mrb_undef_class_method(mrb, md, "new");
   mrb_undef_class_method(mrb, md, "allocate");
 
+  mrb_define_method(mrb, md, "initialize_copy", matchdata_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, md, "[]", matchdata_aref, MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, md, "captures", matchdata_captures, MRB_ARGS_NONE());
   mrb_define_method(mrb, md, "to_a", matchdata_to_a, MRB_ARGS_NONE());
