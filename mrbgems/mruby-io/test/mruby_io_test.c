@@ -6,6 +6,7 @@
 #if defined(_WIN32)
 
 #include <winsock.h>
+#include <windows.h>
 #include <io.h>
 #include <fcntl.h>
 #include <direct.h>
@@ -200,14 +201,52 @@ mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
+mrb_io_test_mkdir(mrb_state *mrb, mrb_value klass)
+{
+  const char *utf8_path;
+  char *path;
+  int ret;
+
+  mrb_get_args(mrb, "z", &utf8_path);
+  path = mrb_locale_from_utf8(utf8_path, -1);
+  if (path == NULL) {
+    errno = EINVAL;
+    mrb_sys_fail(mrb, "mkdir");
+  }
+#if defined(_WIN32)
+  ret = _mkdir(path);
+#else
+  ret = mkdir(path, 0700);
+#endif
+  if (ret == -1) {
+    int err = errno;
+    mrb_locale_free(path);
+    errno = err;
+    mrb_sys_fail(mrb, "mkdir");
+  }
+  mrb_locale_free(path);
+  return mrb_true_value();
+}
+
+static mrb_value
 mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
 {
-  const char *cp;
+  const char *utf8_path;
+  char *path;
 
-  mrb_get_args(mrb, "z", &cp);
-  if (rmdir(cp) == -1) {
+  mrb_get_args(mrb, "z", &utf8_path);
+  path = mrb_locale_from_utf8(utf8_path, -1);
+  if (path == NULL) {
+    errno = EINVAL;
     mrb_sys_fail(mrb, "rmdir");
   }
+  if (rmdir(path) == -1) {
+    int err = errno;
+    mrb_locale_free(path);
+    errno = err;
+    mrb_sys_fail(mrb, "rmdir");
+  }
+  mrb_locale_free(path);
   return mrb_true_value();
 }
 
@@ -278,9 +317,15 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
 
   mrb_define_class_method(mrb, io_test, "getwd", mrb_io_test_getwd, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, io_test, "mkdir", mrb_io_test_mkdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "wine?", mrb_io_wine_p, MRB_ARGS_NONE());
+
+#ifdef _WIN32
+  mrb_define_const(mrb, io_test, "WINDOWS_CODEPAGE",
+                   mrb_int_value(mrb, (mrb_int)GetACP()));
+#endif
 
   mrb_define_const(mrb, io_test, "MRB_USE_IO_PREAD_PWRITE", mrb_bool_value(MRB_USE_IO_PREAD_PWRITE_ENABLED));
 

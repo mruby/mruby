@@ -91,6 +91,28 @@ convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
   dst->st_blocks = (dst->st_size + 511) / 512;
 }
 
+/* Test the last path character without mistaking a DBCS trail byte for '\\'. */
+static int
+path_has_trailing_separator(const char *path)
+{
+  const unsigned char *p = (const unsigned char*)path;
+  UINT codepage = GetACP();
+  int trailing_separator = 0;
+
+  while (*p) {
+    if (IsDBCSLeadByteEx(codepage, *p) && p[1] != '\0') {
+      p += 2;
+      trailing_separator = 0;
+    }
+    else {
+      trailing_separator = (*p == '/' || *p == '\\');
+      p++;
+    }
+  }
+
+  return trailing_separator;
+}
+
 /* Convert errno to Windows errno */
 static void
 set_errno_from_win_error(DWORD error)
@@ -128,7 +150,40 @@ mrb_hal_io_stat(mrb_state *mrb, const char *path, mrb_io_stat *st)
   struct _stat64 s;
   (void)mrb;
 
-  if (_stat64(path, &s) == -1) {
+  if (path_has_trailing_separator(path)) {
+    size_t path_len = strlen(path);
+    char *stat_path;
+    int ret;
+    int saved_errno;
+
+    if (path_len > SIZE_MAX - 2) {
+      errno = ENOMEM;
+      return -1;
+    }
+    /* Keep roots and separators intact so the final component is ".". */
+    stat_path = (char*)malloc(path_len + 2);
+    if (stat_path == NULL) {
+      errno = ENOMEM;
+      return -1;
+    }
+    memcpy(stat_path, path, path_len);
+    stat_path[path_len] = '.';
+    stat_path[path_len + 1] = '\0';
+
+    ret = _stat64(stat_path, &s);
+    saved_errno = errno;
+    free(stat_path);
+    errno = saved_errno;
+    if (ret == -1) {
+      return -1;
+    }
+    /* Some CRTs ignore "/." on regular files, so enforce directory semantics. */
+    if ((s.st_mode & _S_IFMT) != _S_IFDIR) {
+      errno = ENOTDIR;
+      return -1;
+    }
+  }
+  else if (_stat64(path, &s) == -1) {
     return -1;
   }
   convert_stat(&s, st);

@@ -36,6 +36,10 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, mrb_io_stat *st, int do_lstat)
   else {
     char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, obj), -1);
     int ret;
+    if (path == NULL) {
+      errno = EINVAL;
+      return -1;
+    }
     if (do_lstat) {
       ret = mrb_hal_io_lstat(mrb, path, st);
     }
