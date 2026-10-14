@@ -169,6 +169,12 @@ Add the line below to your build configuration.
 | File#size                   |          |          |
 | File#truncate               |          |          |
 
+For the `FileTest` predicates backed by `stat`, a trailing slash requires the
+path to name a directory on POSIX-compatible platforms, and a trailing
+backslash has the same effect on Windows. A regular file followed by either
+applicable separator is reported as absent by `File.exist?` and as not a file
+by `File.file?`.
+
 ## Porting Note
 
 If your (non Windows) platform does not support `getpwnam(3)` for some reason, define `MRB_IO_NO_PWNAM`.
