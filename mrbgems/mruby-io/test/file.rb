@@ -36,6 +36,7 @@ assert('File#path', '15.2.21.4.2') do
 end
 
 assert('File.basename') do
+  assert_equal '', File.basename('')
   assert_equal '/', File.basename('//')
   assert_equal 'a', File.basename('/a/')
   assert_equal 'b', File.basename('/a/b')
@@ -53,6 +54,27 @@ assert('File.basename with suffix') do
   assert_equal 'foo', File.basename('foo', '')
   assert_equal 'foo.rb', File.basename('foo.rb', '')
   assert_equal 'foo.rb', File.basename('foo.rb', '.RB') # case-sensitive
+end
+
+assert('File.basename with .* suffix') do
+  assert_equal 'foo', File.basename('foo.rb', '.*')
+  assert_equal 'foo.tar', File.basename('foo.tar.gz', '.*')
+  assert_equal 'foo', File.basename('foo', '.*')
+  assert_equal 'foo', File.basename('foo.', '.*')
+  assert_equal 'foo.', File.basename('foo..', '.*')
+  assert_equal 'foo', File.basename('foo.*', '.*')
+  assert_equal '.profile', File.basename('.profile', '.*')
+  assert_equal '.a', File.basename('.a.rb', '.*')
+  assert_equal '..foo', File.basename('..foo', '.*')
+  assert_equal '..foo', File.basename('..foo.rb', '.*')
+  assert_equal '.', File.basename('.', '.*')
+  assert_equal '..', File.basename('..', '.*')
+  assert_equal '...', File.basename('...', '.*')
+  assert_equal '', File.basename('', '.*')
+  assert_equal '/', File.basename('/', '.*')
+  assert_equal '/', File.basename('///', '.*')
+  assert_equal 'foo', File.basename('/a.b/foo.rb/', '.*')
+  assert_equal 'foo', File.basename('/a.b/foo/', '.*')
 end
 
 if MRubyIOTestUtil.win?
