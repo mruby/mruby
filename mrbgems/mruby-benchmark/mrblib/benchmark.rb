@@ -81,10 +81,10 @@ module Benchmark
     end
 
     t0 = Process.times
-    r0 = Benchmark.__clock_ns
+    r0 = Benchmark.__clock
     yield
     t1 = Process.times
-    r1 = Benchmark.__clock_ns
+    real = Benchmark.__since(r0)
 
     objects_allocated = nil
     memory_allocated = nil
@@ -101,20 +101,33 @@ module Benchmark
 
     Tms.new(t1.utime - t0.utime, t1.stime - t0.stime,
             t1.cutime - t0.cutime, t1.cstime - t0.cstime,
-            (r1 - r0) / 1e9, nil, objects_allocated, memory_allocated)
+            real, nil, objects_allocated, memory_allocated)
   end
 
   # Return only real time as a float
   def self.realtime
-    r0 = __clock_ns
+    r0 = __clock
     yield
-    (__clock_ns - r0) / 1e9
+    __since(r0)
   end
 
-  # The monotonic clock in integer nanoseconds. Two readings subtracted as
-  # Float lose a short interval to rounding where Float is single precision.
-  def self.__clock_ns
+  # The monotonic clock, in integer nanoseconds where an Integer holds one:
+  # two readings subtracted as Float lose a short interval to rounding where
+  # Float is single precision. A 32-bit mrb_int without mruby-bigint cannot
+  # hold a reading in nanoseconds, and reads Float seconds instead.
+  def self.__clock
     Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond)
+  rescue RangeError
+    Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  end
+
+  # Float seconds since r0, read in the unit __clock read r0 in.
+  def self.__since(r0)
+    if r0.is_a?(Integer)
+      (Process.clock_gettime(Process::CLOCK_MONOTONIC, :nanosecond) - r0) / 1e9
+    else
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) - r0
+    end
   end
 
   # Formatted benchmark with labeled reports
