@@ -321,6 +321,15 @@ assert 'Bigint &' do
   assert_equal n, n & n
   assert_equal 36893488147419103232, n & -1
   assert_equal 36893488147419103232, -1 & n
+
+  # A negative value meets the mask as its two's complement: the small-mask
+  # fast path read the magnitude's low limb instead, and the conversion back
+  # from a two's complement lost its carry where the result is exactly
+  # -(2**(limb bits * limbs)), answering 0.
+  assert_equal 16, -(2**128 + 1) & 16
+  assert_equal 23, -(2**64 + 9) & 31
+  assert_equal 0, -(2**64) & 255
+  assert_equal(-(2**128), -(2**127 - 2) & -(2**128 - 1))
 end
 
 assert 'Bigint |' do
@@ -342,6 +351,10 @@ assert 'Bigint ^' do
   assert_equal 0, n ^ n
   assert_equal(-36893488147419103233, n ^ -1)
   assert_equal(-36893488147419103231, -n ^ 1)
+
+  # The carry lost in the conversion back from a two's complement, as in the
+  # Bigint & block above.
+  assert_equal(-(2**128), (2**128 - 5) ^ -5)
 end
 
 assert 'Bigint ~' do

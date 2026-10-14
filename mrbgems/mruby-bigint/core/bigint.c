@@ -4279,6 +4279,12 @@ mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
+  /* a carry that ran through every limb takes one more from the sign bits
+     above: the result is -(DIG_BASE**max_sz) */
+  if (z->sn < 0 && c3) {
+    mpz_realloc(ctx, z, max_sz+1);
+    z->p[max_sz] = 1;
+  }
   trim(z);
 }
 
@@ -4335,6 +4341,12 @@ mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
+  /* as in mpz_and(); with trimmed operands an OR cannot leave every limb
+     zero, but the three walks stay alike */
+  if (z->sn < 0 && c3) {
+    mpz_realloc(ctx, z, max_sz+1);
+    z->p[max_sz] = 1;
+  }
   trim(z);
 }
 
@@ -4390,6 +4402,11 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
     mp_limb zv = xv ^ yv;
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
+  }
+  /* as in mpz_and() */
+  if (z->sn < 0 && c3) {
+    mpz_realloc(ctx, z, max_sz+1);
+    z->p[max_sz] = 1;
   }
   trim(z);
 }
@@ -6022,7 +6039,12 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int z = mrb_integer(y);
     if (z == 0) return mrb_fixnum_value(0);
     if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
-      z &= a.p[0];
+      mp_limb v = a.p[0];
+      /* a negative value meets the mask as its two's complement; only the
+         lowest limb can reach z, and its complement is ~p[0]+1 with nothing
+         below to carry in */
+      if (a.sn < 0) v = ~v + 1;
+      z &= v;
       return mrb_int_value(mrb, z);
     }
     if (z == -1) return x;
