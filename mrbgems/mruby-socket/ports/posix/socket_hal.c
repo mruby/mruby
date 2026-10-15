@@ -167,7 +167,16 @@ mrb_hal_socket_unix_path(mrb_state *mrb, const char *sockaddr, size_t socklen)
     return mrb_str_new(mrb, "", 0);
   }
 
-  return mrb_str_new_cstr(mrb, ((const struct sockaddr_un*)sockaddr)->sun_path);
+  /* The path runs to the first NUL, but no further than the sockaddr the
+     caller gave: reading to a NUL ignores socklen and walks off the end of a
+     sun_path that the address truncates, returning the bytes that follow it. */
+  const char *path = ((const struct sockaddr_un*)sockaddr)->sun_path;
+  size_t max = socklen - offsetof(struct sockaddr_un, sun_path);
+  if (max > sizeof(((const struct sockaddr_un*)sockaddr)->sun_path)) {
+    max = sizeof(((const struct sockaddr_un*)sockaddr)->sun_path);
+  }
+  const char *nul = (const char*)memchr(path, '\0', max);
+  return mrb_str_new(mrb, path, nul ? (size_t)(nul - path) : max);
 }
 #endif /* MRB_HAL_SOCKET_HAS_SOCKADDR_UN */
 
