@@ -263,6 +263,41 @@ assert("sleep() no-arg suspends the calling task, not another") do
   assert_equal [:high_start, :low_runs, :high_resume], order
 end
 
+assert("join inside a block called from C fails instead of running on") do
+  # A C caller cannot be switched away from. join used to park the task,
+  # set the switch flag and return at once, so the statement after join
+  # ran before the target had ended.
+  target = Task.new(priority: 200) { :target }
+  err = nil
+  Task.new(priority: 50) do
+    begin
+      TaskTest.yield_from_c { target.join }
+    rescue => e
+      err = e
+    end
+  end
+  Task.run
+  assert_kind_of RuntimeError, err
+  assert_equal "can't join across C function boundary", err.message
+  assert_equal :target, target.value
+end
+
+assert("join of a finished task inside a block called from C returns its value") do
+  target = Task.new { :done }
+  Task.run
+  got = nil
+  Task.new { got = TaskTest.yield_from_c { target.join } }
+  Task.run
+  assert_equal :done, got
+end
+
+assert("join inside a synchronously executed proc fails instead of stalling") do
+  target = Task.new { :never_joined }
+  assert_kind_of RuntimeError, TaskTest.run_sync { target.join }
+  Task.run
+  assert_equal :never_joined, target.value
+end
+
 assert("exception raised from C after blocking past the timeslice is rescuable") do
   # TaskTest.block_then_raise busy-blocks longer than a timeslice before
   # raising, so task.switching is pending when the exception dispatches.

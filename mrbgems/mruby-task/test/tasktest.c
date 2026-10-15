@@ -118,6 +118,19 @@ tasktest_reinit_context(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/* Run the block under a C frame (mrb_yield marks it CINFO_SKIP), the
+   shape of a block called back from a C extension. */
+static mrb_value
+tasktest_yield_from_c(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+  mrb_get_args(mrb, "&", &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "block required");
+  }
+  return mrb_yield_argv(mrb, blk, 0, NULL);
+}
+
 /* Drive the synchronous-execution teardown path. */
 static mrb_value
 tasktest_run_sync(mrb_state *mrb, mrb_value self)
@@ -278,6 +291,7 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "clear_hook", tasktest_clear_hook, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "run_once", tasktest_run_once, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "reinit_context", tasktest_reinit_context, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, tasktest, "yield_from_c", tasktest_yield_from_c, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "proc_set_stack", tasktest_proc_set_stack, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
