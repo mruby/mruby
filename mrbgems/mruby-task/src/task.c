@@ -1393,6 +1393,21 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
     return t->result;
   }
 
+  /* Check for C function boundary - cannot do cooperative context switch.
+     Without this, join parks the task and sets the switch flag, but the
+     C caller runs on; the switch happens only when control returns to
+     the VM, so the statement after join runs before the target ends. */
+  mrb_callinfo *ci;
+  for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
+    if (ci->cci > 0) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't join across C function boundary");
+    }
+  }
+
+  /* See sleep_us_impl: never park the temporary task of a synchronous
+     execution. */
+  task_check_scheduler_lock(mrb);
+
   /* Wait for task to complete */
   mrb_task_excl_enter(mrb);
   mrb_task_q_delete(mrb, current);
