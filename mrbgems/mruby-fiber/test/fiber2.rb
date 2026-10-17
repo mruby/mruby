@@ -11,6 +11,10 @@ unless RUBY_ENGINE == "mruby"
       def yield_by_c_method(*args)
         raise FiberError, "ycan't cross C function boundary"
       end
+
+      def yield_by_cfunc_proc
+        proc { |a| Fiber.yield(a) }
+      end
     end
   end
 
@@ -33,6 +37,42 @@ begin
     assert_equal "ok8", Fiber.new { Proc.c_tunnel { Fiber.new { "ok8" }.resume_by_c_method } }.resume_by_c_method
     assert_equal "ok9", Fiber.new { Proc.c_tunnel { Fiber.new { "ok9" }.resume } }.resume_by_c_func
     assert_equal "ok10", Fiber.new { Proc.c_tunnel { Fiber.new { "ok10" }.resume } }.resume_by_c_method
+  end
+
+  assert('Fiber.yield in a cfunc proc called through Proc#call, resumed from C') do
+    pr = Fiber.yield_by_cfunc_proc
+    f = Fiber.new { [pr.call(:a), pr.call(:b)] }
+    assert_equal :a, f.resume_by_c_func
+    assert_equal :b, f.resume_by_c_func
+    assert_equal [nil, nil], f.resume_by_c_func
+    assert_false f.alive?
+
+    # the same proc as a block: `yield` is OP_BLKCALL
+    yielder = Class.new do
+      def of_a_and_b
+        [yield(:a), yield(:b)]
+      end
+    end.new
+    g = Fiber.new { yielder.of_a_and_b(&pr) }
+    assert_equal :a, g.resume_by_c_func
+    assert_equal :b, g.resume_by_c_func
+    assert_equal [nil, nil], g.resume_by_c_func
+    assert_false g.alive?
+
+    # resume from Ruby keeps the frame CINFO_NONE (the frame below is the
+    # VM's); resume_by_c_method resumes through mrb_funcall, so its
+    # CINFO_DIRECT frame becomes CINFO_RESUMED at the yield, as with
+    # resume_by_c_func
+    [:resume, :resume_by_c_method].each do |m|
+      f = Fiber.new { [pr.call(:a), pr.call(:b)] }
+      assert_equal :a, f.__send__(m)
+      assert_equal :b, f.__send__(m)
+      assert_equal [nil, nil], f.__send__(m)
+      g = Fiber.new { yielder.of_a_and_b(&pr) }
+      assert_equal :a, g.__send__(m)
+      assert_equal :b, g.__send__(m)
+      assert_equal [nil, nil], g.__send__(m)
+    end
   end
 
   assert('Call Fiber#resume and Fiber.yield mixed with C.') do

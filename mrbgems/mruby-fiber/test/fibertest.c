@@ -1,4 +1,5 @@
 #include <mruby.h>
+#include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <stdio.h>
@@ -9,6 +10,13 @@ fiber_s_yield_by_c_func(mrb_state *mrb, mrb_value self)
 {
   mrb_value a = mrb_get_arg1(mrb);
   return mrb_fiber_yield(mrb, 1, &a);
+}
+
+/* The same cfunc as a Proc: Proc#call on it enters OP_CALL. */
+static mrb_value
+fiber_s_yield_by_cfunc_proc(mrb_state *mrb, mrb_value self)
+{
+  return mrb_obj_value(mrb_proc_new_cfunc(mrb, fiber_s_yield_by_c_func));
 }
 
 static mrb_value
@@ -76,6 +84,7 @@ mrb_mruby_fiber_gem_test(mrb_state *mrb)
   struct RClass *fiber_class = mrb_class_get(mrb, "Fiber");
   mrb_define_class_method(mrb, fiber_class, "yield_by_c_func", fiber_s_yield_by_c_func, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, fiber_class, "yield_by_c_method", fiber_s_yield_by_c_method, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, fiber_class, "yield_by_cfunc_proc", fiber_s_yield_by_cfunc_proc, MRB_ARGS_NONE());
   mrb_define_method(mrb, fiber_class, "resume_by_c_func", fiber_resume_by_c_func, MRB_ARGS_NONE());
   mrb_define_method(mrb, fiber_class, "resume_by_c_method", fiber_resume_by_c_method, MRB_ARGS_NONE());
   mrb_define_method(mrb, fiber_class, "transfer_by_c", fiber_transfer_by_c, MRB_ARGS_NONE());
