@@ -135,3 +135,24 @@ assert('mrb_cfunc_env_get') do
 
   assert_equal 1, t.get_int(1)
 end
+
+assert('Proc#call on a cfunc proc, from the VM and from C') do
+  pr = ProcExtTest.cfunc_proc_with_env(:env)
+
+  assert_equal [:env, 1, 2], pr.call(1, 2)
+  assert_equal [:env, 1, 2], ProcExtTest.funcall_call(pr, 1, 2)
+  assert_equal [:env], ProcExtTest.funcall_call(pr)
+  assert_equal [[:env, 3]], [3].map(&pr)
+
+  # the default proc of a Hash: hash.c calls it with mrb_funcall
+  h = Hash.new(&pr)
+  assert_equal [:env, h, :missing], h[:missing]
+end
+
+assert('a cfunc proc that raises, through Proc#call from C') do
+  pr = ProcExtTest.cfunc_proc_raising
+
+  assert_raise(ArgumentError) { pr.call }
+  assert_raise(ArgumentError) { ProcExtTest.funcall_call(pr) }
+  assert_raise(ArgumentError) { Hash.new(&pr)[:missing] }
+end

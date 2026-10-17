@@ -2362,11 +2362,13 @@ catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
 #define RAISE_FORMAT(mrb, c, fmt, ...)  RAISE_EXC(mrb, mrb_exc_new_str(mrb, c, mrb_format(mrb, fmt, __VA_ARGS__)))
 
 /* return codes for extracted opcode handlers */
-#define VM_NEXT       0  /* continue to next instruction */
-#define VM_RAISE      1  /* exception: goto L_RAISE */
-#define VM_SEND_SYM   2  /* fallback send: goto L_SEND_SYM */
-#define VM_SENDB_SYM  3  /* fallback sendb: goto L_SENDB_SYM */
-#define VM_RETURN_NIL 4  /* nil irep: return nil via L_OP_RETURN */
+#define VM_NEXT           0  /* continue to next instruction */
+#define VM_RAISE          1  /* exception: goto L_RAISE */
+#define VM_SEND_SYM       2  /* fallback send: goto L_SEND_SYM */
+#define VM_SENDB_SYM      3  /* fallback sendb: goto L_SENDB_SYM */
+#define VM_RETURN_NIL     4  /* nil irep: return nil via L_OP_RETURN */
+#define VM_RETURN_C       5  /* cfunc proc in a frame C pushed: pop it, return the value to the C caller */
+#define VM_RETURN_RESUMED 6  /* cfunc proc switched fibers (CINFO_RESUMED): return the value, keep the frame */
 
 /* `flatten` inlines every call mrb_vm_exec makes, recursively, as deep as the
    translation unit allows. A per-file build stops it at this file's static
@@ -3237,10 +3239,11 @@ vm_define_method(mrb_state *mrb, struct RClass *tc, const mrb_irep *irep, uint16
 }
 
 /* Common proc dispatch for OP_CALL and OP_BLKCALL.
-   Returns VM_NEXT, VM_RAISE, or VM_RETURN_NIL. */
+   Returns VM_NEXT, VM_RAISE, VM_RETURN_NIL, VM_RETURN_C or
+   VM_RETURN_RESUMED; the last two leave a cfunc proc's value in *retp. */
 static int
 vm_call_proc(mrb_state *mrb, const struct RProc *p, mrb_int nargs,
-             const mrb_irep **irepp, int ai)
+             const mrb_irep **irepp, int ai, mrb_value *retp)
 {
   mrb_callinfo *ci = mrb->c->ci;
   mrb_value recv = ci->stack[0];
@@ -3257,6 +3260,21 @@ vm_call_proc(mrb_state *mrb, const struct RProc *p, mrb_int nargs,
     recv = MRB_PROC_CFUNC(p)(mrb, recv);
     mrb_gc_arena_shrink(mrb, ai);
     if (mrb_unlikely(mrb->exc)) return VM_RAISE;
+    ci = mrb->c->ci; /* a cipush inside the cfunc may have realloc'ed the callinfo array */
+    if (!ci->u.keep_context && ci->cci == CINFO_RESUMED) {
+      /* The cfunc switched fibers and this context was resumed from C
+         (mrb_fiber_resume): the value goes to that caller and the frame
+         stays, as the OP_SEND epilogue does. */
+      *retp = recv;
+      return VM_RETURN_RESUMED;
+    }
+    if (ci->cci == CINFO_SKIP || ci->cci == CINFO_DIRECT) {
+      /* The frame is the one mrb_funcall pushed for Proc#call from C.
+         The value goes back to that caller, as OP_RETURN hands it over
+         for the same cci; the frame below is C, not an irep to resume. */
+      *retp = recv;
+      return VM_RETURN_C;
+    }
     ci = cipop(mrb);
     ci[1].stack[0] = recv;
     *irepp = ci->proc->body.irep;
@@ -4100,10 +4118,24 @@ RETRY_TRY_BLOCK:
         mrb_raisef(mrb, E_TYPE_ERROR, "wrong type %T (expected Proc)", ci->stack[0]);
       }
       const struct RProc *p = mrb_proc_ptr(ci->stack[0]);
-      int r = vm_call_proc(mrb, p, ci_bidx(ci)+1, &irep, ai);
+      mrb_value pret = mrb_nil_value();
+      int r = vm_call_proc(mrb, p, ci_bidx(ci)+1, &irep, ai, &pret);
       ci = mrb->c->ci;
       if (r == VM_RAISE) goto L_RAISE;
       if (r == VM_RETURN_NIL) { a = 0; goto L_OP_RETURN_BODY; }
+      if (r == VM_RETURN_RESUMED) {
+        mrb->jmp = prev_jmp;
+        return pret;
+      }
+      if (r == VM_RETURN_C) {
+        /* as OP_RETURN leaves a CINFO_SKIP frame; cipop may allocate
+           (env unshare), so a heap value is kept in the arena across it */
+        if (!mrb_immediate_p(pret)) mrb_gc_protect(mrb, pret);
+        cipop(mrb);
+        mrb_gc_arena_restore(mrb, ai);
+        mrb->jmp = prev_jmp;
+        return pret;
+      }
       JUMP;
     }
 
@@ -4118,10 +4150,15 @@ RETRY_TRY_BLOCK:
          unwind throws past any frame it finds carrying another cci, out to a
          C caller that a call from here does not have. */
       ci = cipush(mrb, a, CINFO_NONE, NULL, NULL, NULL, 0, b);
-      int r = vm_call_proc(mrb, p, b+1, &irep, ai);
+      mrb_value pret = mrb_nil_value();
+      int r = vm_call_proc(mrb, p, b+1, &irep, ai, &pret);
       ci = mrb->c->ci;
       if (r == VM_RAISE) goto L_RAISE;
       if (r == VM_RETURN_NIL) { a = 0; goto L_OP_RETURN_BODY; }
+      if (r == VM_RETURN_RESUMED) {
+        mrb->jmp = prev_jmp;
+        return pret;
+      }
       JUMP;
     }
 
