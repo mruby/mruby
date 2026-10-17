@@ -55,7 +55,27 @@ load_file_exc(mrb_state *mrb, mrb_value self)
 #include <mruby/dump.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
+#include <mruby/opcode.h>
 #include <string.h>
+
+/*
+ * Decodes the first instruction of a Ruby-defined proc with
+ * mrb_decode_insn() and answers its first operand, or nil where that
+ * instruction is not OP_ENTER.
+ */
+static mrb_value
+enter_operand(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+  mrb_get_args(mrb, "&!", &blk);
+
+  struct RProc *p = mrb_proc_ptr(blk);
+  if (MRB_PROC_CFUNC_P(p) || p->body.irep->ilen == 0) return mrb_nil_value();
+  struct mrb_insn_data d = mrb_decode_insn(p->body.irep->iseq);
+  if (d.insn != OP_ENTER) return mrb_nil_value();
+  return mrb_int_value(mrb, (mrb_int)d.a);
+}
 
 /*
  * A float literal in bytecode from an mrbc with Float, run where there is
@@ -163,4 +183,5 @@ mrb_mruby_compiler_gem_test(mrb_state *mrb)
 #endif
   mrb_define_method(mrb, mrb->object_class, "__float_pool_roundtrip", float_pool_roundtrip, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->object_class, "__parsers_outlive_each_other", parsers_outlive_each_other, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrb->object_class, "__enter_operand", enter_operand, MRB_ARGS_BLOCK());
 }

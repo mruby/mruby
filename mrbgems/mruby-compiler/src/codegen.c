@@ -636,7 +636,7 @@ mrc_decode_insn(const mrc_code *pc)
   if (pc == 0) return data;
   data.addr = pc;
   mrc_code insn = READ_B();
-  uint16_t a = 0;
+  uint32_t a = 0;
   uint16_t b = 0;
   uint16_t cc = 0;
 

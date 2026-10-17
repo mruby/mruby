@@ -66,3 +66,13 @@ assert('a parser state freed first leaves a younger one intact') do
   # options freed under it, and generating code from it read freed memory.
   assert_equal 7, __parsers_outlive_each_other('1 + 2', 'x = 3; x + 4')
 end
+
+##
+# Instruction decoding
+
+assert('mrb_decode_insn keeps all 24 bits of the OP_ENTER operand') do
+  # The required-argument count sits at bit 18 of the aspec, above what a
+  # 16-bit operand holds.
+  assert_equal 1 << 18, __enter_operand { |a| a }
+  assert_equal 2 << 18, __enter_operand { |a, b| a }
+end
