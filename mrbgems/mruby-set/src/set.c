@@ -251,6 +251,8 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   }
   kset_init_data(mrb, self_set, kset_size(orig_set));
   kh_replace(set_val, mrb, self_set, orig_set);
+  /* the elements came in by a copy, past the barrier on each insert */
+  mrb_write_barrier(mrb, mrb_basic_ptr(self));
 
   return self;
 }

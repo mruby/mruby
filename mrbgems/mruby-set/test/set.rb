@@ -71,6 +71,38 @@ assert("Set#dup") do
   assert_equal(Set[1,2], set2)
 end
 
+assert("Set#initialize_copy keeps the elements of an old receiver alive") do
+  # An old receiver takes young elements in one copy; without a barrier the
+  # next minor GCs free them while the receiver still holds them.
+  origin = [GC.generational_mode, GC.interval_ratio]
+  begin
+    GC.generational_mode = true
+    # A minor GC every GC_STEP_SIZE allocations, in a heap with many more
+    # free slots than that: a small heap runs out first, and the full GC that
+    # reclaims it marks the receiver. Pages stay while any slot is live, so
+    # one object kept in sixteen holds a heap grown with the GC off.
+    GC.interval_ratio = 100
+    GC.disable
+    ballast = Array.new(8192) { |i| s = "b" * 30; s if i % 8 == 0 }
+    GC.enable
+    copy_young = ->(t, n) {
+      s = Set.new
+      n.times { |i| s << "value#{i}" * 4 }
+      t.__send__(:initialize_copy, s)
+    }
+    target = Set.new
+    GC.start
+    copy_young.(target, 20)
+    100_000.times { "garbage" * 4 }
+    assert_equal 20, target.size
+    20.times { |i| assert_include target.to_a, "value#{i}" * 4 }
+    assert_equal 8192, ballast.size
+  ensure
+    GC.enable
+    GC.generational_mode, GC.interval_ratio = origin
+  end
+end
+
 assert("Set#size") do
   assert_equal(0, Set[].size)
   assert_equal(1, Set[nil].size)
