@@ -78,6 +78,42 @@ enter_operand(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Compiles `src` and steps through the top-level iseq by mrb_decode_insn()'s
+ * next pointer. Answers [instructions, those with an OP_EXT prefix], or nil
+ * where `src` does not compile or a step does not land exactly on the end of
+ * the iseq.
+ */
+static mrb_value
+insn_walk(mrb_state *mrb, mrb_value self)
+{
+  const char *src;
+  mrb_get_args(mrb, "z", &src);
+
+  mrb_ccontext *c = mrb_ccontext_new(mrb);
+  c->no_exec = TRUE;
+  mrb_value proc = mrb_load_string_cxt(mrb, src, c);
+  mrb_ccontext_free(mrb, c);
+  if (mrb->exc || !mrb_proc_p(proc)) {
+    mrb->exc = NULL;
+    return mrb_nil_value();
+  }
+
+  const mrb_irep *irep = mrb_proc_ptr(proc)->body.irep;
+  const mrb_code *pc = irep->iseq;
+  const mrb_code *end = pc + irep->ilen;
+  mrb_int n = 0, ext = 0;
+  while (pc < end) {
+    if (*pc == OP_EXT1 || *pc == OP_EXT2 || *pc == OP_EXT3) ext++;
+    const mrb_code *next = mrb_decode_insn(pc).next;
+    if (next <= pc) return mrb_nil_value();
+    pc = next;
+    n++;
+  }
+  if (pc != end) return mrb_nil_value();
+  return mrb_assoc_new(mrb, mrb_int_value(mrb, n), mrb_int_value(mrb, ext));
+}
+
+/*
  * A float literal in bytecode from an mrbc with Float, run where there is
  * none: the no-float build's own mrbc never writes one, so the entry is made
  * here. Compiles `src`, turns its first integer pool entry into the float 1.5,
@@ -184,4 +220,5 @@ mrb_mruby_compiler_gem_test(mrb_state *mrb)
   mrb_define_method(mrb, mrb->object_class, "__float_pool_roundtrip", float_pool_roundtrip, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->object_class, "__parsers_outlive_each_other", parsers_outlive_each_other, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrb->object_class, "__enter_operand", enter_operand, MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->object_class, "__insn_walk", insn_walk, MRB_ARGS_REQ(1));
 }

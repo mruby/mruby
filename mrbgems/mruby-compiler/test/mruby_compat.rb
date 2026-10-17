@@ -76,3 +76,11 @@ assert('mrb_decode_insn keeps all 24 bits of the OP_ENTER operand') do
   assert_equal 1 << 18, __enter_operand { |a| a }
   assert_equal 2 << 18, __enter_operand { |a, b| a }
 end
+
+assert('mrb_decode_insn points at the next instruction') do
+  # LOADI_1 (2 bytes), MOVE (3), LOADI16 (4), ADD (2), RETURN (2), STOP (1)
+  assert_equal [6, 0], __insn_walk("a = 1; a + 300")
+  # a symbol index above 255 takes an OP_EXT2 prefix
+  _, ext = __insn_walk((0..300).map { |i| "x.m#{i}" }.join(";"))
+  assert_true ext > 0
+end

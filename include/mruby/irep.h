@@ -133,7 +133,8 @@ struct mrb_insn_data {
   uint32_t a;
   uint16_t b;
   uint16_t c;
-  const mrb_code *addr;
+  const mrb_code *addr;         /* the decoded instruction */
+  const mrb_code *next;         /* the instruction after it */
 };
 
 #define mrb_irep_catch_handler_pack(n, v) uint32_to_bin(n, v)

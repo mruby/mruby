@@ -800,6 +800,7 @@ mrb_decode_insn(const mrb_code *pc)
   data.a = a;
   data.b = b;
   data.c = c;
+  data.next = pc;
   return data;
 }
 
