@@ -778,6 +778,26 @@ assert("Hash#replace", "15.2.13.4.23") do
   end
 end
 
+assert('Hash#replace keeps the entries of an old receiver alive') do
+  # An old receiver takes young entries in one copy; without a barrier the
+  # next minor GCs free them while the receiver still holds them.
+  origin = GC.generational_mode
+  begin
+    GC.generational_mode = true
+    young = ->(n) { s = {}; n.times { |i| s["key#{i}"] = "value#{i}" * 4 }; s }
+    [4, 20].each do |n| # the entry array alone, and with a hash table
+      target = {}
+      GC.start
+      target.replace(young.(n))
+      100_000.times { "garbage" * 4 }
+      assert_equal n, target.size
+      target.each { |k, v| assert_equal "value#{k[3..]}" * 4, v }
+    end
+  ensure
+    GC.generational_mode = origin
+  end
+end
+
 assert('Hash#shift', '15.2.13.4.24') do
   [ar_entries, ht_entries].each do |entries|
     pairs = entries.dup
