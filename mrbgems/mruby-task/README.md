@@ -566,6 +566,38 @@ MRB_API void mrb_task_proc_set(mrb_state *mrb, mrb_value task,
 
 These functions are designed for **picoruby-sandbox** to reuse task objects for multiple executions without reallocating memory. `mrb_task_init_context()` fully reinitializes the context, while `mrb_task_proc_set()` only updates the proc pointer.
 
+### Trace Hook API (`MRB_USE_TASK_TRACE`)
+
+```c
+enum mrb_task_trace_event {
+  MRB_TASK_TRACE_CREATE,      /* created and queued (READY) */
+  MRB_TASK_TRACE_SWITCH_IN,   /* the scheduler is about to run the task */
+  MRB_TASK_TRACE_SWITCH_OUT,  /* the task returned; t->status / t->reason say why */
+  MRB_TASK_TRACE_STATE,       /* another context changed the task's status */
+  MRB_TASK_TRACE_FREE,        /* the task is about to be freed */
+};
+
+typedef void (*mrb_task_trace_func)(mrb_state *mrb, const mrb_task *t,
+                                    int event, void *ud);
+
+MRB_API void mrb_task_set_trace_hook(mrb_state *mrb, mrb_task_trace_func fn,
+                                     void *ud);
+```
+
+Enabled only when the build defines `MRB_USE_TASK_TRACE`; otherwise the hook
+points compile to nothing. The define changes the layout of `mrb_state`, so
+put it in `conf.defines` for the whole build, not in one gem's flags:
+
+```ruby
+conf.defines << 'MRB_USE_TASK_TRACE'
+```
+
+Events come only from the VM's own thread: wakeups by the tick interrupt show
+up as the next `SWITCH_IN`, and `mrb_execute_proc_synchronously()` is not
+traced. The hook may run inside the scheduler's critical section or the GC,
+so it must be cheap and must not allocate, raise, or call into the VM.
+Setting a hook replaces the previous one; `NULL` clears it.
+
 ### Example: Event Loop Integration (WASM)
 
 ```c

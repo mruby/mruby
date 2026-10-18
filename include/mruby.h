@@ -373,6 +373,10 @@ typedef struct mrb_task_state {
   mrb_bool exception_as_result;     /* Return unhandled task exceptions as values */
   void (*scheduler_hook)(struct mrb_state *mrb, void *ud); /* Pre-scheduling servicing hook */
   void *scheduler_hook_ud;            /* Opaque argument for scheduler_hook */
+#ifdef MRB_USE_TASK_TRACE
+  void (*trace_hook)(struct mrb_state *mrb, const struct mrb_task *t, int event, void *ud); /* Task trace hook */
+  void *trace_hook_ud;                /* Opaque argument for trace_hook */
+#endif
 } mrb_task_state;
 #endif
 

@@ -395,6 +395,92 @@ assert("scheduler hook cleared with NULL stops firing") do
   assert_equal fired, TaskTest.probe_count(0)
 end
 
+# Trace hook tests (mrb_task_set_trace_hook, MRB_USE_TASK_TRACE builds only)
+
+assert("trace hook records the switches of two tasks joined by join") do
+  skip "requires MRB_USE_TASK_TRACE" unless TaskTest.respond_to?(:trace_start)
+  TaskTest.trace_start
+  a = Task.new(name: "trace_a") { Task.pass; :a }
+  b = Task.new(name: "trace_b") { a.join; :b }
+  Task.run
+  TaskTest.trace_stop
+  assert_equal [
+    [0, :create,     :ready,   :none],
+    [1, :create,     :ready,   :none],
+    [0, :switch_in,  :running, :none],
+    [0, :switch_out, :ready,   :none],  # Task.pass
+    [1, :switch_in,  :running, :none],
+    [1, :switch_out, :waiting, :join],
+    [0, :switch_in,  :running, :none],
+    [0, :switch_out, :dormant, :none],  # finished
+    [1, :state,      :ready,   :none],  # woken by the join target
+    [1, :switch_in,  :running, :none],
+    [1, :switch_out, :dormant, :none],
+  ], TaskTest.trace_log([a, b])
+end
+
+assert("trace hook records a queue wakeup made by another task") do
+  skip "requires MRB_USE_TASK_TRACE" unless TaskTest.respond_to?(:trace_start)
+  q = Task::Queue.new
+  TaskTest.trace_start
+  c = Task.new(name: "trace_c") { q.pop }
+  d = Task.new(name: "trace_d") { q.push 1 }
+  Task.run
+  TaskTest.trace_stop
+  assert_equal [
+    [0, :create,     :ready,   :none],
+    [1, :create,     :ready,   :none],
+    [0, :switch_in,  :running, :none],
+    [0, :switch_out, :waiting, :queue],
+    [1, :switch_in,  :running, :none],
+    [0, :state,      :ready,   :none],  # woken by q.push, reported from d
+    [1, :switch_out, :ready,   :none],  # the push hands the CPU over
+    [0, :switch_in,  :running, :none],
+    [0, :switch_out, :dormant, :none],
+    [1, :switch_in,  :running, :none],
+    [1, :switch_out, :dormant, :none],
+  ], TaskTest.trace_log([c, d])
+end
+
+assert("trace hook reports suspend, resume and terminate as state changes") do
+  skip "requires MRB_USE_TASK_TRACE" unless TaskTest.respond_to?(:trace_start)
+  q = Task::Queue.new
+  TaskTest.trace_start
+  e = Task.new(name: "trace_e") { q.pop }
+  f = Task.new(name: "trace_f") { q.pop }
+  Task.pass  # e parks in q.pop
+  Task.pass  # f parks in q.pop
+  e.suspend
+  e.resume
+  f.terminate
+  q.push 1
+  Task.run
+  TaskTest.trace_stop
+  assert_equal [
+    [0, :create,     :ready,     :none],
+    [1, :create,     :ready,     :none],
+    [0, :switch_in,  :running,   :none],
+    [0, :switch_out, :waiting,   :queue],
+    [1, :switch_in,  :running,   :none],
+    [1, :switch_out, :waiting,   :queue],
+    [0, :state,      :suspended, :queue],
+    [0, :state,      :waiting,   :queue],
+    [1, :state,      :dormant,   :queue],
+    [0, :state,      :ready,     :none],   # woken by q.push from the root
+    [0, :switch_in,  :running,   :none],
+    [0, :switch_out, :dormant,   :none],
+  ], TaskTest.trace_log([e, f])
+end
+
+assert("trace hook cleared with NULL stops recording") do
+  skip "requires MRB_USE_TASK_TRACE" unless TaskTest.respond_to?(:trace_start)
+  TaskTest.trace_start
+  TaskTest.trace_stop
+  Task.new(name: "trace_untraced") { Task.pass }
+  Task.run
+  assert_equal 0, TaskTest.trace_count
+end
+
 # Envs on a task stack must be detached before the stack is freed
 
 assert("closure escaping a closed task survives GC") do
