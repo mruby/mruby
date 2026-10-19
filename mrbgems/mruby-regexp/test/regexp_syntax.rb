@@ -3381,26 +3381,30 @@ assert("Regexp - \\h and \\H hex-digit shorthands") do
   assert_equal ["deadBEEF"], "deadBEEFzz".scan(/\h+/)
 end
 
-assert("Regexp - pattern too large for its jump targets is refused") do
-  # Jump targets live in a 16-bit field, so a program that outgrows the field
-  # used to wrap them and jump to an unrelated instruction: the pattern then
-  # quietly stopped matching text it describes instead of reporting anything.
-  # Each (?:abc) unit costs three instructions and the bound is on the whole
-  # program, so the two counts below sit either side of it.
-  assert_kind_of Regexp, Regexp.new("(?:abc){21844}")
-  assert_raise_with_message(RegexpError, "regexp too large: /(?:abc){21845}/") do
-    Regexp.new("(?:abc){21845}")
-  end
+assert("Regexp - a program past 16-bit jump targets matches") do
+  # Jump targets used to live in a 16-bit field, and a program that outgrew
+  # it was refused as too large; before that was checked, the targets wrapped
+  # and the pattern quietly stopped matching text it describes. The field is
+  # 32 bits now. Each (?:abc) unit costs three instructions, so these
+  # programs reach past 65535 of them, and each still matches what it says.
+  re = Regexp.new("(?:abc){21845}")
+  assert_equal 0, re =~ "abc" * 21845
+  assert_nil re =~ "abc" * 21844
 
-  # the shapes that used to answer wrongly rather than raise: a quantifier
-  # whose skip target is patched past the bound, and an alternation whose
-  # branch and exit targets both wrap
-  assert_raise(RegexpError) { Regexp.new("(?:abc){21844}x*y") }
-  assert_raise(RegexpError) { Regexp.new("(?:abc){30000}(?:y|z)") }
+  # the shapes that used to answer wrongly: a quantifier whose skip target
+  # lies past the old bound, and an alternation whose branch and exit
+  # targets both do
+  re = Regexp.new("(?:abc){21844}x*y")
+  assert_equal 0, re =~ "abc" * 21844 + "xxy"
+  assert_equal 0, re =~ "abc" * 21844 + "y"
+  re = Regexp.new("(?:abc){30000}(?:y|z)")
+  assert_equal 0, re =~ "abc" * 30000 + "z"
+  assert_nil re =~ "abc" * 30000 + "w"
 
-  # a quantifier the parser still accepts reaches the bound on its own once
-  # the repeated atom costs more than one instruction
-  assert_raise(RegexpError) { Regexp.new("(?:ab){32768}") }
+  # a quantifier of an atom costing more than one instruction
+  re = Regexp.new("(?:ab){32768}")
+  assert_equal 0, re =~ "ab" * 32768
+  assert_nil re =~ "ab" * 32767
 end
 
 assert("Regexp - a character property escape is read, not taken as letters") do

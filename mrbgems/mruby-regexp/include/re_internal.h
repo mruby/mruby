@@ -173,11 +173,14 @@ enum re_opcode {
 #define RE_LB_BYTES(offset) ((int)((offset) >> 8))
 #define RE_LB_CHARS(offset) ((int)((offset) & 0xff))
 
-/* Bytecode instruction (4 bytes each for alignment) */
+/* Bytecode instruction, 8 bytes: a jump target, a class id or another
+   extended operand takes 32 bits, so a program may hold more than 65535
+   instructions (a table of a few thousand words compiles to more). Searches
+   measured no slower than with the 16-bit field the 4-byte instruction had. */
 typedef struct {
   uint8_t op;
   uint8_t a;       /* small operand */
-  uint16_t offset;  /* jump target or extended operand */
+  uint32_t offset;  /* jump target or extended operand */
 } re_inst;
 
 /* Character class bitmap (ASCII range) */

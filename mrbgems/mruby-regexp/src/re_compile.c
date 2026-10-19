@@ -18,8 +18,9 @@
 #endif
 
 /* A class instruction (RE_CLASS, RE_NCLASS) names its class by id in
-   re_inst.offset, a uint16_t, so a pattern holds at most 65535 distinct
-   character classes; the table grows to what the pattern needs. */
+   re_inst.offset, and the pattern counts its classes in a uint16_t
+   (num_classes), so a pattern holds at most 65535 distinct character
+   classes; the table grows to what the pattern needs. */
 #define RE_MAX_CLASSES 65535
 /* the literal record (literal_cp) a compile keeps in its own frame before
    it moves to the GC arena */
@@ -272,20 +273,20 @@ compile_error(re_compiler *c, const char *msg)
 }
 
 /* Maximum number of instructions in a compiled pattern. Every jump target
-   lives in re_inst.offset (uint16_t) and a target may be one past the last
-   instruction, so the whole program has to be addressable by that field.
-   Without the cap the targets wrap on the way in and the engine jumps to an
-   unrelated instruction: no exception, no memory error, just a pattern that
-   stops matching text it describes. The check sits in emit(), the one place
+   lives in re_inst.offset (32 bits) and a target may be one past the last
+   instruction, so the whole program has to be addressable by that field;
+   the cap sits far below that, at 16M instructions (128 MB of code), where
+   a pattern is a runaway rather than a table of a few thousand words
+   (more than 65535). The check sits in emit(), the one place
    code_len grows, so it covers every producer including insert_inst(). */
-#define RE_MAX_CODE_LEN 0xffff
+#define RE_MAX_CODE_LEN 0x00ffffff
 
 /* The slot a \K's RE_SAVE carries until the groups are counted and its own
    pair is known; no group's slot is this high (RE_MAX_CAPTURES). */
 #define RE_KEEP_PENDING 0xffff
 
 static uint32_t
-emit(re_compiler *c, uint8_t op, uint8_t a, uint16_t offset)
+emit(re_compiler *c, uint8_t op, uint8_t a, uint32_t offset)
 {
   if (c->code_len >= RE_MAX_CODE_LEN) compile_error(c, "regexp too large");
   if (c->code_len >= c->code_capa) {
@@ -300,7 +301,7 @@ emit(re_compiler *c, uint8_t op, uint8_t a, uint16_t offset)
 }
 
 static void
-patch(re_compiler *c, uint32_t pos, uint16_t offset)
+patch(re_compiler *c, uint32_t pos, uint32_t offset)
 {
   c->pat->code[pos].offset = offset;
 }
@@ -374,14 +375,14 @@ insert_insts(re_compiler *c, uint32_t pos, uint32_t count)
     if (i >= pos && i < pos + count) continue;
     if (op_holds_code_index(c->pat->code[i].op) &&
         (c->pat->code[i].offset > pos || (c->pat->code[i].offset == pos && i >= pos + count))) {
-      c->pat->code[i].offset = (uint16_t)(c->pat->code[i].offset + count);
+      c->pat->code[i].offset = (uint32_t)(c->pat->code[i].offset + count);
     }
   }
 }
 
 /* Insert one instruction at position `pos`; see insert_insts(). */
 static void
-insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint16_t offset)
+insert_inst(re_compiler *c, uint32_t pos, uint8_t op, uint8_t a, uint32_t offset)
 {
   insert_insts(c, pos, 1);
   c->pat->code[pos].op = op;
@@ -3137,16 +3138,28 @@ typedef struct {
   uint8_t kind;
 } re_pending_call;
 
+/* The number the next atomic group or lookaround takes; see num_cuts. The
+   numbers are carried in 16 bits, which a program of more than 65535
+   instructions could outrun, so one past them is refused. */
+static uint16_t
+next_cut(re_compiler *c)
+{
+  if (c->num_cuts >= 0xffff) compile_error(c, "too many atomic groups and lookarounds");
+  return (uint16_t)++c->num_cuts;
+}
+
 /* Park one reference. The records live in a String rather than a buffer this
    frame owns, because the parse raises through longjmp and a raise must not
    strand them: the GC arena holds the String for the length of the compile
-   and no longer, which is exactly the records' life. The count is bounded by
-   the instructions emitted, so it fits the uint16_t field that carries it. */
+   and no longer, which is exactly the records' life. The count is carried
+   in 16 bits, and a program of more than 65535 instructions could outrun
+   them, so one past them is refused. */
 static uint16_t
 add_pending_call(re_compiler *c, uint8_t kind, const char *at, uint32_t len,
                  uint32_t resolved)
 {
   re_pending_call rec;
+  if (c->num_pending >= 0xffff) compile_error(c, "too many subexpression calls");
   if (mrb_nil_p(c->pending_calls)) {
     c->pending_calls = mrb_str_new(c->mrb, NULL, 0);
   }
@@ -3395,7 +3408,7 @@ open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
       uint32_t la_pos = emit(c, negative ? RE_NEG_LOOKAHEAD : RE_LOOKAHEAD, 0, 0);
       re_level *lv = open_level(c, RE_LEVEL_LOOKAHEAD, begin, outer_atom_start);
       lv->state = negative;
-      lv->num = (uint16_t)++c->num_cuts;
+      lv->num = next_cut(c);
       lv->head = la_pos;
       return;
     }
@@ -3407,7 +3420,7 @@ open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
       c->alt_count = 0;  /* the record is this body's own; see there */
       re_level *lv = open_level(c, RE_LEVEL_LOOKBEHIND, begin, outer_atom_start);
       lv->state = negative;
-      lv->num = (uint16_t)++c->num_cuts;
+      lv->num = next_cut(c);
       lv->head = lb_pos;
       lv->aux = lv->alt_start;  /* where the body's code begins */
       return;
@@ -3423,10 +3436,9 @@ open_group(re_compiler *c, uint32_t begin, uint32_t outer_atom_start)
          already emitted, and with depths that wrapper and a group inside
          it, compiled with the same groups open around them, shared a
          depth, so a cut of the wrapper was read as the inner group's.
-         Every numbered group emits two instructions, so the number fits
-         the field. */
+         next_cut() bounds the number to the 16 bits that carry it. */
       next_char(c); next_char(c);  /* skip ?> */
-      uint16_t cut = (uint16_t)++c->num_cuts;
+      uint16_t cut = next_cut(c);
       emit(c, RE_ATOMIC, 0, cut);
       re_level *lv = open_level(c, RE_LEVEL_ATOMIC, begin, outer_atom_start);
       lv->num = cut;
@@ -3717,7 +3729,7 @@ emit_multi_backref(re_compiler *c, uint32_t set, uint8_t fold)
 {
   uint32_t taken[RE_MAX_CAPTURES];  /* the arms' jumps to the join point */
   uint32_t num_taken = 0;
-  uint16_t cut = (uint16_t)++c->num_cuts;
+  uint16_t cut = next_cut(c);
 
   emit(c, RE_ATOMIC, 0, cut);
   for (int g = RE_MAX_CAPTURES - 1; g > 0; g--) {
@@ -3732,10 +3744,10 @@ emit_multi_backref(re_compiler *c, uint32_t set, uint8_t fold)
     uint32_t fork = emit(c, RE_SPLIT, 0, 0);
     emit(c, RE_BACKREF, (uint8_t)g, fold);
     taken[num_taken++] = emit(c, RE_JMP, 0, 0);
-    patch(c, fork, (uint16_t)c->code_len);
+    patch(c, fork, (uint32_t)c->code_len);
   }
   for (uint32_t i = 0; i < num_taken; i++) {
-    patch(c, taken[i], (uint16_t)c->code_len);
+    patch(c, taken[i], (uint32_t)c->code_len);
   }
   emit(c, RE_ATOMIC_END, 0, cut);
   c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
@@ -4125,7 +4137,7 @@ emit_atom_copy(re_compiler *c, uint32_t start, uint32_t size)
   for (uint32_t j = 0; j < size; j++) {
     re_inst in = c->pat->code[start + j];
     if (op_holds_code_index(in.op) && in.offset >= start && in.offset <= atom_end) {
-      in.offset = (uint16_t)((int32_t)in.offset + delta);
+      in.offset = (uint32_t)((int64_t)in.offset + delta);
     }
     emit(c, in.op, in.a, in.offset);
   }
@@ -4240,7 +4252,7 @@ compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
       /* Possessive: what stands emitted becomes an atomic group of its own,
          numbered after every group inside it, since those are emitted. */
       next_char(c);
-      uint16_t cut = (uint16_t)++c->num_cuts;
+      uint16_t cut = next_cut(c);
       insert_inst(c, begin, RE_ATOMIC, 0, cut);
       emit(c, RE_ATOMIC_END, 0, cut);
       c->needs_backtrack = TRUE;  /* the Pike VM cannot cut a thread */
@@ -4278,7 +4290,7 @@ compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
            SPLIT offset = end (after JMP), patched after JMP is emitted */
         insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
         emit(c, RE_JMP, 0, start);
-        c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+        c->pat->code[start].offset = (uint32_t)c->code_len;  /* patch: skip to end */
       }
       else if (ch == '+') {
         /* e+ -> body; SPLIT/SPLITNG(start)
@@ -4289,7 +4301,7 @@ compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
       else { /* ? */
         /* e? -> SPLIT(body, end); body; end: */
         insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-        c->pat->code[start].offset = (uint16_t)c->code_len;  /* patch: skip to end */
+        c->pat->code[start].offset = (uint32_t)c->code_len;  /* patch: skip to end */
       }
       greedy_rep = !nongreedy;
       start = begin;
@@ -4342,7 +4354,7 @@ compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
       }
       if (has_group) {
         insert_inst(c, start, RE_JMP, 0, 0);
-        patch(c, start, (uint16_t)c->code_len);
+        patch(c, start, (uint32_t)c->code_len);
       }
       else {
         c->code_len = start;
@@ -4379,7 +4391,7 @@ compile_quantifiers(re_compiler *c, uint32_t begin, uint32_t start)
       if (wrap_optional) {
         /* Make the whole {1,m}/{1,} body skippable so it matches zero times. */
         insert_inst(c, start, nongreedy ? RE_SPLITNG : RE_SPLIT, 0, 0);
-        c->pat->code[start].offset = (uint16_t)c->code_len;
+        c->pat->code[start].offset = (uint32_t)c->code_len;
       }
     }
     greedy_rep = FALSE;
@@ -4433,11 +4445,11 @@ close_alternation(re_compiler *c, re_level *lv)
     re_inst *in = &c->pat->code[pc];
     if (in->op != RE_JMP || in->a != RE_JMP_BRANCH) continue;
     in->a = 0;
-    in->offset = (uint16_t)end;
+    in->offset = (uint32_t)end;
     k++;  /* branch k begins right after the exit of branch k - 1 */
     c->pat->code[first - k].op = RE_SPLIT;
     c->pat->code[first - k].a = 0;
-    c->pat->code[first - k].offset = (uint16_t)(pc + 1);
+    c->pat->code[first - k].offset = (uint32_t)(pc + 1);
   }
   mrb_assert(k == split_count);
 
@@ -4482,7 +4494,7 @@ close_level(re_compiler *c)
        groups use, so that a cut aimed at this lookaround is told from one
        aimed at a group around or inside it; see bt_match(). */
     emit(c, RE_LOOK_END, lv->state ? RE_LOOK_NEGATED : 0, lv->num);
-    c->pat->code[lv->head].offset = (uint16_t)c->code_len;  /* patch: skip past sub-pattern */
+    c->pat->code[lv->head].offset = (uint32_t)c->code_len;  /* patch: skip past sub-pattern */
     close_paren(c);
     c->needs_backtrack = TRUE;  /* needs backtracking engine */
     break;
@@ -4526,7 +4538,7 @@ close_level(re_compiler *c)
     else {
       add_lookbehind_widths(c, lv->head, sub_start, body_end);
     }
-    c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+    c->pat->code[lv->head].offset = (uint32_t)c->code_len;
     close_paren(c);
     c->needs_backtrack = TRUE;  /* needs backtracking engine */
     break;
@@ -4541,7 +4553,7 @@ close_level(re_compiler *c)
   case RE_LEVEL_ABSENT:
     emit(c, RE_ABSENT_END, 0, 0);
     close_paren(c);
-    c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+    c->pat->code[lv->head].offset = (uint32_t)c->code_len;
     c->needs_backtrack = TRUE;  /* the Pike VM has no scan of its own */
     break;
 
@@ -4557,7 +4569,7 @@ close_level(re_compiler *c)
   case RE_LEVEL_COND:
     /* With no `no`, the head's offset is the text after the group; with
        one, the jump that ends `yes` goes there. */
-    c->pat->code[lv->state ? lv->aux : lv->head].offset = (uint16_t)c->code_len;
+    c->pat->code[lv->state ? lv->aux : lv->head].offset = (uint32_t)c->code_len;
     close_paren(c);
     c->needs_backtrack = TRUE;  /* the Pike VM's threads carry no test of their captures */
     break;
@@ -4600,7 +4612,7 @@ compile_levels(re_compiler *c)
            at `no` where the group has not matched. */
         if (lv->state) compile_error(c, "invalid conditional pattern");
         lv->aux = emit(c, RE_JMP, 0, 0);
-        c->pat->code[lv->head].offset = (uint16_t)c->code_len;
+        c->pat->code[lv->head].offset = (uint32_t)c->code_len;
         lv->state = TRUE;
         continue;
       }
@@ -5971,10 +5983,10 @@ resolve_calls(re_compiler *c)
     {
       uint32_t tramp = c->code_len;
       emit(c, RE_CALL, (uint8_t)k, 0);  /* the entry index lands below */
-      emit(c, RE_JMP, 0, (uint16_t)(close + 1));
+      emit(c, RE_JMP, 0, (uint32_t)(close + 1));
       c->pat->code[pc].op = RE_JMP;
       c->pat->code[pc].a = 0;
-      c->pat->code[pc].offset = (uint16_t)tramp;
+      c->pat->code[pc].offset = (uint32_t)tramp;
       c->pat->code[close].op = RE_RETURN;
       c->pat->code[close].a = (uint8_t)k;
       c->pat->code[close].offset = 0;
@@ -5986,7 +5998,7 @@ resolve_calls(re_compiler *c)
   for (uint32_t pc = 0; pc < c->code_len; pc++) {
     if (c->pat->code[pc].op != RE_CALL) continue;
     mrb_assert(entry[c->pat->code[pc].a] != 0);
-    c->pat->code[pc].offset = (uint16_t)entry[c->pat->code[pc].a];
+    c->pat->code[pc].offset = (uint32_t)entry[c->pat->code[pc].a];
   }
 
   never_ending_check(c, called, entry);
