@@ -167,6 +167,9 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   mrb_irep *irep;
   int ai = mrb_gc_arena_save(mrb);
 
+  /* record size, nlocals, nregs, rlen, clen, ilen */
+  if (end < src || (size_t)(end - src) < sizeof(uint32_t)*2 + sizeof(uint16_t)*4) return FALSE;
+
   /* skip record size */
   src += sizeof(uint32_t);
 
@@ -339,6 +342,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
     syms = (mrb_sym*)irep->syms; /* in consolidated block */
 
     for (i = 0; i < irep->slen; i++) {
+      if (src + sizeof(uint16_t) > end) return FALSE;
       snl = bin_to_uint16(src);               /* symbol name length */
       src += sizeof(uint16_t);
 
@@ -409,8 +413,9 @@ read_section_irep(mrb_state *mrb, const uint8_t *bin, size_t size, uint8_t flags
 
   mrb_irep **irepp = (mrb_irep**)&(*proc)->body.irep;
   size_t len;
+  const uint8_t *end = bin + size;  /* size counts from the section header */
   bin += sizeof(struct rite_section_irep_header);
-  if (read_irep_record(mrb, bin, bin+size, &len, flags, irepp)) {
+  if (read_irep_record(mrb, bin, end, &len, flags, irepp)) {
     return *irepp;
   }
   else {
@@ -732,6 +737,8 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
     section_header = (const struct rite_section_header*)bin;
     uint32_t section_size = bin_to_uint32(section_header->section_size);
     if (bin_size < section_size) return NULL;
+    /* a section must cover its own header, or the loop never advances */
+    if (section_size < sizeof(struct rite_section_header)) return NULL;
     if (memcmp(section_header->section_ident, RITE_SECTION_IREP_IDENT, sizeof(section_header->section_ident)) == 0) {
       irep = read_section_irep(mrb, bin, bin_size, flags, &proc);
       if (!irep) return NULL;
