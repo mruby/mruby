@@ -70,7 +70,9 @@ assert('Regexp end window: no match starts inside a character') do
   assert_equal "本語", "日本語".match(/.{2}\z/)[0]
   assert_equal ["語"], "日本語".scan(/.$/)
   assert_equal ["本", "語"], "日本\n語\n".scan(/.$/)
-  assert_equal true, "a　".match?(/[[:blank:]]\z/)
+  # U+3000 is blank only where the build classifies above ASCII; either way
+  # the window answers what the class says of the whole character.
+  assert_equal "　".match?(/[[:blank:]]/), "a　".match?(/[[:blank:]]\z/)
 end
 
 assert('Regexp end window: a lookbehind over a wide character') do
