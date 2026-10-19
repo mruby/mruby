@@ -24,6 +24,17 @@
 /* the literal record (literal_cp) a compile keeps in its own frame before
    it moves to the GC arena */
 #define RE_LITERAL_CP_INLINE 256
+/* the chains literal_class() finds a codepoint's class through, by its low
+   bits */
+#define RE_LITERAL_BUCKETS 256
+
+/* A class's entry in the literal record: the codepoint whose /i literal it
+   stands for (0 for a class made by anything else), and the class before it
+   in that codepoint's bucket chain (its id + 1, 0 for none). */
+typedef struct re_literal {
+  uint32_t cp;
+  uint16_t next;
+} re_literal;
 
 /* What opened a nesting level of the parse; see re_level. */
 enum {
@@ -169,14 +180,16 @@ typedef struct {
                                before the atom, and a `\u{...}` list moves it
                                forward so the quantifier repeats the last
                                codepoint alone */
-  uint32_t *literal_cp;     /* by class id: the codepoint whose /i literal
+  re_literal *literal_cp;   /* by class id: the codepoint whose /i literal
                                the class stands for, 0 for a class made by
                                anything else; see literal_class(). In
                                literal_cp_inline, then a String the GC arena
                                keeps for the compile once it outgrows that */
   uint32_t literal_capa;
   mrb_value literal_store;  /* nil while the record is inline */
-  uint32_t literal_cp_inline[RE_LITERAL_CP_INLINE];
+  re_literal literal_cp_inline[RE_LITERAL_CP_INLINE];
+  uint16_t literal_head[RE_LITERAL_BUCKETS];  /* by cp % RE_LITERAL_BUCKETS: the
+                               newest literal class of the bucket, id + 1 */
   uint32_t depth;           /* nesting levels open at the parse point: the
                                levels on the stack below and the character
                                classes open inside one another; bounded by
@@ -432,18 +445,18 @@ add_class(re_compiler *c)
     /* outgrown: the record moves to a String the GC arena holds for the
        compile, as the levels do (open_level()), and doubles from there */
     uint32_t capa = c->literal_capa * 2;
-    size_t bytes = sizeof(uint32_t) * capa;
+    size_t bytes = sizeof(re_literal) * capa;
     if (mrb_nil_p(c->literal_store)) {
       c->literal_store = mrb_str_new(c->mrb, NULL, bytes);
-      memcpy(RSTRING_PTR(c->literal_store), c->literal_cp, sizeof(uint32_t) * c->literal_capa);
+      memcpy(RSTRING_PTR(c->literal_store), c->literal_cp, sizeof(re_literal) * c->literal_capa);
     }
     else {
       mrb_str_resize(c->mrb, c->literal_store, (mrb_int)bytes);
     }
-    c->literal_cp = (uint32_t*)RSTRING_PTR(c->literal_store);
+    c->literal_cp = (re_literal*)RSTRING_PTR(c->literal_store);
     c->literal_capa = capa;
   }
-  c->literal_cp[id] = 0;
+  c->literal_cp[id].cp = 0;
   c->pat->num_classes = id + 1;
   return id;
 }
@@ -460,7 +473,10 @@ drop_class(re_compiler *c, uint16_t id)
   mrb_assert(id + 1 == c->pat->num_classes);
   mrb_free(c->mrb, c->pat->classes[id].ranges);
   memset(&c->pat->classes[id], 0, sizeof(re_charclass));
-  c->literal_cp[id] = 0;
+  /* the newest class is its bucket's head */
+  if (c->literal_cp[id].cp)
+    c->literal_head[c->literal_cp[id].cp % RE_LITERAL_BUCKETS] = c->literal_cp[id].next;
+  c->literal_cp[id].cp = 0;
   c->pat->num_classes = id;
 }
 
@@ -476,7 +492,9 @@ drop_class(re_compiler *c, uint16_t id)
    classes it needed were as many as its distinct letters.
 
    Every class is recorded by id, which keeps the record the size of the id
-   space and lets it be searched to `num_classes` alone. It sits in the
+   space, and the literal ones are chained by the codepoint's low bits, so a
+   lookup reads the classes of its bucket alone rather than every class of
+   the pattern. It sits in the
    compiler's own frame rather than behind `pat`, since nothing outlives the
    compile that would want it. Zero marks a class that stands for no literal:
    it cannot be mistaken for one, since U+0000 has no case and neither caller
@@ -486,14 +504,17 @@ drop_class(re_compiler *c, uint16_t id)
 static uint16_t
 literal_class(re_compiler *c, uint32_t cp, mrb_bool *found)
 {
-  for (uint16_t id = 0; id < c->pat->num_classes; id++) {
-    if (c->literal_cp[id] == cp) {
+  uint16_t *head = &c->literal_head[cp % RE_LITERAL_BUCKETS];
+  for (uint16_t e = *head; e; e = c->literal_cp[e - 1].next) {
+    if (c->literal_cp[e - 1].cp == cp) {
       *found = TRUE;
-      return id;
+      return (uint16_t)(e - 1);
     }
   }
   uint16_t id = add_class(c);
-  c->literal_cp[id] = cp;
+  c->literal_cp[id].cp = cp;
+  c->literal_cp[id].next = *head;
+  *head = (uint16_t)(id + 1);
   *found = FALSE;
   return id;
 }
