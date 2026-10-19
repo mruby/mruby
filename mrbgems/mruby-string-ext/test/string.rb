@@ -1153,6 +1153,16 @@ assert('String#insert') do
   a = "abcd"
   a.insert(0, 'X')
   assert_equal "Xabcd", a
+
+  # The receiver inserted into itself is copied over its own bytes
+  b = "abcd"
+  b.insert(1, b)
+  assert_equal "aabcdbcd", b
+
+  c = "0123456789" * 10
+  expected = c[0, 7] + c + c[7..-1]
+  c.insert(7, c)
+  assert_equal expected, c
 end
 
 assert('String#prepend') do

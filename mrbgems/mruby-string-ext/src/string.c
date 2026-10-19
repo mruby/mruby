@@ -2463,7 +2463,9 @@ str_insert(mrb_state *mrb, mrb_value self)
 
   char *p = RSTRING_PTR(self);
   memmove(p + idx + insert_len, p + idx, self_len - idx);
-  memcpy(p + idx, RSTRING_PTR(str_to_insert), insert_len);
+  /* The receiver inserted into itself is read from the same buffer, and the
+     bytes it is copied over are its own, so the two ranges overlap. */
+  memmove(p + idx, RSTRING_PTR(str_to_insert), insert_len);
   str_mark_spliced_bytes(self, str_to_insert);
 
   return self;

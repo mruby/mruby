@@ -1736,6 +1736,13 @@ assert('String#bytesplice') do
   a = "0123456789"
   assert_equal "0cd23456789", a.bytesplice(1, 1, b, 2, 2)
 
+  # the receiver spliced into itself, from past the range it replaces
+  a = "0123456789"
+  assert_equal "02345678923456789", a.bytesplice(1, 1, a, 2, 8)
+
+  a = "0123456789"
+  assert_equal "034567893456789", a.bytesplice(1..2, a, 3..9)
+
   # check the object type to replace
   assert_raise(TypeError) { "0123456789".bytesplice(1, 1, Object.new) }
 
