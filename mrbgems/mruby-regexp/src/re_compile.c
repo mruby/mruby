@@ -1490,7 +1490,7 @@ class_add_posix(re_compiler *c, re_charclass *cc, re_charclass *ascii_set,
 /* Room for the longest name looked up, once normalized. */
 #define RE_PROP_NAME_MAX 24
 
-enum { RE_PROP_NONE, RE_PROP_POSIX, RE_PROP_GC, RE_PROP_EMOJI };
+enum { RE_PROP_NONE, RE_PROP_POSIX, RE_PROP_GC, RE_PROP_EMOJI, RE_PROP_RANGE };
 
 /* The POSIX names, as [:name:] spells them and as a property name normalizes
    to: \p{Alpha} is [[:alpha:]] and \p{XDigit} [[:xdigit:]]. */
@@ -1566,6 +1566,16 @@ prop_gc_mask(const char *code, size_t n)
   return m;
 }
 
+/* The binary properties that are one run of codepoints, by their normalized
+   names: \p{RI} (Regional_Indicator), the flags' letters. */
+static const struct {
+  const char *name;
+  uint32_t lo, hi;
+} prop_range_names[] = {
+  {"ri", 0x1F1E6, 0x1F1FF},
+  {"regionalindicator", 0x1F1E6, 0x1F1FF},
+};
+
 /* TRUE where `raw`, normalized, is `norm`. */
 static mrb_bool
 prop_name_is(const char *norm, const char *raw)
@@ -1585,7 +1595,7 @@ prop_name_is(const char *norm, const char *raw)
    For a category the members are `*want` as a mask of the categories it
    holds, a letter standing for every category it begins and a long name for
    the ones prop_gc_long_names lists; for an emoji property they are its
-   bit. */
+   bit, and for a property of one run its row in prop_range_names. */
 static int
 prop_lookup(const char *name, size_t len, char *norm, uint32_t *want)
 {
@@ -1622,6 +1632,12 @@ prop_lookup(const char *name, size_t len, char *norm, uint32_t *want)
     if (prop_name_is(norm, re_prop_emoji_names[i])) {
       *want = (uint32_t)1 << i;
       return RE_PROP_EMOJI;
+    }
+  }
+  for (size_t i = 0; i < sizeof(prop_range_names) / sizeof(prop_range_names[0]); i++) {
+    if (strcmp(norm, prop_range_names[i].name) == 0) {
+      *want = (uint32_t)i;
+      return RE_PROP_RANGE;
     }
   }
 #else
@@ -1721,6 +1737,9 @@ class_add_property(re_compiler *c, uint16_t id, re_charclass *ascii_set,
     if (kind == RE_PROP_GC) {
       class_add_runs(c, set, re_prop_gc_runs, RE_PROP_GC_RUN_COUNT,
                      RE_PROP_GC_BITS, want, FALSE);
+    }
+    else if (kind == RE_PROP_RANGE) {
+      class_add_range(c, set, prop_range_names[want].lo, prop_range_names[want].hi);
     }
     else {
       class_add_runs(c, set, re_prop_emoji_runs, RE_PROP_EMOJI_RUN_COUNT,

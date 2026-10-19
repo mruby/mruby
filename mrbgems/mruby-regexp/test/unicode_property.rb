@@ -114,3 +114,14 @@ assert("Regexp - \\p reads the long names of the general categories") do
   assert_true(/\p{TITLECASE_LETTER}/.match?("ǅ"))
   assert_true(/\b\p{letter}[^.\/:]++\./.match?("see RDoc.new"))
 end
+
+assert("Regexp - \\p{RI} reads the regional indicators") do
+  skip unless __ENCODING__ == "UTF-8"
+  s = "flags \u{1F1EF}\u{1F1F5} and \u{1F1FA}\u{1F1F8}! a"
+  assert_equal 4, s.scan(/\p{RI}/).size
+  assert_equal ["\u{1F1EF}\u{1F1F5}", "\u{1F1FA}\u{1F1F8}"], s.scan(/\p{RI}{2}/)
+  assert_equal 0, s =~ /\P{RI}/
+  assert_equal 7, s.scan(/[\p{RI}a]/).size
+  assert_nil "x" =~ /\p{Regional_Indicator}/
+  assert_equal 0, "\u{1F1E6}" =~ /\p{regional-indicator}/
+end
