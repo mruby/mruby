@@ -3758,6 +3758,8 @@ emit_multi_backref(re_compiler *c, uint32_t set, uint8_t fold)
    either a quantifier metacharacter or the end of the sequence, neither of
    them consumed. A '(' is not read here: it opens a level, which is
    compile_levels()'s to push, through open_group(). */
+static void compile_levels(re_compiler *c);
+
 static mrb_bool
 compile_atom(re_compiler *c)
 {
@@ -4039,13 +4041,31 @@ compile_atom(re_compiler *c)
       emit(c, RE_SAVE, 0, RE_KEEP_PENDING);
       c->has_keep = TRUE;
     }
-    else if (ch == 'R' || ch == 'X') {
-      /* Each of these means something in CRuby that this engine does not do:
-         `\R` is any linebreak and `\X` is a whole grapheme cluster. Left to
-         the fall-through each was simply its own letter, so /\R/ matched an
-         R rather than a newline. Inside a character class CRuby reads them
-         as the letter too, which is what the class parser already does, so
-         only the escape outside one is refused here. */
+    else if (ch == 'R') {
+      /* `\R`, any linebreak: CRuby's (?>\r\n|[\n\v\f\r\u{85}\u{2028}\u{2029}]),
+         and for a byte-indexed pattern (?>\r\n|[\n\v\f\r]). It is read from
+         that spelling in its place, the parse cursor moved onto it and back,
+         so the quantifiers after it bind the group. Inside a character class
+         CRuby reads it as the letter, which the class parser does. CRuby
+         refuses it in a look-behind, whose width an atomic group leaves
+         open. */
+      static const char lb_utf8[] = "(?>\\r\\n|[\\n\\v\\f\\r\\u0085\\u2028\\u2029])";
+      static const char lb_bytes[] = "(?>\\r\\n|[\\n\\v\\f\\r])";
+      for (uint32_t i = 0; i < c->level_count; i++)
+        if (c->levels[i].kind == RE_LEVEL_LOOKBEHIND) compile_error(c, "invalid pattern in look-behind");
+      next_char(c);
+      const char *sub = c->binary ? lb_bytes : lb_utf8;
+      const char *sv_p = c->p, *sv_end = c->src_end;
+      c->p = sub;
+      c->src_end = sub + strlen(sub);
+      compile_levels(c);
+      c->p = sv_p;
+      c->src_end = sv_end;
+    }
+    else if (ch == 'X') {
+      /* `\X` is a whole grapheme cluster in CRuby, which this engine does
+         not do. Left to the fall-through it was simply its own letter, so
+         only the escape outside a character class is refused here. */
       compile_error_str(c, mrb_format(c->mrb, "\\\\%c is not supported", (char)ch));
     }
     else if ((ch == 'p' || ch == 'P') && c->p + 1 < c->src_end && c->p[1] == '{') {

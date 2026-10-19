@@ -3554,10 +3554,10 @@ end
 
 assert("Regexp - the escapes this engine does not carry are refused") do
   # Each means something in CRuby that this engine does not do, and as an
-  # unknown escape each was simply its own letter: /\R/ matched an R rather
-  # than a newline.
-  assert_raise_with_message(RegexpError, "\\R is not supported: /\\R/") { Regexp.new("\\R") }
-  ["\\R", "\\X", "x\\X"].each do |src|
+  # unknown escape each was simply its own letter: /\X/ matched an X rather
+  # than a grapheme cluster. (\R was one of them; it is carried now.)
+  assert_raise_with_message(RegexpError, "\\X is not supported: /\\X/") { Regexp.new("\\X") }
+  ["\\X", "x\\X"].each do |src|
     assert_raise(RegexpError, src) { Regexp.new(src) }
   end
   # \K is carried, but not inside a lookaround or an absent operator, nor
