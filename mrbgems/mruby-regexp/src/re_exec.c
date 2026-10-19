@@ -174,6 +174,40 @@ skip_to_line_start(const char *str, const char *sp, const char *str_end)
   return nl + 1;
 }
 
+/*
+ * Skip to the first position a match could start at and still reach the end
+ * assertion every path passes (see mrb_regexp_pattern::end_anchor): no
+ * nearer than end_reach bytes before a place the assertion can pass. Under
+ * \z that place is the end of the subject, and under \Z the \n that may
+ * stand before it as well. Under $ it is the end of the first line ending at
+ * or after `sp`, which is the nearest any match from here can stop at; the
+ * search asks again after every attempt, so `*eol` keeps that line end until
+ * the search passes it. A position the answer lands inside a character is
+ * one the search's interior test refuses, as it refuses any other.
+ *
+ * Nothing moves the search's own idea of where it began: \G and a
+ * lookbehind read the subject as it is, the text before the answer included.
+ */
+static const char*
+skip_to_end_window(const mrb_regexp_pattern *pat, const char *sp,
+                   const char *str_end, const char **eol)
+{
+  const char *end = str_end;
+  size_t reach = pat->end_reach;
+  if (pat->end_anchor == RE_END_EOTNL) {
+    reach++;
+  }
+  else if (pat->end_anchor == RE_END_EOL) {
+    if (!*eol || *eol < sp) {
+      const char *nl = (const char*)memchr(sp, '\n', (size_t)(str_end - sp));
+      *eol = nl ? nl : str_end;
+    }
+    end = *eol;
+  }
+  if ((size_t)(end - sp) > reach) return end - reach;
+  return sp;
+}
+
 /* Check if the current input character matches a character class. ASCII
    (cp < 128) hits the bitmap; non-ASCII falls back to the inclusive (lo, hi)
    range list, then to the types the class holds by POSIX bracket, then to the
@@ -341,6 +375,32 @@ pool_grow(pike_state *s)
   return TRUE;
 }
 
+/* Copy one thread's captures. A pattern without groups has the two ints of
+   the whole match and no more, and the VM copies them at nearly every step
+   of every thread, where a call into the C library costs more than the copy:
+   that case is two stores. */
+static inline void
+caps_copy(int *dst, const int *src, int ncap)
+{
+  if (ncap == 2) {
+    dst[0] = src[0];
+    dst[1] = src[1];
+    return;
+  }
+  memcpy(dst, src, sizeof(int) * ncap);
+}
+
+/* Mark every capture unset, for the same reason and with the same shortcut. */
+static inline void
+caps_clear(int *caps, int ncap)
+{
+  if (ncap == 2) {
+    caps[0] = caps[1] = -1;
+    return;
+  }
+  memset(caps, -1, sizeof(int) * ncap);
+}
+
 /* The growth is a call of its own so that this, which runs for every slot a
    step hands out, stays small enough to be taken inline. */
 static inline mrb_bool
@@ -353,14 +413,13 @@ pool_alloc(pike_state *s, int *slot)
 
 /* A fresh slot holding what `src_slot` holds. Answers as pool_alloc() does,
    and for the same reason. */
-static mrb_bool
+static inline mrb_bool
 pool_copy(pike_state *s, int src_slot, int *slot)
 {
   int dst;
   if (!pool_alloc(s, &dst)) return FALSE;
-  memcpy(&s->cap_pool[dst * s->ncap],
-         &s->cap_pool[src_slot * s->ncap],
-         sizeof(int) * s->ncap);
+  caps_copy(&s->cap_pool[dst * s->ncap], &s->cap_pool[src_slot * s->ncap],
+            s->ncap);
   *slot = dst;
   return TRUE;
 }
@@ -601,7 +660,7 @@ add_thread(pike_state *s, re_threadlist *list,
       case RE_MATCH:
         s->matched = TRUE;
         if (s->result_caps) {
-          memcpy(s->result_caps, CAP(s, cap_slot), sizeof(int) * s->ncap);
+          caps_copy(s->result_caps, CAP(s, cap_slot), s->ncap);
         }
         /* Leftmost-first: this is the highest-priority thread to reach a match
            this step (closures run in priority order), so cut every lower one.
@@ -715,6 +774,16 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   s.pool_next = 0;
   s.result_caps = NULL;
   s.pool_capa = match_only ? 1 : list_capa * 2;
+  /* What the state holds inline is where the pool starts whenever a handful
+     of slots fit there, even if the program could ask for more: a search
+     holds a slot per live thread, which is a few for most patterns on most
+     subjects, and pool_grow() moves the pool to the heap the step it needs
+     more. Starting it on the heap at its largest size cost every search an
+     allocation, which a short subject spent more time on than on matching. */
+  if (!match_only && RE_POOL_INLINE / ncap >= 4 &&
+      (size_t)s.pool_capa * ncap > RE_POOL_INLINE) {
+    s.pool_capa = RE_POOL_INLINE / ncap;
+  }
   if ((size_t)s.pool_capa * ncap <= RE_POOL_INLINE) s.cap_pool = s.pool_inline;
   else s.cap_pool = (int*)mrb_malloc_simple(mrb, sizeof(int) * s.pool_capa * ncap);
   if (!match_only) {
@@ -733,8 +802,14 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     /* The search is over before it starts; there is nothing left to take. */
   }
   else if (use_cache) {
+    /* The marks the searches before this one left are all below the key the
+       last of them reached, so going on from there reads every one of them
+       as unmarked without clearing them: a short search would otherwise
+       spend more on the clearing than on the program. advance_gen() clears
+       them once the keys come near the top. */
     s.visited = mpat->cached_visited;
-    memset(s.visited, 0, vsize);
+    s.gen = mpat->cached_gen;
+    s.key_max = s.gen + s.pass_span - 1;
     curr.threads = (re_thread*)mpat->cached_threads[0];
     next.threads = (re_thread*)mpat->cached_threads[1];
     curr.capa = next.capa = mpat->cached_list_capa;
@@ -761,6 +836,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   if (s.nomem) use_cache = FALSE;
   else if (use_cache) mpat->cache_in_use = TRUE;
 
+  const char *eol = NULL;  /* see skip_to_end_window() */
   for (; !s.nomem && sp <= str_end; sp++) {
     /* Past the last position a match may start at, only the threads already
        running can still answer; once they are gone nothing can. */
@@ -768,6 +844,9 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
     if (!s.matched && sp <= start_cap) {
       /* Skip ahead when no active threads */
       if (curr.count == 0) {
+        if (pat->end_anchor != RE_END_NONE) {
+          sp = skip_to_end_window(pat, sp, str_end, &eol);
+        }
         /* ^: every branch asserts a line start first, so only those are
            candidates. \A was folded into start_cap on entry; such a pattern
            reaches here at the start alone, where the line-start answer is
@@ -801,7 +880,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         int slot = 0;
         if (!match_only) {
           if (!pool_alloc(&s, &slot)) break;
-          memset(CAP(&s, slot), -1, sizeof(int) * ncap);
+          caps_clear(CAP(&s, slot), ncap);
         }
         advance_gen(&s);
         s.cut = FALSE;
@@ -813,7 +892,25 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
 
     if (sp >= str_end) break;
 
-    if (!match_only && curr.count > 0) {
+    /* Every live slot is a thread's, and a match keeps what it found in
+       result_caps rather than in the pool (see RE_MATCH in add_thread), so a
+       step with no threads left holds no slot either and the pool goes back
+       to the front. Reclaiming only where there was something to renumber
+       would leave the slot each dead attempt took: a run of positions where
+       nothing survives climbs the pool by one a position, and a search over
+       a long enough subject asks the allocator for memory in proportion to
+       the subject rather than to the pattern.
+
+       Where threads live, the slots the steps before handed out pile up
+       behind them, the dead ones among them, and the pool is compacted once
+       they fill half of it rather than at every step: compacting is a copy
+       of every live thread's slots, which at every step cost more than the
+       step's own work on a short pattern. Half is what leaves the step that
+       follows room for as many slots again without growing. */
+    if (!match_only && curr.count == 0) {
+      s.pool_next = 0;
+    }
+    else if (!match_only && s.pool_next > s.pool_capa / 2) {
       /* Renumber each live thread's capture slot to its list index so the
          pool can be reset to curr.count. Stage the copies through freshly
          allocated tail slots first: writing straight to CAP(i) would clobber
@@ -826,8 +923,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       for (int i = 0; i < curr.count; i++) {
         int dst;
         if (!pool_alloc(&s, &dst)) break;
-        memcpy(CAP(&s, dst), CAP(&s, curr.threads[i].cap_slot),
-               sizeof(int) * ncap);
+        caps_copy(CAP(&s, dst), CAP(&s, curr.threads[i].cap_slot), ncap);
         curr.threads[i].cap_slot = i;
       }
       /* Leave before the block copy rather than after it: the staging slots
@@ -836,16 +932,8 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
       if (s.nomem) break;
       memcpy(&s.cap_pool[0], &s.cap_pool[base * ncap],
              sizeof(int) * ncap * curr.count);
+      s.pool_next = curr.count;
     }
-    /* Every live slot is a thread's, and a match keeps what it found in
-       result_caps rather than in the pool (see RE_MATCH in add_thread), so a
-       step with no threads left holds no slot either and the pool goes back
-       to the front. Reclaiming only where there was something to renumber
-       would leave the slot each dead attempt took: a run of positions where
-       nothing survives climbs the pool by one a position, and a search over
-       a long enough subject asks the allocator for memory in proportion to
-       the subject rather than to the pattern. */
-    if (!match_only) s.pool_next = curr.count;
 
     advance_gen(&s);
     s.cut = FALSE;
@@ -879,13 +967,18 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         continue;
       }
 
+      /* A thread that consumes hands its own capture slot on to what it
+         becomes at the next position. Nothing else holds the slot: a
+         closure gives every branch it keeps a copy of its own and carries
+         its slot on along one path alone, so no two threads share one, and
+         this thread is stepped once. So the closure may write the slot
+         where it stands, and copying it first only cost a copy per thread
+         per step. */
       re_inst inst = pat->code[th->pc];
       switch (inst.op) {
       case RE_CHAR:
         if (ch == inst.a) {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
+          add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + 1, s.gen);
         }
         break;
 
@@ -896,41 +989,29 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
            for the class path, and a byte-indexed subject answers it for every
            byte, which is where this is RE_CHAR. */
         if (ch == inst.a && curr_raw) {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + 1, s.gen);
+          add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + 1, s.gen);
         }
         break;
 
       case RE_ANY:
         if (ch != '\n') {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
+          add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         }
         break;
 
       case RE_ANY_NL:
-        {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
-        }
+        add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         break;
 
       case RE_CLASS:
         if (class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
+          add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         }
         break;
 
       case RE_NCLASS:
         if (!class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
-          int cp = 0;
-          if (!match_only && !pool_copy(&s, th->cap_slot, &cp)) break;
-          add_thread(&s, &next, th->pc + 1, cp, sp + advance, s.gen);
+          add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         }
         break;
 
@@ -972,6 +1053,7 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
   }
 
   if (use_cache) {
+    mpat->cached_gen = s.key_max;
     mpat->cache_in_use = FALSE;
   }
   else {
@@ -1091,6 +1173,14 @@ enum re_cp_kind {
                    Onigmo's STACK_RETURN counts its STK_RETURN marks. */
 };
 
+/* Entries each of the backtracker's two stacks holds in the state before it
+   asks the allocator for room, and the ints of capture slots and iteration
+   records it holds there: a search of a short pattern that holds little
+   state allocates nothing, where one per search was what a short subject
+   spent most of its time on. */
+#define RE_BT_INLINE 32
+#define RE_BT_CAPS_INLINE 160
+
 /* A choice point: an alternative the search has not tried yet, as where the
    input stood (`sp`), which instruction takes the alternative (`pc`) and how
    tall the undo log was when it was pushed (`undo_top`). Backtracking pops
@@ -1171,17 +1261,19 @@ typedef struct {
   int pass_seq;
   mrb_bool binary;
   const char *gpos;   /* where this search started, for \G (RE_GPOS) */
-  /* The choice points not yet tried and the writes not yet taken back, both
-     grown lazily on the heap. A search starts with neither allocated and
-     pays only for the kind of state it holds: a fork is a choice point, a
-     capture or an iteration record is an undo record, and a pattern with
-     none of them in it asks the allocator for nothing. */
+  /* The choice points not yet tried and the writes not yet taken back. Both
+     start in the state itself and move to the heap once a search outgrows
+     what it holds there (see bt_grow()), so a search that holds little of
+     either asks the allocator for nothing: a fork is a choice point, and a
+     capture or an iteration record is an undo record. */
   re_cpoint *cp;
   uint32_t cp_top;
   uint32_t cp_capa;
   re_undo *undo;
   uint32_t undo_top;
   uint32_t undo_capa;
+  re_cpoint cp_inline[RE_BT_INLINE];
+  re_undo undo_inline[RE_BT_INLINE];
 } bt_state;
 
 /* Whether the loop `key` keys is at the end of an iteration that began at
@@ -1214,6 +1306,26 @@ bt_grow_capa(uint32_t capa)
   return capa < (uint32_t)MRB_REGEXP_STACK_LIMIT ? capa : (uint32_t)MRB_REGEXP_STACK_LIMIT;
 }
 
+/* Grow one of the two stacks, whose entries are `size` bytes, from `capa`
+   entries to bt_grow_capa()'s answer. The first growth moves it off the
+   state, taking what it holds; NULL is the allocator having refused, which
+   leaves the stack as it was. */
+static void*
+bt_grow(bt_state *m, void *arr, const void *inline_arr, uint32_t *capa, size_t size)
+{
+  uint32_t n = bt_grow_capa(*capa);
+  void *p;
+  if (arr == inline_arr) {
+    p = mrb_malloc_simple(m->mrb, size * n);
+    if (p) memcpy(p, arr, size * *capa);
+  }
+  else {
+    p = mrb_realloc_simple(m->mrb, arr, size * n);
+  }
+  if (p) *capa = n;
+  return p;
+}
+
 /* Push a choice point. BT_OK is the push having happened, and anything else
    is the search stopping, to be handed up as the frame's answer: BT_LIMIT
    where the stack limit refuses the entry, BT_NOMEM where the allocator
@@ -1225,11 +1337,9 @@ bt_push(bt_state *m, const char *sp, uint32_t pc, uint8_t kind, uint32_t group)
 {
   if (!bt_room(m)) return BT_LIMIT;
   if (m->cp_top == m->cp_capa) {
-    uint32_t capa = bt_grow_capa(m->cp_capa);
-    re_cpoint *p = (re_cpoint*)mrb_realloc_simple(m->mrb, m->cp, sizeof(re_cpoint) * capa);
+    re_cpoint *p = (re_cpoint*)bt_grow(m, m->cp, m->cp_inline, &m->cp_capa, sizeof(re_cpoint));
     if (!p) return BT_NOMEM;
     m->cp = p;
-    m->cp_capa = capa;
   }
   re_cpoint *c = &m->cp[m->cp_top++];
   c->sp = sp;
@@ -1258,11 +1368,9 @@ bt_log(bt_state *m, int *slot, int val)
   if (*slot == val) return BT_OK;
   if (!bt_room(m)) return BT_LIMIT;
   if (m->undo_top == m->undo_capa) {
-    uint32_t capa = bt_grow_capa(m->undo_capa);
-    re_undo *p = (re_undo*)mrb_realloc_simple(m->mrb, m->undo, sizeof(re_undo) * capa);
+    re_undo *p = (re_undo*)bt_grow(m, m->undo, m->undo_inline, &m->undo_capa, sizeof(re_undo));
     if (!p) return BT_NOMEM;
     m->undo = p;
-    m->undo_capa = capa;
   }
   re_undo *u = &m->undo[m->undo_top++];
   u->slot = slot;
@@ -1941,15 +2049,20 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
      iteration's record is written on the log now, which a match does not
      unwind, so a record left by the attempt before would otherwise be read
      as this attempt's and stop a repetition that had not gone round yet.
+     A short pattern's block is this frame's own (RE_BT_CAPS_INLINE).
 
-     Taken with mrb_malloc_simple() rather than mrb_malloc(), so that a
-     refusal is answered where the growth reallocs below already answer one.
+     A longer one is taken with mrb_malloc_simple() rather than mrb_malloc(),
+     so that a refusal is answered where the growth reallocs below already
+     answer one.
      Nothing is held here yet, so raising from this one line would strand
      nothing; what it would cost is the engine's own answer. Every other
      refusal inside a search reaches the caller as RE_NOMEM, which
      re_check_exec_error() turns into the raise, and a search that raised
      from here instead would be one the caller never saw stop. */
-  int *caps = (int*)mrb_malloc_simple(mrb, sizeof(int) * (ncap + 2 * pat->code_len));
+  int caps_inline[RE_BT_CAPS_INLINE];
+  size_t caps_n = (size_t)ncap + 2 * (size_t)pat->code_len;
+  int *caps = caps_n <= RE_BT_CAPS_INLINE ? caps_inline
+            : (int*)mrb_malloc_simple(mrb, sizeof(int) * caps_n);
   if (!caps) return RE_NOMEM;
   int ret = 0;
   bt_state m;
@@ -1965,16 +2078,22 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
   m.pass_seq = 0;
   m.binary = binary;
   m.gpos = str + start;   /* \G */
-  m.cp = NULL;
-  m.cp_top = m.cp_capa = 0;
-  m.undo = NULL;
-  m.undo_top = m.undo_capa = 0;
+  m.cp = m.cp_inline;
+  m.cp_top = 0;
+  m.cp_capa = RE_BT_INLINE < MRB_REGEXP_STACK_LIMIT ? RE_BT_INLINE : MRB_REGEXP_STACK_LIMIT;
+  m.undo = m.undo_inline;
+  m.undo_top = 0;
+  m.undo_capa = m.cp_capa;
   memset(m.entered_at, -1, sizeof(int) * pat->code_len);
   memset(m.entered_in, 0, sizeof(int) * pat->code_len);
 
+  const char *eol = NULL;  /* see skip_to_end_window() */
   for (const char *sp = str + start; sp <= str_end && sp <= start_cap; sp++) {
-    /* Skip ahead using the anchor, the literal prefix or the first-byte
-       bitmap; the same composition as pike_vm's. */
+    /* Skip ahead using the end assertion, the anchor, the literal prefix or
+       the first-byte bitmap; the same composition as pike_vm's. */
+    if (pat->end_anchor != RE_END_NONE) {
+      sp = skip_to_end_window(pat, sp, str_end, &eol);
+    }
     if (pat->anchor != RE_ANCHOR_NONE) {
       const char *skip = skip_to_line_start(str, sp, str_end);
       if (!skip) break;
@@ -2040,9 +2159,9 @@ backtrack_exec(mrb_state *mrb, const mrb_regexp_pattern *pat,
       break;
     }
   }
-  mrb_free(mrb, m.undo);
-  mrb_free(mrb, m.cp);
-  mrb_free(mrb, caps);
+  if (m.undo != m.undo_inline) mrb_free(mrb, m.undo);
+  if (m.cp != m.cp_inline) mrb_free(mrb, m.cp);
+  if (caps != caps_inline) mrb_free(mrb, caps);
   return ret;
 }
 
@@ -2092,6 +2211,13 @@ exec_range(mrb_state *mrb, const mrb_regexp_pattern *pat,
 {
   if (pat->is_literal) {
     return literal_exec(pat, str, len, start, start_limit, captures, captures_size, binary);
+  }
+  /* Bytes every match holds at or after where it begins: a subject holding
+     them nowhere from `start` on holds no match, which one scan answers
+     before any attempt is made. */
+  if (pat->required_len > 0 && start >= 0 && start <= len &&
+      !find_prefix(pat->required, pat->required_len, str + start, str + len)) {
+    return 0;
   }
   if (pat->has_backref || pat->needs_backtrack) {
     return backtrack_exec(mrb, pat, str, len, start, start_limit, captures, captures_size, binary);

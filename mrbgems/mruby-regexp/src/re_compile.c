@@ -5306,6 +5306,284 @@ compute_first_set(mrb_state *mrb, const re_inst *code, uint32_t code_len,
   return set_bits < 192;  /* useful only if fewer than 75% of bytes match */
 }
 
+/* The most bytes one step of the class can take: one where every member is
+   ASCII, and otherwise the widest character UTF-8 spells. A byte member
+   (RE_CLASS_BYTE) is one byte, but a range list or a bracket says nothing
+   cheap about which of the two it holds, so either is read as the wide one. */
+static uint32_t
+class_max_width(const re_charclass *cc)
+{
+#ifdef RE_UNICODE_CTYPE
+  if (RE_CLASS_HAS_CTYPE(cc)) return 4;
+#endif
+  return (cc->num_ranges == 0 && !cc->utf8_any) ? 1 : 4;
+}
+
+/*
+ * The end assertion every path from pc 0 to RE_MATCH passes, the weakest
+ * across them, and the most bytes a path consumes before passing it; see
+ * mrb_regexp_pattern::end_anchor. RE_END_NONE where any path reaches the
+ * match without one, or where what a path consumes first has no bound.
+ *
+ * A path is followed only up to its first end assertion: whatever it
+ * consumes after one, the assertion has fixed where it stood. So the walk
+ * covers a prefix of the program in which every edge it takes has to run
+ * forward, and a backward edge -- a repetition, which is what leaves the
+ * count unbounded -- ends the analysis. Taken in program order, every pc is
+ * then reached from below only, and the most a path consumes to reach it is
+ * known by the time the scan comes to it.
+ *
+ * A lookaround is zero-width, so the path goes on past it as if the
+ * sub-pattern were not there: what the sub-pattern reads is no part of the
+ * span between the attempt's start and the assertion. A lookbehind reads the
+ * text before the position it stands at, and that text stays in the subject
+ * whatever position the attempt begins at; the engines read it there, not
+ * from where the search was asked to start. What the walk cannot measure --
+ * a backreference, a call, an absent repeater -- ends it.
+ */
+static uint8_t
+compute_end_anchor(mrb_state *mrb, const re_inst *code, uint32_t code_len,
+                   const re_charclass *classes, uint32_t *reach_out)
+{
+  int32_t inline_dist[RE_WALK_INLINE];
+  int32_t *dist = inline_dist;
+  if (code_len > RE_WALK_INLINE) {
+    dist = (int32_t*)mrb_malloc_simple(mrb, sizeof(int32_t) * code_len);
+    if (!dist) return RE_END_NONE;
+  }
+  for (uint32_t i = 0; i < code_len; i++) dist[i] = -1;
+  if (code_len > 0) dist[0] = 0;
+
+  uint8_t kind = RE_END_NONE;
+  uint32_t reach = 0;
+  mrb_bool ok = TRUE;
+  for (uint32_t pc = 0; ok && pc < code_len; pc++) {
+    int32_t d = dist[pc];
+    if (d < 0) continue;
+    re_inst in = code[pc];
+    uint32_t succ[2];
+    int nsucc = 0;
+    uint32_t width = 0;
+    uint8_t here = RE_END_NONE;
+    switch (in.op) {
+    case RE_EOT:   here = RE_END_EOT; break;
+    case RE_EOTNL: here = RE_END_EOTNL; break;
+    case RE_EOL:   here = RE_END_EOL; break;
+    case RE_SAVE:
+    case RE_BOL: case RE_BOT: case RE_GPOS:
+    case RE_WBOUND: case RE_NWBOUND:
+    case RE_ATOMIC: case RE_ATOMIC_END:
+      succ[nsucc++] = pc + 1;
+      break;
+    case RE_CHAR: case RE_BYTE:
+      width = 1;
+      succ[nsucc++] = pc + 1;
+      break;
+    case RE_ANY: case RE_ANY_NL: case RE_NCLASS:
+      width = 4;
+      succ[nsucc++] = pc + 1;
+      break;
+    case RE_CLASS:
+      width = class_max_width(&classes[in.a]);
+      succ[nsucc++] = pc + 1;
+      break;
+    case RE_JMP:
+    case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+    case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+      succ[nsucc++] = in.offset;
+      break;
+    case RE_SPLIT: case RE_SPLITNG: case RE_COND:
+      succ[nsucc++] = pc + 1;
+      succ[nsucc++] = in.offset;
+      break;
+    default:
+      /* RE_MATCH reached with no end assertion on the way, or something the
+         walk cannot measure. */
+      ok = FALSE;
+      continue;
+    }
+    if (here != RE_END_NONE) {
+      if (here > kind) kind = here;
+      if ((uint32_t)d > reach) reach = (uint32_t)d;
+      continue;
+    }
+    for (int i = 0; i < nsucc; i++) {
+      if (succ[i] <= pc || succ[i] >= code_len) { ok = FALSE; break; }
+      int32_t nd = d + (int32_t)width;
+      if (nd > dist[succ[i]]) dist[succ[i]] = nd;
+    }
+  }
+  if (dist != inline_dist) mrb_free(mrb, dist);
+  if (!ok) return RE_END_NONE;
+  *reach_out = reach;
+  return kind;
+}
+
+/* Whether some path from pc 0 reaches RE_MATCH without passing a pc that
+   `seen` already marks; the walk marks what it passes. Every edge an
+   instruction has is followed, which can only add paths: a path the search
+   could never take makes the answer TRUE where it might have been FALSE,
+   and FALSE is the answer anything is built on. A lookaround's sub-pattern
+   is stepped over, since no pc inside one is ever marked beforehand. */
+static mrb_bool
+match_reachable(const re_inst *code, uint32_t code_len, uint8_t *seen,
+                uint32_t *stack)
+{
+  uint32_t top = 0;
+  uint32_t pc = 0;
+  for (;;) {
+    while (pc < code_len && !seen[pc]) {
+      seen[pc] = 1;
+      re_inst in = code[pc];
+      if (in.op == RE_MATCH) return TRUE;
+      switch (in.op) {
+      case RE_JMP:
+      case RE_LOOKAHEAD: case RE_NEG_LOOKAHEAD:
+      case RE_LOOKBEHIND: case RE_NEG_LOOKBEHIND:
+        pc = in.offset;
+        break;
+      case RE_SPLIT: case RE_SPLITNG: case RE_COND:
+        stack[top++] = in.offset;
+        pc++;
+        break;
+      default:
+        pc++;
+        break;
+      }
+    }
+    if (top == 0) return FALSE;
+    pc = stack[--top];
+  }
+}
+
+/* Whether `needle` stands anywhere in `hay`. */
+static mrb_bool
+bytes_contain(const uint8_t *hay, uint32_t hay_len,
+              const uint8_t *needle, uint32_t needle_len)
+{
+  for (uint32_t i = 0; i + needle_len <= hay_len; i++) {
+    if (memcmp(hay + i, needle, needle_len) == 0) return TRUE;
+  }
+  return FALSE;
+}
+
+/* How many runs of literal bytes compute_required() tries as the answer. */
+#define RE_REQUIRED_TRIES 16
+
+/*
+ * A run of literal bytes every match holds, for mrb_regexp_pattern::required.
+ *
+ * A run is a stretch of RE_CHAR at consecutive pcs. Each of those has the
+ * next pc as its only way on, so a path that passes the run's first pc and
+ * goes on to match has matched the whole run, at a position at or after
+ * where its attempt began. A run inside a lookaround is left out: a
+ * lookbehind reads text before the attempt's start, and a negative
+ * lookaround matches where its sub-pattern does not.
+ *
+ * The runs are tried longest first. A run is the answer when every path to
+ * RE_MATCH passes the first pc of a run that holds its bytes: marking those
+ * pcs and walking from pc 0 is that question, a path entering a run partway
+ * through being one the marks do not stop. This is how `#<Class:` is found
+ * in `x(.*)#<Class:|#<Class:y`, which no one fork or run decides: it stands
+ * in both branches, at a different distance from the start in each.
+ *
+ * A run the literal prefix already holds is nothing to add: the prefix
+ * search answers the same question at every attempt, and does it first.
+ */
+static void
+compute_required(mrb_state *mrb, mrb_regexp_pattern *pat, uint32_t code_len)
+{
+  const re_inst *code = pat->code;
+  uint32_t n = code_len + 1;
+
+  /* A call jumps out to a trampoline and back, and an absent repeater's body
+     is a test the scan runs rather than text a match passes through; neither
+     is a shape this walk reads. */
+  for (uint32_t pc = 0; pc < code_len; pc++) {
+    uint8_t op = code[pc].op;
+    if (op == RE_CALL || op == RE_RETURN || op == RE_ABSENT_START ||
+        op == RE_ABSENT || op == RE_ABSENT_END) {
+      return;
+    }
+  }
+
+  /* One block: the walk's stack, the length of the run starting at each pc
+     (0 where none does), the walk's marks, and each pc's literal byte. */
+  uint32_t *stack = (uint32_t*)mrb_malloc_simple(
+      mrb, (size_t)n * (2 * sizeof(uint32_t) + 2));
+  if (!stack) return;
+  uint32_t *run = stack + n;
+  uint8_t *seen = (uint8_t*)(run + n);
+  uint8_t *bytes = seen + n;
+  memset(run, 0, sizeof(uint32_t) * n);
+  memset(bytes, 0, n);
+  for (uint32_t pc = 0; pc < code_len; pc++) {
+    uint8_t op = code[pc].op;
+    if (op == RE_MATCH) break;
+    if (op == RE_LOOKAHEAD || op == RE_NEG_LOOKAHEAD ||
+        op == RE_LOOKBEHIND || op == RE_NEG_LOOKBEHIND) {
+      pc = code[pc].offset - 1;  /* past the sub-pattern */
+      continue;
+    }
+    if (op != RE_CHAR) continue;
+    uint32_t start = pc;
+    bytes[pc] = code[pc].a;
+    while (pc + 1 < code_len && code[pc + 1].op == RE_CHAR) {
+      pc++;
+      bytes[pc] = code[pc].a;
+    }
+    run[start] = pc - start + 1;
+  }
+
+  /* The longest runs, as (start, length), longest first; at most
+     RE_REQUIRED_TRIES of them, each costing a walk. A run longer than the
+     field holds is tried by its first 255 bytes, which every match holding
+     the run holds too. */
+  uint32_t try_at[RE_REQUIRED_TRIES];
+  uint32_t try_len[RE_REQUIRED_TRIES];
+  int ntries = 0;
+  for (uint32_t pc = 0; pc < code_len; pc++) {
+    uint32_t len = run[pc];
+    if (len == 0) continue;
+    if (len > 255) len = 255;
+    int at;
+    if (ntries < RE_REQUIRED_TRIES) at = ntries++;
+    else if (try_len[ntries - 1] >= len) continue;
+    else at = ntries - 1;
+    while (at > 0 && try_len[at - 1] < len) {
+      try_at[at] = try_at[at - 1];
+      try_len[at] = try_len[at - 1];
+      at--;
+    }
+    try_at[at] = pc;
+    try_len[at] = len;
+  }
+
+  for (int t = 0; t < ntries; t++) {
+    const uint8_t *lit = bytes + try_at[t];
+    uint32_t len = try_len[t];
+    if (pat->prefix_len > 0 &&
+        bytes_contain(pat->prefix, pat->prefix_len, lit, len)) {
+      continue;
+    }
+    /* Mark the first pc of every run holding the bytes, then ask whether a
+       path to the match goes around all of them. */
+    memset(seen, 0, n);
+    for (uint32_t pc = 0; pc < code_len; pc++) {
+      if (run[pc] && bytes_contain(bytes + pc, run[pc], lit, len)) seen[pc] = 1;
+    }
+    if (match_reachable(code, code_len, seen, stack)) continue;
+    uint8_t *req = (uint8_t*)mrb_malloc_simple(mrb, len);
+    if (req) {
+      memcpy(req, lit, len);
+      pat->required = req;
+      pat->required_len = (uint8_t)len;
+    }
+    break;
+  }
+  mrb_free(mrb, stack);
+}
+
 /* ---- subexpression calls -------------------------------------------------
    The parse leaves a pattern with \g in it unfinished in three ways: an
    RE_CALL may still carry a parked reference, no RE_CALL has anywhere to
@@ -5854,6 +6132,16 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
     }
   }
 
+  /* Where every match has to end, and what every match has to hold: two
+     more ways for a search to leave positions untried, answered once here.
+     Under \A there is one position to try and no scan to shorten, and a
+     literal pattern's search is the prefix search alone. */
+  pat->end_anchor = compute_end_anchor(mrb, pat->code, code_len, pat->classes,
+                                       &pat->end_reach);
+  if (!pat->is_literal && pat->anchor != RE_ANCHOR_BOT) {
+    compute_required(mrb, pat, code_len);
+  }
+
   pat->loop_depth = mark_empty_loops(mrb, pat->code, code_len);
 
   /* Pre-allocate VM state cache for pike_vm */
@@ -5885,6 +6173,7 @@ mrb_re_free(mrb_state *mrb, mrb_regexp_pattern *pat)
     mrb_free(mrb, pat->named_captures);
     mrb_free(mrb, pat->named_arena);
     mrb_free(mrb, pat->prefix);
+    mrb_free(mrb, pat->required);
     mrb_free(mrb, pat->cached_visited);
     mrb_free(mrb, pat->cached_threads[0]);
     mrb_free(mrb, pat->cached_threads[1]);
