@@ -63,6 +63,8 @@ mrb_task_free(mrb_state *mrb, void *ptr)
 {
   mrb_task *t = (mrb_task*)ptr;
   if (t) {
+    MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_FREE);
+
     /* Unregister from GC protection (unless it's the main task during shutdown) */
     if (t != mrb->task.main_task) {
       mrb_gc_unregister(mrb, t->self);
@@ -276,6 +278,7 @@ task_cleanup_if_stopped(mrb_state *mrb, mrb_task *t)
     if (t->status != MRB_TASK_STATUS_DORMANT) {
       t->status = MRB_TASK_STATUS_DORMANT;
       mrb_task_q_insert(mrb, t);
+      MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_STATE);
     }
     mrb_task_excl_exit(mrb);
     return TRUE;
@@ -383,6 +386,7 @@ wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
       curr->reason = MRB_TASK_REASON_NONE;
       curr->wait.join = NULL;
       mrb_task_q_insert(mrb, curr);
+      MRB_TASK_TRACE(mrb, curr, MRB_TASK_TRACE_STATE);
       /* If a higher-priority waiter is resumed from task context,
        * request a context switch after leaving the critical section. */
       if (mrb->c != mrb->root_c && !switching_) {
@@ -449,12 +453,14 @@ execute_task(mrb_state *mrb, mrb_task *t)
     t->c.status = MRB_TASK_STOPPED;
     mrb_task_q_insert(mrb, t);
     mrb_task_excl_exit(mrb);
+    MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_STATE);
     return;
   }
 
   /* Set task as running */
   t->timeslice = MRB_TIMESLICE_TICK_COUNT;
   t->status = MRB_TASK_STATUS_RUNNING;
+  MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_SWITCH_IN);
 
   /* Switch to task context */
   prev_c = mrb->c;
@@ -520,13 +526,17 @@ execute_task(mrb_state *mrb, mrb_task *t)
     t->status = MRB_TASK_STATUS_DORMANT;
     mrb_task_q_insert(mrb, t);
     mrb_task_excl_exit(mrb);
+    MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_SWITCH_OUT);
 
     /* Wake up tasks waiting on join */
     wake_up_join_waiters(mrb, t);
   }
-  else if (t->status == MRB_TASK_STATUS_RUNNING) {
-    /* Task yielded but still running - move to ready queue */
-    t->status = MRB_TASK_STATUS_READY;
+  else {
+    if (t->status == MRB_TASK_STATUS_RUNNING) {
+      /* Task yielded but still running - move to ready queue */
+      t->status = MRB_TASK_STATUS_READY;
+    }
+    MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_SWITCH_OUT);
   }
 }
 
@@ -697,6 +707,15 @@ mrb_task_set_scheduler_hook(mrb_state *mrb, void (*fn)(mrb_state *mrb, void *ud)
   mrb->task.scheduler_hook = fn;
   mrb->task.scheduler_hook_ud = ud;
 }
+
+#ifdef MRB_USE_TASK_TRACE
+MRB_API void
+mrb_task_set_trace_hook(mrb_state *mrb, mrb_task_trace_func fn, void *ud)
+{
+  mrb->task.trace_hook = fn;
+  mrb->task.trace_hook_ud = ud;
+}
+#endif
 
 /* Single-step task execution for WASM event loop integration */
 MRB_API mrb_value
@@ -950,6 +969,7 @@ task_create_common(mrb_state *mrb, const struct RProc *proc,
   mrb_task_excl_enter(mrb);
   mrb_task_q_insert(mrb, t);
   mrb_task_excl_exit(mrb);
+  MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_CREATE);
 
   if (q_ready_ && q_ready_->status == MRB_TASK_STATUS_RUNNING) {
     if (t->priority < q_ready_->priority) {
@@ -1638,6 +1658,7 @@ suspend_task_internal(mrb_state *mrb, mrb_task *t)
   mrb_bool need_switch = (t == q_ready_ || t->status == MRB_TASK_STATUS_RUNNING);
 
   task_change_state(mrb, t, MRB_TASK_STATUS_SUSPENDED);
+  MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_STATE);
 
   if (need_switch) {
     switching_ = TRUE;
@@ -1671,6 +1692,7 @@ resume_task_internal(mrb_state *mrb, mrb_task *t)
                           MRB_TASK_STATUS_READY : MRB_TASK_STATUS_WAITING;
 
   task_change_state(mrb, t, target_status);
+  MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_STATE);
 
   /* Trigger context switch if resumed task has higher priority */
   if (target_status == MRB_TASK_STATUS_READY && q_ready_ &&
@@ -1733,6 +1755,7 @@ terminate_task_internal(mrb_state *mrb, mrb_task *t)
   t->c.status = MRB_TASK_STOPPED;
   mrb_task_q_insert(mrb, t);
   mrb_task_excl_exit(mrb);
+  MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_STATE);
 
   wake_up_join_waiters(mrb, t);
 

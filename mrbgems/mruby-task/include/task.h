@@ -131,6 +131,33 @@ MRB_API mrb_value mrb_task_run_once(mrb_state *mrb);
  * Must be cheap, never sleep, never re-enter the scheduler. */
 MRB_API void mrb_task_set_scheduler_hook(mrb_state *mrb, void (*fn)(mrb_state *mrb, void *ud), void *ud);
 
+#ifdef MRB_USE_TASK_TRACE
+/* Register a hook called on each task's context switches and state
+ * changes, from the VM's thread only (tick wakeups show up as the next
+ * SWITCH_IN). May run in the scheduler's critical section or the GC:
+ * must be cheap, never allocate, raise, or call into the VM.
+ * One hook per mrb_state -- setting replaces, fn == NULL clears. */
+enum mrb_task_trace_event {
+  MRB_TASK_TRACE_CREATE     = 0, /* created and queued */
+  MRB_TASK_TRACE_SWITCH_IN  = 1, /* about to run */
+  MRB_TASK_TRACE_SWITCH_OUT = 2, /* returned; t->status / t->reason say why */
+  MRB_TASK_TRACE_STATE      = 3, /* status changed by another context */
+  MRB_TASK_TRACE_FREE       = 4, /* about to be freed */
+};
+
+typedef void (*mrb_task_trace_func)(mrb_state *mrb, const mrb_task *t, int event, void *ud);
+
+MRB_API void mrb_task_set_trace_hook(mrb_state *mrb, mrb_task_trace_func fn, void *ud);
+
+#define MRB_TASK_TRACE(mrb, t, ev) do { \
+  if ((mrb)->task.trace_hook) { \
+    (mrb)->task.trace_hook((mrb), (t), (ev), (mrb)->task.trace_hook_ud); \
+  } \
+} while (0)
+#else
+#define MRB_TASK_TRACE(mrb, t, ev) ((void)0)
+#endif
+
 /*
  * Task creation API
  */
