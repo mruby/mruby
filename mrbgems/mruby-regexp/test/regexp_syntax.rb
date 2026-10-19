@@ -3387,22 +3387,24 @@ assert("Regexp - a program past 16-bit jump targets matches") do
   # and the pattern quietly stopped matching text it describes. The field is
   # 32 bits now. Each (?:abc) unit costs three instructions, so these
   # programs reach past 65535 of them, and each still matches what it says.
-  re = Regexp.new("(?:abc){21845}")
+  # Every pattern is anchored: a search free to start anywhere runs a thread
+  # from each offset through the whole program, which takes about a minute.
+  re = Regexp.new("\\A(?:abc){21845}")
   assert_equal 0, re =~ "abc" * 21845
   assert_nil re =~ "abc" * 21844
 
   # the shapes that used to answer wrongly: a quantifier whose skip target
   # lies past the old bound, and an alternation whose branch and exit
   # targets both do
-  re = Regexp.new("(?:abc){21844}x*y")
+  re = Regexp.new("\\A(?:abc){21844}x*y")
   assert_equal 0, re =~ "abc" * 21844 + "xxy"
   assert_equal 0, re =~ "abc" * 21844 + "y"
-  re = Regexp.new("(?:abc){30000}(?:y|z)")
+  re = Regexp.new("\\A(?:abc){30000}(?:y|z)")
   assert_equal 0, re =~ "abc" * 30000 + "z"
   assert_nil re =~ "abc" * 30000 + "w"
 
   # a quantifier of an atom costing more than one instruction
-  re = Regexp.new("(?:ab){32768}")
+  re = Regexp.new("\\A(?:ab){32768}")
   assert_equal 0, re =~ "ab" * 32768
   assert_nil re =~ "ab" * 32767
 end
