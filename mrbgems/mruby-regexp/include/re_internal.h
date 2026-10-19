@@ -43,8 +43,8 @@ enum re_opcode {
                     RE_CHAR. */
   RE_ANY,        /* match any character (. without DOTALL) */
   RE_ANY_NL,     /* match any character including newline (. with DOTALL) */
-  RE_CLASS,      /* match character class: operand = class_id */
-  RE_NCLASS,     /* match negated character class: operand = class_id */
+  RE_CLASS,      /* match character class: offset = class_id */
+  RE_NCLASS,     /* match negated character class: offset = class_id */
   RE_MATCH,      /* successful match */
   RE_JMP,        /* unconditional jump: operand = target offset */
   RE_SPLIT,      /* fork: operand = target offset (greedy: try next first) */
@@ -176,7 +176,7 @@ enum re_opcode {
 /* Bytecode instruction (4 bytes each for alignment) */
 typedef struct {
   uint8_t op;
-  uint8_t a;       /* small operand or class id */
+  uint8_t a;       /* small operand */
   uint16_t offset;  /* jump target or extended operand */
 } re_inst;
 

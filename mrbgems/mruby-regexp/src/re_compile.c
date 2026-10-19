@@ -17,13 +17,13 @@
 #include "re_prop.h"
 #endif
 
-/* Class IDs are stored in re_inst.a (uint8_t), so at most 256 distinct
-   character classes can be encoded.  Without this cap, class_capa
-   (uint16_t) overflows on doubling past 32768 (8 -> 16 -> ... -> 32768
-   -> 0), mrb_realloc with size 0 returns NULL, and the next memset
-   crashes; even before that, the (uint8_t)id cast at emit sites would
-   silently alias different classes. */
-#define RE_MAX_CLASSES 256
+/* A class instruction (RE_CLASS, RE_NCLASS) names its class by id in
+   re_inst.offset, a uint16_t, so a pattern holds at most 65535 distinct
+   character classes; the table grows to what the pattern needs. */
+#define RE_MAX_CLASSES 65535
+/* the literal record (literal_cp) a compile keeps in its own frame before
+   it moves to the GC arena */
+#define RE_LITERAL_CP_INLINE 256
 
 /* What opened a nesting level of the parse; see re_level. */
 enum {
@@ -137,7 +137,7 @@ typedef struct {
   const char *p;       /* current position */
   uint32_t code_len;
   uint32_t code_capa;
-  uint16_t class_capa;
+  uint32_t class_capa;
   uint16_t num_captures;
   uint32_t flags;
   uint32_t orig_flags;  /* flags as passed to mrb_re_compile(), for error
@@ -169,9 +169,14 @@ typedef struct {
                                before the atom, and a `\u{...}` list moves it
                                forward so the quantifier repeats the last
                                codepoint alone */
-  uint32_t literal_cp[RE_MAX_CLASSES];  /* by class id: the codepoint whose
-                               /i literal the class stands for, 0 for a class
-                               made by anything else; see literal_class() */
+  uint32_t *literal_cp;     /* by class id: the codepoint whose /i literal
+                               the class stands for, 0 for a class made by
+                               anything else; see literal_class(). In
+                               literal_cp_inline, then a String the GC arena
+                               keeps for the compile once it outgrows that */
+  uint32_t literal_capa;
+  mrb_value literal_store;  /* nil while the record is inline */
+  uint32_t literal_cp_inline[RE_LITERAL_CP_INLINE];
   uint32_t depth;           /* nesting levels open at the parse point: the
                                levels on the stack below and the character
                                classes open inside one another; bounded by
@@ -423,6 +428,22 @@ add_class(re_compiler *c)
      out of, so the slot is cleared before it is counted rather than after. */
   uint16_t id = c->pat->num_classes;
   memset(&c->pat->classes[id], 0, sizeof(re_charclass));
+  if (id >= c->literal_capa) {
+    /* outgrown: the record moves to a String the GC arena holds for the
+       compile, as the levels do (open_level()), and doubles from there */
+    uint32_t capa = c->literal_capa * 2;
+    size_t bytes = sizeof(uint32_t) * capa;
+    if (mrb_nil_p(c->literal_store)) {
+      c->literal_store = mrb_str_new(c->mrb, NULL, bytes);
+      memcpy(RSTRING_PTR(c->literal_store), c->literal_cp, sizeof(uint32_t) * c->literal_capa);
+    }
+    else {
+      mrb_str_resize(c->mrb, c->literal_store, (mrb_int)bytes);
+    }
+    c->literal_cp = (uint32_t*)RSTRING_PTR(c->literal_store);
+    c->literal_capa = capa;
+  }
+  c->literal_cp[id] = 0;
   c->pat->num_classes = id + 1;
   return id;
 }
@@ -2070,9 +2091,9 @@ open_class_operand(re_compiler *c, re_class_level *lv)
    Two things bound the depth and the shallower answers: the class table,
    every open level holding an entry in it until it closes, and
    MRB_REGEXP_PARSE_DEPTH_LIMIT, which a nest counts against beside the
-   levels the pattern has open. At the default limit the table is the one a
-   pattern meets, at RE_MAX_CLASSES; a build that sets the limit at or below
-   that meets the limit here first.
+   levels the pattern has open. At the default limit, below RE_MAX_CLASSES,
+   the limit is the one a pattern meets; a build that sets it above the
+   table meets the table here first.
 
    `cross` receives the ASCII members the class holds in its own right, which
    is what the caller needs to tell them from the ones an ASCII-only set is
@@ -2286,7 +2307,7 @@ finish_charclass(re_compiler *c, uint16_t id, uint8_t *cross, mrb_bool negated)
 #endif
 
   cc->negated = negated;
-  emit(c, negated ? RE_NCLASS : RE_CLASS, (uint8_t)id, 0);
+  emit(c, negated ? RE_NCLASS : RE_CLASS, 0, id);
 }
 
 /* A property outside a class, at c->p on its 'p' or 'P': the class holding it
@@ -2874,7 +2895,7 @@ emit_char(re_compiler *c, uint8_t ch)
       class_set_bit(&c->pat->classes[id], (uint8_t)(ch ^ 0x20));  /* the other case */
       class_add_fold_counterparts(c, id, ch);
     }
-    emit(c, RE_CLASS, (uint8_t)id, 0);
+    emit(c, RE_CLASS, 0, id);
     return;
   }
   emit(c, RE_CHAR, ch, 0);
@@ -3005,7 +3026,7 @@ emit_cp_folded(re_compiler *c, uint32_t cp)
       class_add_member(c, &c->pat->classes[id], alt[i], FALSE);
     }
   }
-  emit(c, RE_CLASS, (uint8_t)id, 0);
+  emit(c, RE_CLASS, 0, id);
   return TRUE;
 }
 
@@ -3775,7 +3796,7 @@ compile_atom(re_compiler *c)
          uppercase forms (\D, \W, \S include utf8_any), so always emit
          RE_CLASS. Emitting RE_NCLASS here would negate a second time and
          make \D/\W/\S behave like \d/\w/\s (issue: negated shorthands). */
-      emit(c, RE_CLASS, (uint8_t)id, 0);
+      emit(c, RE_CLASS, 0, id);
     }
     else if (ch == 'h' || ch == 'H') {
       /* \h / \H both carry their full positive set (hex digits /
@@ -3784,7 +3805,7 @@ compile_atom(re_compiler *c)
       next_char(c);
       uint16_t id = add_class(c);
       class_add_shorthand(&c->pat->classes[id], ch);
-      emit(c, RE_CLASS, (uint8_t)id, 0);
+      emit(c, RE_CLASS, 0, id);
     }
     else if (ch == 'A') {
       next_char(c);
@@ -5047,7 +5068,7 @@ first_set_walk(const re_inst *code, uint32_t code_len,
         bm[code[pc].a >> 3] |= (uint8_t)(1 << (code[pc].a & 7));
         goto next;
       case RE_CLASS:
-        if (!class_first_bytes(&classes[code[pc].a], bm)) return FALSE;
+        if (!class_first_bytes(&classes[code[pc].offset], bm)) return FALSE;
         goto next;
       case RE_NCLASS: {
         /* negated class: complement of bitmap. Too many bits; not useful. */
@@ -5403,7 +5424,7 @@ compute_end_anchor(mrb_state *mrb, const re_inst *code, uint32_t code_len,
       succ[nsucc++] = pc + 1;
       break;
     case RE_CLASS:
-      width = class_max_width(&classes[in.a]);
+      width = class_max_width(&classes[in.offset]);
       succ[nsucc++] = pc + 1;
       break;
     case RE_JMP:
@@ -5971,6 +5992,9 @@ mrb_re_compile(mrb_state *mrb, mrb_regexp_pattern *pat,
   c.class_level_store = mrb_nil_value();
   c.class_levels = c.class_levels_inline;
   c.class_level_capa = RE_CLASS_LEVELS_INLINE;
+  c.literal_store = mrb_nil_value();
+  c.literal_cp = c.literal_cp_inline;
+  c.literal_capa = RE_LITERAL_CP_INLINE;
 
   /* Both things the pre-pass removes, a (?#...) group and a `#` comment,
      are spelled with a '#', so a pattern without one is parsed as written.

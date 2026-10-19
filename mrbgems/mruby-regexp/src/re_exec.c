@@ -1013,13 +1013,13 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
         break;
 
       case RE_CLASS:
-        if (class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
+        if (class_match(&pat->classes[inst.offset], curr_cp, curr_raw)) {
           add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         }
         break;
 
       case RE_NCLASS:
-        if (!class_match(&pat->classes[inst.a], curr_cp, curr_raw)) {
+        if (!class_match(&pat->classes[inst.offset], curr_cp, curr_raw)) {
           add_thread(&s, &next, th->pc + 1, th->cap_slot, sp + advance, s.gen);
         }
         break;
@@ -1504,7 +1504,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
-        if (!class_match(&pat->classes[inst.a], cp_, raw)) goto fail;
+        if (!class_match(&pat->classes[inst.offset], cp_, raw)) goto fail;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;
@@ -1516,7 +1516,7 @@ bt_match(bt_state *m, const char *sp, uint32_t pc)
         int dlen = 0;
         uint32_t cp_ = mrb_re_decode_char(sp, str_end, &dlen, binary);
         mrb_bool raw = (dlen == 1 && (uint8_t)*sp >= 0x80);
-        if (class_match(&pat->classes[inst.a], cp_, raw)) goto fail;
+        if (class_match(&pat->classes[inst.offset], cp_, raw)) goto fail;
         sp += mrb_re_charlen(sp, str_end, binary);
       }
       pc++;

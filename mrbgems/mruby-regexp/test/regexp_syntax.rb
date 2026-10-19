@@ -3696,13 +3696,12 @@ assert("Regexp - what bounds the classes a pattern nests is a table, not a stack
   # group is, so how deep one may nest is a matter of what the compiler holds
   # a level in and not of the C stack the build gets. Two things bound it and
   # the shallower answers: every level open holds an entry in the class table
-  # while it is open, 256 of which there are, and every level but the
+  # while it is open, 65535 of which there are, and every level but the
   # outermost counts against MRB_REGEXP_PARSE_DEPTH_LIMIT beside the levels
   # the pattern itself has open, of which there is one here. So a build at
-  # the default limit nests 256 classes and is told `too many character
-  # classes` at the 257th, and a build that sets the limit at or below that
-  # meets its own limit there instead.
-  deep = 256
+  # the default limit meets that limit first, and only a build that sets it
+  # past the table is told `too many character classes` at the 65536th.
+  deep = 65535
   refusal = "too many character classes"
   if Regexp::PARSE_DEPTH_LIMIT <= deep
     deep = Regexp::PARSE_DEPTH_LIMIT

@@ -76,11 +76,9 @@ end
 
 assert("Regexp - /i literals share one class per codepoint") do
   skip unless __ENCODING__ == "UTF-8"
-  # A folded literal compiles to a class, and a class id is a byte, so a
-  # pattern holds at most 256 of them. Every occurrence used to take one, and a
-  # phrase of a few hundred letters was refused as too many character
-  # classes; the second occurrence of a codepoint now names the class the
-  # first one made.
+  # A folded literal compiles to a class. Every occurrence used to take one;
+  # the second occurrence of a codepoint now names the class the first one
+  # made.
   re = Regexp.new("д" * 300, Regexp::IGNORECASE)
   assert_true re.match?("Д" * 300)
   assert_true re.match?("д" * 300)
@@ -101,9 +99,9 @@ assert("Regexp - /i literals share one class per codepoint") do
   re = Regexp.new("(?i:д)д")
   assert_true re.match?("Дд")
   assert_false re.match?("ДД")
-  # What the cap counts now is distinct codepoints. Cyrillic, Latin-1, Greek
-  # and Armenian letters below come to 281 of them, past what the id can hold,
-  # so the pattern is still refused; CRuby has no such cap.
+  # Cyrillic, Latin-1, Greek and Armenian letters below come to 281 distinct
+  # codepoints, past the 256 classes a pattern held while a class id was a
+  # byte; the table grows to what the pattern needs, as CRuby has no cap.
   cyr = (0x400..0x45f).map {|c| c.chr("UTF-8") }.join
   lat = ((0xc0..0xd6).to_a + (0xd8..0xde).to_a + (0xe0..0xf6).to_a +
          (0xf8..0xfe).to_a).map {|c| c.chr("UTF-8") }.join
@@ -113,7 +111,8 @@ assert("Regexp - /i literals share one class per codepoint") do
   assert_equal 281, (cyr + lat + grk + arm).length
   re = Regexp.new(cyr + lat + grk, Regexp::IGNORECASE)
   assert_true re.match?((cyr + lat + grk).upcase)
-  assert_raise(RegexpError) { Regexp.new(cyr + lat + grk + arm, Regexp::IGNORECASE) }
+  re = Regexp.new(cyr + lat + grk + arm, Regexp::IGNORECASE)
+  assert_true re.match?((cyr + lat + grk + arm).upcase)
 end
 
 assert("Regexp - /i closes the union a nested class makes, not its parts") do
@@ -149,4 +148,9 @@ assert("Regexp - /i closes an intersection, not the operands it was taken of") d
   assert_true wordish.match?("S")
   assert_false wordish.match?("ſ")
   assert_true Regexp.new("[b-z&&[^a]]", Regexp::IGNORECASE).match?("ſ")
+end
+
+assert("Regexp - /i over more than 256 character classes") do
+  ci = Regexp.new((0...300).map { |i| "[#{(0x100 + i * 2).chr("UTF-8")}]z" }.join("|"), Regexp::IGNORECASE)
+  assert_equal ["āZ", "ɘz"], "xāZ yɘz".scan(ci)
 end
