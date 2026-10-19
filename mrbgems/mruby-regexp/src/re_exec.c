@@ -809,6 +809,15 @@ pike_vm(mrb_state *mrb, const mrb_regexp_pattern *pat,
        them once the keys come near the top. */
     s.visited = mpat->cached_visited;
     s.gen = mpat->cached_gen;
+    /* A search that ends before its first step, every position skipped,
+       never runs advance_gen() and still hands its whole key range on, so a
+       run of them climbs to the top without the clearing done there; the
+       range would then wrap below the marks an earlier search left, and
+       those would read as visited. Clear them here as advance_gen() does. */
+    if (s.gen > UINT32_MAX - 2 * s.pass_span) {
+      memset(s.visited, 0, vsize);
+      s.gen = 0;
+    }
     s.key_max = s.gen + s.pass_span - 1;
     curr.threads = (re_thread*)mpat->cached_threads[0];
     next.threads = (re_thread*)mpat->cached_threads[1];
