@@ -71,6 +71,26 @@ assert 'Rational#to_f' do
   assert_float(6.666666666666667, Rational(20, 3).to_f)
 end
 
+assert 'Float#to_r and Rational(Float) for a float below 2**-10' do
+  skip 'no Float in this build' unless RATIONAL_FLOAT
+  # The denominator of 2**-64 is wider than any mrb_int, so a build without
+  # mruby-bigint raises RangeError.  Every float below is exact in float32 too.
+  begin
+    (2.0**-64).to_r
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal Rational(1, 1 << 11), (2.0**-11).to_r
+  assert_equal Rational(1, 1 << 12), Rational(2.0**-12)
+  assert_equal Rational(-1, 1 << 13), (-2.0**-13).to_r
+  assert_equal Rational(3, 1 << 20), (3 * 2.0**-20).to_r
+  assert_equal Rational(1, 1 << 62), (2.0**-62).to_r
+  assert_equal Rational(1, 1 << 64), (2.0**-64).to_r
+  assert_operator 0, :<, 0.0005.to_r
+  assert_operator 0, :<, 0.0001.to_r
+  assert_operator 0, :>, -0.00001.to_r
+end
+
 assert 'Rational#to_i' do
   assert_equal(0, Rational(2, 3).to_i)
   assert_equal(3, Rational(3).to_i)
