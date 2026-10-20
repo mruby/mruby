@@ -847,17 +847,13 @@ ary_intersection_body(mrb_state *mrb, void *data)
     ary_memb_select(mrb, memb, j);
 
     /* The first argument selects out of `self` into the still empty result;
-       every later one narrows that result, which is ours alone and can be
-       compacted in place since the write position never runs ahead of the
-       read position. take() gives up an element the first time it is taken,
-       so a duplicate in `self` no longer finds it and the result keeps one
-       of each; from the second argument on the source is the result itself,
-       already duplicate-free, so its record of taken elements stays empty. */
-    mrb_value src = ctx->self;
-    if (j > 0) {
-      src = ctx->result;
-      mrb_ary_modify(mrb, mrb_ary_ptr(ctx->result));
-    }
+       every later one narrows that result in place, the write position never
+       running ahead of the read position. take() gives up an element the
+       first time it is taken, so a duplicate in `self` no longer finds it and
+       the result keeps one of each; from the second argument on the source is
+       the result itself, already duplicate-free, so its record of taken
+       elements stays empty. */
+    mrb_value src = j > 0 ? ctx->result : ctx->self;
 
     mrb_int write_pos = 0;
     int ai = mrb_gc_arena_save(mrb);
@@ -868,7 +864,11 @@ ary_intersection_body(mrb_state *mrb, void *data)
         if (j == 0) {
           mrb_ary_push(mrb, ctx->result, p);
         }
-        else {
+        else if (write_pos < RARRAY_LEN(ctx->result)) {
+          /* take() ran `hash` or `eql?`, Ruby code that can reach the result and
+             shrink, share or freeze it, so the slot is checked and the
+             buffer made ours after the call, as uniq! does. */
+          mrb_ary_modify(mrb, mrb_ary_ptr(ctx->result));
           RARRAY_PTR(ctx->result)[write_pos] = p;
         }
         write_pos++;
