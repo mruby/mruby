@@ -58,6 +58,8 @@ assert('Range#last') do
 
   skip unless Object.const_defined?(:Float)
   assert_equal [18, 19, 20], (10..20).last(3.0)
+  assert_equal [2, 3], (1..3.9).last(2)
+  assert_equal [1, 2, 3], (1...3.5).last(5)
 end
 
 assert('Range#size') do

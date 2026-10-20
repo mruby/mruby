@@ -358,6 +358,17 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
     mrb_raise(mrb, E_RANGE_ERROR, "cannot convert endless range to an array");
   }
   if (mrb_integer_p(beg)) {
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(end)) {
+      /* the Integer end that gives the same elements */
+      mrb_float f = RANGE_EXCL(r) ? ceil(mrb_float(end)) : floor(mrb_float(end));
+      if (!FIXABLE_FLOAT(f)) {
+        if (f < 0) return mrb_ary_new_capa(mrb, 0);
+        mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
+      }
+      end = mrb_int_value(mrb, (mrb_int)f);
+    }
+#endif
     if (mrb_integer_p(end)) {
       mrb_int a = mrb_integer(beg);
       mrb_int b = mrb_integer(end);
@@ -383,24 +394,6 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       }
       return ary;
     }
-#ifndef MRB_NO_FLOAT
-    if (mrb_float_p(end)) {
-      mrb_int a = mrb_integer(beg);
-      mrb_float b = mrb_float(end);
-
-      if (a > b) {
-        return mrb_ary_new_capa(mrb, 0);
-      }
-      mrb_int alen = (mrb_int)(b - a) + RANGE_EXCL(r);
-      mrb_value ary = mrb_ary_new_capa(mrb, alen);
-      mrb_value *ptr = RARRAY_PTR(ary);
-      for (mrb_int i=0; i<alen; i++) {
-        ptr[i] = mrb_int_value(mrb, a+i);
-        ARY_SET_LEN(RARRAY(ary), i);
-      }
-      return ary;
-    }
-#endif
   }
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(beg)) {
