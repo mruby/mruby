@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/range.h>
 #include <mruby/class.h>
+#include <mruby/numeric.h>
 #include <mruby/internal.h>
 
 static mrb_bool
@@ -94,6 +95,25 @@ range_cover(mrb_state *mrb, mrb_value range)
   return mrb_false_value();
 }
 
+/* The size of a range with two Integer endpoints, counted exactly.  The
+   span can pass MRB_INT_MAX, so it goes through mrb_int_sub() and
+   mrb_int_add(), which promote to a bigint, or raise without one. */
+static mrb_value
+range_int_size(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
+{
+  mrb_int a = mrb_integer(beg);
+  mrb_int b = mrb_integer(end);
+
+  if (b < a || (excl && b == a)) return mrb_fixnum_value(0);
+
+  mrb_value size = mrb_int_sub(mrb, end, beg);
+  if (excl) return size;
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(size)) return mrb_bint_add(mrb, size, mrb_fixnum_value(1));
+#endif
+  return mrb_int_add(mrb, size, mrb_fixnum_value(1));
+}
+
 /*
  *  call-seq:
  *     rng.size                   -> num
@@ -126,6 +146,10 @@ range_size(mrb_state *mrb, mrb_value range)
   mrb_bool excl = RANGE_EXCL(r);
   mrb_float beg_f, end_f;
   mrb_bool num_p = TRUE;
+
+  if (mrb_integer_p(beg) && mrb_integer_p(end)) {
+    return range_int_size(mrb, beg, end, excl);
+  }
 
   if (mrb_integer_p(beg)) {
     beg_f = (mrb_float)mrb_integer(beg);
@@ -163,7 +187,7 @@ range_size(mrb_state *mrb, mrb_value range)
     }
     if (isinf(n+1))
       return mrb_float_value(mrb, INFINITY);
-    return mrb_fixnum_value((mrb_int)n+1);
+    return mrb_float_to_integer(mrb, mrb_float_value(mrb, n+1));
   }
   return mrb_nil_value();
 }
@@ -182,13 +206,8 @@ range_size(mrb_state *mrb, mrb_value range)
     return mrb_nil_value();
   }
 
-  mrb_int excl = RANGE_EXCL(r) ? 0 : 1;
   if (mrb_integer_p(beg) && mrb_integer_p(end)) {
-    mrb_int a = mrb_integer(beg);
-    mrb_int b = mrb_integer(end);
-    mrb_int c = b - a + excl;
-
-    return mrb_int_value(mrb, c);
+    return range_int_size(mrb, beg, end, RANGE_EXCL(r));
   }
   return mrb_nil_value();
 }
