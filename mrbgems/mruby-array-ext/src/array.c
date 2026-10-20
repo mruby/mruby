@@ -509,13 +509,24 @@ ary_memb_init(mrb_state *mrb, ary_memb *m, const mrb_value *arys, mrb_int n_arys
   }
 
   if (n_arys > 0) {
-    /* Shared copies hold the elements while kh_put() runs `hash`, which is
-       Ruby code and free to empty the caller's arrays. A caller that hands
-       over no arrays has to pin the set's keys some other way; `|` holds
-       every key in its result. */
+    /* Shared copies hold the keys while kh_get()/kh_put() runs `hash`, which
+       is Ruby code and free to empty the caller's arrays. The copies are
+       hidden from ObjectSpace.each_object as well (a class pointer of NULL,
+       see os_each_object_cb), so that `hash` cannot reach a copy, empty it
+       and have GC free the keys it was the only thing pinning: a
+       use-after-free the next set probe would read (GHSA-xp9g-4qj8-x3c4).
+       Every key the set can hold is an element of one of these arrays, so
+       copying all of them pins all of them. */
     mrb_value *copies = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * n_arys);
     for (mrb_int i = 0; i < n_arys; i++) {
-      copies[i] = mrb_ary_make_shared_copy(mrb, arys[i]);
+      mrb_value copy = mrb_ary_make_shared_copy(mrb, arys[i]);
+      /* make_shared_copy returns a frozen argument unchanged: that is the
+         caller's own object, never hidden, and a frozen array cannot be
+         emptied from Ruby anyway. Only a fresh copy we own is hidden. */
+      if (mrb_basic_ptr(copy) != mrb_basic_ptr(arys[i])) {
+        mrb_basic_ptr(copy)->c = NULL;
+      }
+      copies[i] = copy;
     }
     m->arys = copies;
   }
@@ -773,13 +784,23 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
 
   mrb_value result = mrb_ary_new(mrb);
 
-  /* The record of what has been kept is the result itself, and the result is
-     also what keeps the set's keys alive: every element the set remembers
-     was pushed there in the same turn. So the membership object is handed no
-     arrays, and the sources are walked in place, each element kept in
-     encounter order the first time it is met. */
+  /* The record of what has been kept is the result itself; the sources are
+     walked in place, each element kept in encounter order the first time it
+     is met. The set's keys are the elements of the receiver and the
+     arguments, so those are what the membership object is handed to pin:
+     under the hash path its hidden copies keep every key alive while `hash`
+     runs, where relying on the Ruby-visible result to do it let `hash` reach
+     the result through ObjectSpace, empty it and free the keys
+     (GHSA-xp9g-4qj8-x3c4). The copies pin only; the walk reads self and the
+     arguments straight from the context. */
+  mrb_value *sources = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * (argc + 1));
+  sources[0] = self;
+  for (mrb_int i = 0; i < argc; i++) {
+    sources[i + 1] = argv[i];
+  }
+
   ary_memb memb;
-  ary_memb_init(mrb, &memb, NULL, 0, total_len,
+  ary_memb_init(mrb, &memb, sources, argc + 1, total_len,
                 total_len > SET_OP_HASH_THRESHOLD);
 
   struct ary_union_ctx ctx = { &memb, self, result, argv, argc };
