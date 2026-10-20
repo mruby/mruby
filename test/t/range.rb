@@ -231,6 +231,41 @@ assert('Range#to_a') do
   assert_raise(RangeError) { (1..).to_a }
 end
 
+assert('Range#to_a with a Float end') do
+  skip unless Object.const_defined?(:Float)
+
+  assert_equal([1, 2, 3], (1..3.9).to_a)
+  assert_equal([1, 2], (1..2.5).to_a)
+  assert_equal([1, 2, 3], (1..3.0).to_a)
+  assert_equal([1, 2], (1...3.0).to_a)
+  assert_equal([1, 2, 3], (1...3.5).to_a)
+  assert_equal([1], (1...1.5).to_a)
+  assert_equal([], (1...1.0).to_a)
+  assert_equal([], (3..2.5).to_a)
+  assert_equal([-3, -2, -1], (-3..-0.5).to_a)
+  assert_equal([-3, -2], (-3...-1.5).to_a)
+  assert_equal([1, 2], (1..2.5).entries)
+  assert_equal(100001, (0..100000.0).to_a.size)
+  assert_equal([], (1..-Float::INFINITY).to_a)
+  assert_raise(RangeError) { (1..Float::INFINITY).to_a }
+  assert_raise(RangeError) { (1..1e19).to_a }
+end
+
+assert('Range#to_a with a Float end wider than the significand') do
+  skip unless Object.const_defined?(:Float)
+  f = 2.0
+  f *= 2 while f + 1.0 != f
+  f *= 2    # f - 1 rounds back to f here
+  begin
+    n = f.to_i
+  rescue RangeError
+    skip 'no mrb_int here is wider than the significand of an mrb_float'
+  end
+
+  assert_equal([], (n...f).to_a)
+  assert_equal([n - 1], (n - 1...f).to_a)
+end
+
 assert('symbol GC keeps the symbols a Range holds') do
   stress
   # A Range is a container like an Array, and its ends are the only holder of
