@@ -1471,7 +1471,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
   else if (*p == '+') p++;
 
   /* skip leading zeros */
-  while (*p == '0') { p++; any_digits = 1; }
+  while (*p == '0') { a = ++p; any_digits = 1; }
 
   /* integer part */
   while (ISDIGIT(*p)) {
