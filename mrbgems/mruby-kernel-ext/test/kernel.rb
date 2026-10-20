@@ -141,9 +141,18 @@ assert('Kernel#Float') do
   assert_operator(0.9, :eql?, Float('.9'))
   assert_operator(0.9, :eql?, Float(" \t\r\n\f\v.9 \t\r\n\f\v"))
   assert_operator(16.0, :eql?, Float("0x10"))
+  assert_operator(0.0, :eql?, Float("0"))
+  assert_operator(0.0, :eql?, Float("+0"))
+  assert_equal("-0.0", Float("-0").to_s)
+  assert_operator(0.0, :eql?, Float("00"))
+  assert_operator(0.0, :eql?, Float(" 0 "))
+  assert_operator(0.0, :eql?, Float("0_0"))
+  assert_operator(0.0, :eql?, Float("0e5"))
   assert_raise(TypeError) { Float(nil) }
   assert_raise(ArgumentError) { Float("1. 5") }
   assert_raise(ArgumentError) { Float("1.5a") }
+  assert_raise(ArgumentError) { Float("0a") }
+  assert_raise(ArgumentError) { Float("0 0") }
   assert_raise(ArgumentError) { Float("1.5\0") }
   assert_raise(ArgumentError) { Float('a') }
   assert_raise(ArgumentError) { Float('4a5') }
