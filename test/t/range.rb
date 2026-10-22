@@ -258,12 +258,30 @@ assert('Range#to_a with a Float end wider than the significand') do
   f *= 2    # f - 1 rounds back to f here
   begin
     n = f.to_i
+    [][n]    # nil for an mrb_int index, RangeError for a big integer
   rescue RangeError
     skip 'no mrb_int here is wider than the significand of an mrb_float'
   end
 
   assert_equal([], (n...f).to_a)
   assert_equal([n - 1], (n - 1...f).to_a)
+end
+
+assert('Range#to_a with a Float end past the largest mrb_int') do
+  skip unless Object.const_defined?(:Float)
+  half = 1 << 30
+  begin
+    k = 62
+    [][1 << k]    # nil for an mrb_int index, RangeError for a big integer
+    half = 1 << k
+  rescue RangeError
+  end
+  max = half - 1 + half
+  top = half * 2.0    # max + 1, exact as a Float
+
+  assert_equal([max], (max...top).to_a)
+  assert_equal([max - 1, max], (max - 1...top).to_a)
+  assert_raise(RangeError) { (0..top).to_a }
 end
 
 assert('symbol GC keeps the symbols a Range holds') do

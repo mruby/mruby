@@ -352,6 +352,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg = RANGE_BEG(r);
   mrb_value end = RANGE_END(r);
+  mrb_bool excl = RANGE_EXCL(r);
 
   mrb->c->ci->mid = 0;
   if (mrb_nil_p(end)) {
@@ -361,12 +362,20 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(end)) {
       /* the Integer end that gives the same elements */
-      mrb_float f = RANGE_EXCL(r) ? ceil(mrb_float(end)) : floor(mrb_float(end));
-      if (!FIXABLE_FLOAT(f)) {
-        if (f < 0) return mrb_ary_new_capa(mrb, 0);
+      mrb_float f = excl ? ceil(mrb_float(end)) : floor(mrb_float(end));
+      mrb_float top = -(mrb_float)MRB_INT_MIN;  /* MRB_INT_MAX + 1, exact in any mrb_float */
+
+      if (f < (mrb_float)MRB_INT_MIN) return mrb_ary_new_capa(mrb, 0);
+      if (excl && f == top) {
+        end = mrb_int_value(mrb, MRB_INT_MAX);
+        excl = FALSE;
+      }
+      else if (f < top) {
+        end = mrb_int_value(mrb, (mrb_int)f);
+      }
+      else {
         mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
       }
-      end = mrb_int_value(mrb, (mrb_int)f);
     }
 #endif
     if (mrb_integer_p(end)) {
@@ -382,7 +391,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       too_long:
         mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
       }
-      if (!RANGE_EXCL(r)) {
+      if (!excl) {
         if (len == MRB_INT_MAX) goto too_long;
         len++;
       }
