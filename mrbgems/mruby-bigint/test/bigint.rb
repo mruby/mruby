@@ -470,6 +470,14 @@ assert 'Bigint Integer#remainder large operand' do
   assert_equal (3**500) % m, (3**500).remainder(m)
   assert_equal (5**500) % ((2**150) + 1), (5**500).remainder((2**150) + 1)
   assert_equal (2**400) % ((2**130) + 1), (2**400).remainder((2**130) + 1)
+  # The precondition is in bits: a modulus whose top limb holds few bits
+  # let x pass a limb-count bound while still being past 2^(2*bits(m)).
+  m = (10**30) + 7
+  x = 7**90
+  assert_equal x % m, x.remainder(m)
+  assert_equal(-(x % m), (-x).remainder(m))
+  assert_equal x % m, x.pow(1, m)
+  assert_equal (x % m).pow(5, m), x.pow(5, m)
 end
 
 assert 'Bigint Integer#remainder takes the sign of the receiver' do

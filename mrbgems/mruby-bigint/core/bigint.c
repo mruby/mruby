@@ -3041,6 +3041,7 @@ mpz_mod_limb(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mp_limb m)
 /* Forward declarations for Barrett reduction functions */
 static void mpz_barrett_mu(mpz_ctx_t *ctx, mpz_t *mu, mpz_t *m);
 static void mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu);
+static size_t mpz_bits(const mpz_t *x);
 
 static void
 mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
@@ -3060,10 +3061,12 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   }
 
   /* Barrett reduction for moderate-sized moduli (>= 4 limbs where setup is worthwhile).
-   * Barrett's precondition is x < 2^(2*bits(m)); inputs beyond ~2*m.sz limbs
-   * violate it and the algorithm silently truncates high limbs. Fall through
-   * to general division for those. */
-  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 && x->sz <= 2 * y->sz) {
+   * Barrett's precondition is x < 2^(2*bits(m)); inputs beyond it make the
+   * algorithm silently truncate high bits. It is counted in bits, not limbs:
+   * x->sz <= 2*y->sz still lets x run past 2*bits(m) when the top limb of y
+   * is sparsely filled. Fall through to general division for those. */
+  if (y->sz >= 4 && y->sz <= 16 && x->sz >= y->sz + 2 &&
+      mpz_bits(x) <= 2 * mpz_bits(y)) {
     /* Barrett reads its operands as signed, so it is handed their
        magnitudes, as the division below is: given a negative x it found
        x < m and answered x unreduced. The sign goes on afterwards. */
