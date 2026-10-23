@@ -37,6 +37,7 @@ jobs:
             cc: i686-linux-gnu-gcc
             cxx: i686-linux-gnu-g++
             altname: "i686-gcc"
+            apt: "crossbuild-essential-i386"
             timeout: 25
           # AArch32 ILP32 with unsigned plain `char`, run under qemu.  The
           # emulation is why this one says so: see build_config/ci/gcc-clang.rb.
@@ -44,6 +45,8 @@ jobs:
             cc: arm-linux-gnueabihf-gcc
             cxx: arm-linux-gnueabihf-g++
             altname: "armhf-gcc"
+            apt: "crossbuild-essential-armhf binfmt-support qemu-user-static"
+            qemu_ld_prefix: "/usr/arm-linux-gnueabihf"
             emulated: "1"
             abi_only: "1"
             timeout: 25
@@ -74,36 +77,57 @@ jobs:
       MRUBY_CI_ABI_ONLY: ${{ matrix.abi_only }}
       MRUBY_CI_CXX_EXCEPTION: ${{ matrix.cxx_exception }}
       MRBTEST_STRESS: ${{ matrix.stress }}
+      QEMU_LD_PREFIX: ${{ matrix.qemu_ld_prefix }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: true
-      # 10, not 5: the download is 64.6 MB and the step has taken more than
-      # five minutes, which failed master rather than the pull request that
-      # would have shown it.  A whole job here finishes in four to five, so
-      # five for one step of it was never the headroom it looked like.  The
-      # job is given 25 for the same reason: an apt that takes the ten it is
-      # allowed leaves nothing of a fifteen-minute job for the build and the
-      # suites, and a slow mirror cancelled the tests rather than failing the
-      # step that was slow.
-      - name: Install i386 cross-build toolchain
-        if: matrix.altname == 'i686-gcc'
-        timeout-minutes: 10
+      # The toolchain is about 65 MB of .deb files, and the runner's Ubuntu
+      # mirror has served them at 40 kB/s while its package index came at
+      # 10 MB/s, timing the install out on most pushes.  The files are kept
+      # in the Actions cache under a key naming the exact files apt would
+      # fetch, so a run downloads only what changed since one that saved.
+      # Hashing names, sizes and checksums, not URLs, keeps the key
+      # independent of which mirror the runner was given.
+      - name: List cross-build toolchain packages
+        if: matrix.apt
+        id: apt
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            crossbuild-essential-i386
-      # The same, for a download that also carries qemu and binfmt.
-      - name: Install armhf cross-build toolchain
-        if: matrix.altname == 'armhf-gcc'
+          sum=$(apt-get install --print-uris -qq -y --no-install-recommends \
+            -o Dir::Cache::Archives="$RUNNER_TEMP/apt-none" ${{ matrix.apt }} |
+            awk '{print $2, $3, $4}' | sha256sum | cut -c1-16)
+          echo "prefix=apt-${{ matrix.os }}-${{ matrix.altname }}-" >> "$GITHUB_OUTPUT"
+          echo "sum=$sum" >> "$GITHUB_OUTPUT"
+      - name: Restore cross-build toolchain packages
+        if: matrix.apt
+        id: apt-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: ${{ steps.apt.outputs.prefix }}${{ steps.apt.outputs.sum }}
+          restore-keys: ${{ steps.apt.outputs.prefix }}
+      # 10 for a run that finds nothing cached: the download has taken more
+      # than five minutes.  The job is given 25 so that an apt using all ten
+      # still leaves the build and the suites their fifteen.
+      - name: Install cross-build toolchain
+        if: matrix.apt
         timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            crossbuild-essential-armhf binfmt-support qemu-user-static
-          echo 'QEMU_LD_PREFIX=/usr/arm-linux-gnueabihf' >> "$GITHUB_ENV"
+          mkdir -p ~/apt-archives/partial
+          opt="-o Dir::Cache::Archives=$HOME/apt-archives"
+          sudo apt-get install -y --no-install-recommends $opt ${{ matrix.apt }}
+          sudo apt-get autoclean $opt
+          sudo rm -rf ~/apt-archives/partial ~/apt-archives/lock
+          sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
+      - name: Save cross-build toolchain packages
+        if: matrix.apt && steps.apt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/apt-archives
+          key: ${{ steps.apt.outputs.prefix }}${{ steps.apt.outputs.sum }}
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
