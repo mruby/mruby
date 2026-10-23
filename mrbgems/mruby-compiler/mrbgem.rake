@@ -67,12 +67,13 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   prism_template_names = %w[
     ext/prism/api_node.c
     include/prism/ast.h
-    include/prism/diagnostic.h
+    include/prism/internal/diagnostic.h
     src/diagnostic.c
+    src/json.c
     src/node.c
     src/prettyprint.c
     src/serialize.c
-    src/token_type.c
+    src/tokens.c
   ]
   # Written where the build writes, not into the submodule: a checkout is not
   # the build's to change, and an out-of-source build left it holding the
@@ -128,7 +129,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
 
   Rake::Task[:prism_templates].invoke
 
-  %w(node prettyprint serialize token_type).each do |name|
+  %w(node prettyprint serialize tokens).each do |name|
     dst = "#{prism_gen_dir}/src/#{name}.c"
     file dst => ["#{prism_templates_dir}/src/#{name}.c.erb", "#{prism_templates_dir}/template.rb"] do
       Rake::Task[:prism_templates].invoke

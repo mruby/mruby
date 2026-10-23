@@ -81,6 +81,11 @@ typedef struct mrc_ccontext {
      arena is for. */
   void *prism_arena;
 
+  /* The arena Prism builds the tree of a parse in. Prism 2 takes it from the
+     caller and gives the parser's own state a separate one, so the tree goes
+     back with this arena rather than node by node. */
+  pm_arena_t node_arena;
+
   /* How deep the brackets stand where the lexer is, so that a nesting Prism
      would recurse through is refused instead. See src/compile.c. */
   uint32_t nesting;

@@ -54,7 +54,7 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
     pm_options_t *options = (pm_options_t*)mrc_calloc(dst, 1, sizeof(pm_options_t));
     pm_options_scope_t *scope;
 
-    pm_string_constant_init(&options->encoding, "UTF-8", 5);
+    pm_string_init(&options->encoding, (const uint8_t *)"UTF-8", 5);
     pm_options_scopes_init(options, 1);
     scope = &options->scopes[0];
     pm_options_scope_init(scope, (size_t)src->slen);
@@ -67,9 +67,9 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
       const char *name = mrb_sym_name(dst->mrb, src->syms[i]);
       if (name) {
         size_t len = strlen(name);
-        char *copy = (char*)mrc_malloc(dst, len);
+        uint8_t *copy = (uint8_t*)mrc_malloc(dst, len);
         memcpy(copy, name, len);
-        pm_string_constant_init(&scope->locals[i], copy, len);
+        pm_string_init(&scope->locals[i], copy, len);
       }
     }
     mrc_ccontext_arena_restore(dst, arena_prev);

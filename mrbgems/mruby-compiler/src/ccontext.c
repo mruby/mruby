@@ -242,34 +242,33 @@ mrc_ccontext_free(mrc_ccontext *c)
 {
   void *arena_prev = mrc_ccontext_arena_save(c);
   if (c->options) {
-    /* pm_options_free() releases the scope and locals arrays but not the
-       per-local name copies (they are PM_STRING_CONSTANT, which pm_string_free
-       leaves alone) nor the options struct itself, so free those here. The
-       copies must go first, before pm_options_free() releases the arrays. */
+    /* pm_options_cleanup() releases the scope and locals arrays but not the
+       per-local name copies (a pm_string_t never owns its bytes) nor the
+       options struct itself, so free those here. The copies must go first,
+       before pm_options_cleanup() releases the arrays. */
     for (size_t s = 0; s < c->options->scopes_count; s++) {
       pm_options_scope_t *scope = &c->options->scopes[s];
       for (size_t l = 0; l < scope->locals_count; l++) {
         mrc_free(c, (void *)scope->locals[l].source);
       }
     }
-    pm_options_free(c->options);
+    pm_options_cleanup(c->options);
     mrc_free(c, c->options);
     c->options = NULL;
   }
   if (c->filename_table) mrc_free(c, c->filename_table);
   if (c->filename) mrc_free(c, c->filename);
-  pm_parser_free(c->p);
+  /* A context that never parsed has no parser state to give back. */
+  if (c->p->arena) pm_parser_cleanup(c->p);
+  pm_arena_cleanup(&c->node_arena);
 #if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
   /* Everything Prism took for this context, the tree and what the parser
      kept beside it, came from the arena and is given back here in one piece.
-     After pm_parser_free(), which reaches into that same arena. */
+     After pm_parser_cleanup(), which reaches into that same arena. */
   arena_close(c);
 #endif
   mrc_ccontext_arena_restore(c, arena_prev);
   mrc_diagnostic_list_free(c);
-  if (c->p->lex_callback) {
-    mrc_free(c, c->p->lex_callback);
-  }
   mrc_free(c, c->p);
   mrc_free(c, c);
 }
