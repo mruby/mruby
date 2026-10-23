@@ -114,20 +114,35 @@ jobs:
       # still leaves the build and the suites their fifteen.
       - name: Install cross-build toolchain
         if: matrix.apt
+        id: apt-install
         timeout-minutes: 10
         run: |
           mkdir -p ~/apt-archives/partial
-          opt="-o Dir::Cache::Archives=$HOME/apt-archives"
-          sudo apt-get install -y --no-install-recommends $opt ${{ matrix.apt }}
-          sudo apt-get autoclean $opt
+          sudo apt-get install -y --no-install-recommends \
+            -o Dir::Cache::Archives="$HOME/apt-archives" ${{ matrix.apt }}
+      # Also after an install that timed out: the files it did fetch are
+      # saved under a key of their own, which the next run restores by
+      # prefix and completes, so a slow mirror costs a rerun rather than
+      # failing every run the same way.  Only a complete set takes the key
+      # an exact restore looks for.
+      - name: Tidy cross-build toolchain packages
+        if: >-
+          always() && steps.apt-install.outcome != 'skipped' &&
+          steps.apt-cache.outputs.cache-hit != 'true'
+        id: apt-tidy
+        run: |
+          sudo apt-get autoclean -o Dir::Cache::Archives="$HOME/apt-archives"
           sudo rm -rf ~/apt-archives/partial ~/apt-archives/lock
           sudo chown -R "$(id -u):$(id -g)" ~/apt-archives
+          if [ "${{ steps.apt-install.outcome }}" != success ]; then
+            echo "suffix=-partial-${{ github.run_id }}-${{ github.run_attempt }}"
+          fi >> "$GITHUB_OUTPUT"
       - name: Save cross-build toolchain packages
-        if: matrix.apt && steps.apt-cache.outputs.cache-hit != 'true'
+        if: always() && steps.apt-tidy.outcome == 'success'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/apt-archives
-          key: ${{ steps.apt.outputs.prefix }}${{ steps.apt.outputs.sum }}
+          key: ${{ steps.apt.outputs.prefix }}${{ steps.apt.outputs.sum }}${{ steps.apt-tidy.outputs.suffix }}
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
