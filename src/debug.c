@@ -77,17 +77,21 @@ mrb_packed_int_encode(uint32_t num, uint8_t *p)
  * Decodes a 32-bit unsigned integer from the variable-length packed format
  * in the byte array `p`. It reads bytes until it finds one where the most
  * significant bit is 0.
+ * If `end` is not NULL, decoding stops at `end`, so a truncated or corrupt
+ * buffer (a trailing byte whose continuation bit is set) cannot be read
+ * past; callers that decode trusted, self-produced data pass NULL.
  * If `newpos` is not NULL, it will be updated to point to the byte
  * following the last byte read.
  * Returns the decoded 32-bit unsigned integer.
  */
 uint32_t
-mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos)
+mrb_packed_int_decode(const uint8_t *p, const uint8_t *end, const uint8_t **newpos)
 {
   size_t i = 0, shift = 0;
   uint32_t n = 0;
 
   do {
+    if (end && p + i >= end) break;
     n |= ((uint32_t)(p[i] & 0x7f)) << shift;
     i++;
     shift += 7;
@@ -119,8 +123,8 @@ debug_get_line(mrb_state *mrb, mrb_irep_debug_info_file* f, uint32_t pc)
       const uint8_t *pend = p + f->line_entry_count;
       uint32_t pos = 0, line = 0;
       while (p < pend) {
-        pos += mrb_packed_int_decode(p, &p);
-        uint32_t line_diff = mrb_packed_int_decode(p, &p);
+        pos += mrb_packed_int_decode(p, pend, &p);
+        uint32_t line_diff = mrb_packed_int_decode(p, pend, &p);
         if (pc < pos) break;
         line += line_diff;
       }
