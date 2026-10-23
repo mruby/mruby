@@ -1,6 +1,10 @@
 #ifndef PRISM_CUSTOM_ALLOCATOR_H
 #define PRISM_CUSTOM_ALLOCATOR_H
 
+/* The libc branches below name malloc() and friends, and Prism 2 no longer
+   pulls <stdlib.h> in before this header. */
+#include <stdlib.h>
+
 #if defined(MRC_TARGET_MRUBY)
   #include "mruby.h"
   #include <string.h>
