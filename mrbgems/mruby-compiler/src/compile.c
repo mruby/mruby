@@ -320,7 +320,8 @@ append_from_stdin(mrc_ccontext *c, uint8_t **source, size_t source_length)
         *source = (uint8_t *)mrc_malloc(c, source_length + length + 1);
       else
         *source = (uint8_t *)mrc_realloc(c, *source, source_length + length + 1);
-      memccpy(*source + source_length, buffer, 1, length);
+      memcpy(*source + source_length, buffer, length);
+      (*source)[source_length + length] = '\0';
       mrc_free(c, buffer);
       return length;
     }
