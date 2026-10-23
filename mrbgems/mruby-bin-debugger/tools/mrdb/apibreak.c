@@ -50,8 +50,8 @@ check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
       const uint8_t *pend = p + count;
       uint32_t line = 0;
       while (p < pend) {
-        mrb_packed_int_decode(p, &p);
-        line += mrb_packed_int_decode(p, &p);
+        mrb_packed_int_decode(p, pend, &p);
+        line += mrb_packed_int_decode(p, pend, &p);
         if (line == lineno) return lineno;
       }
     }

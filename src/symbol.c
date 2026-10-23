@@ -227,7 +227,7 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
   else {
     /* length in BER */
     const uint8_t *p = (const uint8_t*)symname;
-    symlen = mrb_packed_int_decode(p, &p);
+    symlen = mrb_packed_int_decode(p, NULL, &p);
     symname = (const char*)p;
   }
   if (len == symlen && memcmp(symname, name, len) == 0) {
@@ -335,7 +335,7 @@ migrate_to_hash_table(mrb_state *mrb)
     else {
       /* This is a packed length string */
       const uint8_t *p = (const uint8_t*)name;
-      len = mrb_packed_int_decode(p, &p);
+      len = mrb_packed_int_decode(p, NULL, &p);
       name = (const char*)p;
     }
 
@@ -667,7 +667,7 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 
   if (!symtbl_is_literal(tagged_ptr)) {
     const uint8_t *p = (const uint8_t*)symname;
-    uint32_t len = mrb_packed_int_decode(p, &p);
+    uint32_t len = mrb_packed_int_decode(p, NULL, &p);
     symname = (const char*)p;
     if (lenp) *lenp = (mrb_int)len;
   }
@@ -971,7 +971,7 @@ mrb_symbol_gc(mrb_state *mrb)
       }
       else {
         const uint8_t *p = (const uint8_t*)name;
-        len = mrb_packed_int_decode(p, &p);
+        len = mrb_packed_int_decode(p, NULL, &p);
         name = (const char*)p;
       }
       uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
