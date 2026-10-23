@@ -4955,22 +4955,28 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
   /* Step 3: q3 = floor(q2 / 2^(k+1)) */
   mpz_div_2exp(ctx, &q3, &q2, k + 1);
 
-  /* Step 4: r1 = x mod 2^(k+1) */
-  mpz_mod_2exp(ctx, &r1, x, k + 1);
+  /* Steps 4-6 recover r = x - q3*m modulo a power of two.  q3 falls
+     short of the quotient by at most 2, so r < 3m.  The textbook takes
+     2^(k+1) for that power, which holds 3m only for a base above 3; in
+     base 2, m near 2^k puts r past 2^(k+1) and the top bit is lost.
+     2^(k+2) holds 3m < 3*2^k for any m. */
 
-  /* Step 5: r2 = (q3 * m) mod 2^(k+1) */
+  /* Step 4: r1 = x mod 2^(k+2) */
+  mpz_mod_2exp(ctx, &r1, x, k + 2);
+
+  /* Step 5: r2 = (q3 * m) mod 2^(k+2) */
   mpz_mul(ctx, &r2, &q3, m);
-  mpz_mod_2exp(ctx, &r2, &r2, k + 1);
+  mpz_mod_2exp(ctx, &r2, &r2, k + 2);
 
   /* Step 6: r = r1 - r2 */
   if (mpz_cmp(ctx, &r1, &r2) >= 0) {
     mpz_sub(ctx, r, &r1, &r2);
   }
   else {
-    /* r1 < r2, so add 2^(k+1) to r1 */
+    /* r1 < r2, so add 2^(k+2) to r1 */
     mpz_t power;
     mpz_init_set_int(ctx, &power, 1);
-    mpz_mul_2exp(ctx, &power, &power, k + 1);
+    mpz_mul_2exp(ctx, &power, &power, k + 2);
     mpz_add(ctx, &r1, &r1, &power);
     mpz_sub(ctx, r, &r1, &r2);
     mpz_clear(ctx, &power);
