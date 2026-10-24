@@ -348,6 +348,23 @@ assert('Array#join deeply nested array does not overflow the C stack') do
   assert_equal('', a.join)
 end
 
+assert('Array#join keeps a nested array its to_s drops') do
+  # The element's to_s empties the outer array and runs GC while join is
+  # still walking the inner one, which nothing else holds any more.
+  c = Class.new do
+    attr_accessor :outer
+    def to_s
+      @outer.clear
+      GC.start
+      100.times { "x" * 100 }
+      "e"
+    end
+  end
+  e = c.new
+  e.outer = [[e, "a", "b"] + ["c"] * 30, "d"]
+  assert_equal("e,a,b," + (["c"] * 30).join(","), e.outer.join(","))
+end
+
 assert('Array#last', '15.2.12.5.18') do
   assert_raise(ArgumentError) do
     # this will cause an exception due to the wrong argument
