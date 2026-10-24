@@ -351,3 +351,29 @@ assert('sprintf - the widths a buffer can still be asked for keep working') do
   assert_equal 500, sprintf("%500s", "x").size
   assert_equal "     1.000000", sprintf("%13f", 1.0) if Object.const_defined?(:Float)
 end
+
+assert('sprintf("%*") takes a width or precision only as an int') do
+  # The value was cut to int before it was checked, so 2**32 + 3 was read as
+  # 3. Computed rather than written out, as above, for MRB_INT32 builds.
+  shift = 32
+  big = begin
+    (1 << shift) + 3
+  rescue RangeError
+    nil
+  end
+  skip "no integer past 32 bits" unless big
+  # RangeError where the value is a big integer rather than an mrb_int
+  assert_raise(ArgumentError, RangeError) { sprintf("%*d", big, 7) }
+  assert_raise(ArgumentError, RangeError) { sprintf("%*d", -big, 7) }
+  assert_raise(ArgumentError, RangeError) { sprintf("%.*d", big, 7) }
+  assert_raise(ArgumentError, RangeError) { sprintf("%.*d", -big, 7) }
+  assert_raise(ArgumentError, RangeError) { sprintf("%.*s", big, "abcdef") }
+end
+
+assert('sprintf("%.*") ignores the smallest negative precision') do
+  # an ignored precision kept its value, and the ".." of a negative number
+  # took 3 from it
+  int_min = -(1 << 30) * 2
+  assert_equal "..f", sprintf("%.*x", int_min, -1)
+  assert_equal "..f", sprintf("%.*x", -1, -1)
+end

@@ -19,7 +19,13 @@ get_status(mrb_state *mrb)
   mrb_get_args(mrb, "|o", &status);
   if (mrb_true_p(status)) return EXIT_SUCCESS;
   if (mrb_false_p(status)) return EXIT_FAILURE;
-  return (int)mrb_as_int(mrb, status);
+  mrb_int n = mrb_as_int(mrb, status);
+#if MRB_INT_MAX > INT_MAX
+  if (n < INT_MIN || n > INT_MAX) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "exit status out of range: %i", n);
+  }
+#endif
+  return (int)n;
 }
 
 /*
