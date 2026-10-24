@@ -23,6 +23,20 @@ assert('SystemCallError#errno') do
   assert_equal 23456, SystemCallError.new(23456).errno
 end
 
+assert('SystemCallError#initialize with an errno past int') do
+  # 2**32 + 2 was cut to 2 and made an Errno::ENOENT. Computed, not written
+  # out, so the file still compiles where mrb_int is 32 bits.
+  shift = 32
+  big = begin
+    (1 << shift) + 2
+  rescue RangeError
+    nil
+  end
+  skip "no integer past 32 bits" unless big
+  assert_raise(RangeError) { SystemCallError.new("a", big) }
+  assert_raise(RangeError) { SystemCallError.new(-big) }
+end
+
 assert('SystemCallError#inspect') do
   assert_equal("#<SystemCallError: unknown error - a>", SystemCallError.new("a").inspect)
 end

@@ -653,6 +653,25 @@ assert('IO.popen with in option') do
   end
 end
 
+assert('IO.popen with a redirect descriptor past int') do
+  # 2**32 + 1 was cut to 1, and the command wrote to the standard output.
+  # Computed, not written out, so the file still compiles where mrb_int is
+  # 32 bits.
+  shift = 32
+  big = begin
+    (1 << shift) + 1
+  rescue RangeError
+    nil
+  end
+  skip "no integer past 32 bits" unless big
+  begin
+    assert_raise(RangeError) { IO.popen("#{$cmd}echo mruby-io", "r", out: big) { |i| i.read } }
+    assert_raise(RangeError) { IO.popen($cat, "r", in: big) { |i| i.read } }
+  rescue NotImplementedError => e
+    skip e.message
+  end
+end
+
 assert('IO.popen with out option') do
   begin
     IO.pipe do |r, w|

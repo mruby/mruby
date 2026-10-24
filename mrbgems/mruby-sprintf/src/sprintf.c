@@ -316,6 +316,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 
 #define GETASTER(num) do { \
   mrb_value tmp_v; \
+  mrb_int tmp_n; \
   t = p++; \
   GETNUM(n, val); \
   if (*p == '$') { \
@@ -325,7 +326,10 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
     tmp_v = GETNEXTARG(); \
     p = t; \
   } \
-  num = (int)mrb_as_int(mrb, tmp_v); \
+  tmp_n = mrb_as_int(mrb, tmp_v); \
+  if (tmp_n < INT_MIN || INT_MAX < tmp_n) \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #num " too big"); \
+  num = (int)tmp_n; \
 } while (0)
 
 static const char*
@@ -539,6 +543,7 @@ retry:
             GETASTER(prec);
             if (prec < 0) {  /* ignore negative precision */
               flags &= ~FPREC;
+              prec = -1;
             }
             p++;
             goto retry;

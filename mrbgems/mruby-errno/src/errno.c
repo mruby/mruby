@@ -165,7 +165,13 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_value no)
 
   if (!mrb_nil_p(no)) {
     size_t i;
-    int n = (int)mrb_as_int(mrb, no);
+    mrb_int no_n = mrb_as_int(mrb, no);
+#if MRB_INT_MAX > INT_MAX
+    if (no_n < INT_MIN || no_n > INT_MAX) {
+      mrb_raisef(mrb, E_RANGE_ERROR, "errno out of range: %i", no_n);
+    }
+#endif
+    int n = (int)no_n;
 
     for (i=0; i < E2C_LEN; i++) {
       if (e2c[i].eno == n) {

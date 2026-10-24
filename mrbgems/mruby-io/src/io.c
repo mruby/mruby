@@ -316,6 +316,11 @@ option_to_fd(mrb_state *mrb, mrb_value v)
     case MRB_TT_CDATA: /* IO */
       return mrb_io_fileno(mrb, v);
     case MRB_TT_INTEGER:
+#if MRB_INT_MAX > INT_MAX
+      if (mrb_integer(v) < INT_MIN || mrb_integer(v) > INT_MAX) {
+        mrb_raisef(mrb, E_RANGE_ERROR, "file descriptor out of range: %v", v);
+      }
+#endif
       return (int)mrb_integer(v);
     default:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
