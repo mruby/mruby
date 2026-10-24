@@ -62,7 +62,7 @@ During normal build setup, `mrbgem.rake` does the following:
    git submodule update --init lib/prism
    ```
 
-2. If generated Prism files such as `src/node.c`, `src/serialize.c`, `include/prism/ast.h`, or `include/prism/diagnostic.h` are missing, run:
+2. If generated Prism files such as `src/node.c`, `src/serialize.c`, `include/prism/ast.h`, or `include/prism/internal/diagnostic.h` are missing, run:
 
    ```sh
    ruby templates/template.rb

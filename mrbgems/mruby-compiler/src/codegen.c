@@ -1,4 +1,6 @@
 
+#include <assert.h>
+#include <math.h>
 #include <string.h>
 #include "../include/mrc_irep.h"
 #include "../include/mrc_ccontext.h"
@@ -2019,27 +2021,25 @@ nsym(mrc_parser_state *p, const uint8_t *start, size_t length)
     /* An empty name has no bytes to keep alive, and `start` can be NULL for
        one. The pool compares colliding entries with `memcmp()`, which is
        declared nonnull, so hand it an empty string instead. */
-    return pm_constant_pool_insert_constant(&p->constant_pool, (const uint8_t *)"", 0);
+    return pm_constant_pool_insert_constant(&p->metadata_arena, &p->constant_pool, (const uint8_t *)"", 0);
   }
   if (start >= p->start && start < p->end) {
     /* Source-backed bytes stay valid for the parser's lifetime. */
-    return pm_constant_pool_insert_constant(&p->constant_pool, start, length);
+    return pm_constant_pool_insert_constant(&p->metadata_arena, &p->constant_pool, start, length);
   }
-  /* Node-owned bytes (e.g. an unescaped symbol name containing escapes) are
-     freed together with the AST, before the generated irep is dumped; copy
-     them into pool-owned memory so the constant id stays valid. */
-  uint8_t *copy = (uint8_t *)xmalloc(length);
-  memcpy(copy, start, length);
-  return pm_constant_pool_insert_owned(&p->constant_pool, copy, length);
+  /* Bytes outside the source (e.g. a C string literal, or an unescaped
+     symbol name containing escapes) are copied into the parser's own arena,
+     which lives as long as the constant pool does. */
+  return pm_parser_constant_insert(p, start, length);
 }
 
 static int32_t
 node_lineno(mrc_ccontext *c, mrc_node *node)
 {
   pm_location_t *loc = &((pm_node_t *)node)->location;
-  int32_t abs_line = pm_newline_list_line(&c->p->newline_list, loc->start, 1);
+  int32_t abs_line = pm_line_offset_list_line(&c->p->line_offsets, loc->start, 1);
   int32_t line_offset = c->lineno > 0 ? c->lineno - 1 : 0;
-  uint32_t node_pos = (uint32_t)(loc->start - c->p->start);
+  uint32_t node_pos = loc->start;
   uint32_t file_start = 0;
   for (uint16_t i = 1; i < c->filename_table_length; i++) {
     if (c->filename_table[i].start <= node_pos) {
@@ -2049,7 +2049,7 @@ node_lineno(mrc_ccontext *c, mrc_node *node)
     }
   }
   if (file_start == 0) return abs_line + line_offset;
-  int32_t file_start_line = pm_newline_list_line(&c->p->newline_list, c->p->start + file_start, 1);
+  int32_t file_start_line = pm_line_offset_list_line(&c->p->line_offsets, file_start, 1);
   return abs_line - file_start_line + 1 + line_offset;
 }
 
@@ -2329,7 +2329,10 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     case PM_LOCAL_VARIABLE_TARGET_NODE:
     case PM_REQUIRED_PARAMETER_NODE:
     {
-      CAST(local_variable_write);
+      /* Read through the target node, whose fields open every one of these
+         nodes: Prism 2 packs a node at its own alignment, so a target node
+         (no pointer in it) is not aligned for the write node's type. */
+      CAST(local_variable_target);
       /* pm_required_parameter_node_t has no `depth` field (a parameter is
          always a local in the current scope); reading cast->depth on it would
          read past the node, yielding a garbage depth that sends the lookup to
@@ -2341,14 +2344,14 @@ gen_assignment(mrc_codegen_scope *s, mrc_node *tree, mrc_node *rhs, int sp, int 
     case PM_INSTANCE_VARIABLE_WRITE_NODE:
     case PM_INSTANCE_VARIABLE_TARGET_NODE:
     {
-      CAST(instance_variable_write);
+      CAST(instance_variable_target);
       gen_setxv(s, OP_SETIV, sp, cast->name, val);
       break;
     }
     case PM_CONSTANT_WRITE_NODE:
     case PM_CONSTANT_TARGET_NODE:
     {
-      CAST(constant_write);
+      CAST(constant_target);
       gen_setxv(s, OP_SETCONST, sp, cast->name, val);
       break;
     }
@@ -3902,6 +3905,15 @@ mrc_constant_id_list_append(mrc_codegen_scope *s, pm_constant_id_list_t *list, p
   return TRUE;
 }
 
+static mrc_bool
+mrc_constant_id_list_includes(const pm_constant_id_list_t *list, pm_constant_id_t id)
+{
+  for (size_t i = 0; i < list->size; i++) {
+    if (list->ids[i] == id) return TRUE;
+  }
+  return FALSE;
+}
+
 static int
 lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id_list_t *locals, int blk)
 {
@@ -3941,7 +3953,7 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
      memcmp/memcpy, whose nonnull attribute makes a NULL argument undefined
      behavior that clang miscompiles (the constant pool then misbehaves and
      codegen reports a spurious "Can't find local variables"). */
-  pm_constant_id_t null_mark = pm_constant_pool_insert_constant(&s->c->p->constant_pool, (const uint8_t *)"", 0);
+  pm_constant_id_t null_mark = pm_constant_pool_insert_constant(&s->c->p->metadata_arena, &s->c->p->constant_pool, (const uint8_t *)"", 0);
 
   // Create lv regs from Prism's locals
   if (parameters == NULL) {
@@ -3961,7 +3973,7 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
          remaining locals after them. */
       static const char *const num_names[9] = {"_1","_2","_3","_4","_5","_6","_7","_8","_9"};
       for (int k = 0; k < na; k++) {
-        pm_constant_id_t nid = pm_constant_pool_insert_constant(&s->c->p->constant_pool,
+        pm_constant_id_t nid = pm_constant_pool_insert_constant(&s->c->p->metadata_arena, &s->c->p->constant_pool,
                                  (const uint8_t*)num_names[k], 2);
         mrc_constant_id_list_append(s, lv, nid);
       }
@@ -4118,12 +4130,11 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
   }
   if (locals) {
     for (i = 0; i < locals->size; i++) {
-      if (!pm_constant_id_list_includes(lv, locals->ids[i])) {
+      if (!mrc_constant_id_list_includes(lv, locals->ids[i])) {
         mrc_constant_id_list_append(s, lv, locals->ids[i]);
       }
     }
-    // free Prism's locals
-    pm_constant_id_list_free(locals);
+    // Prism's locals are in the node arena; drop the reference to them
     locals->ids = NULL;
     locals->size = locals->capacity = 0;
   }
@@ -4562,7 +4573,7 @@ gen_pm_integer(mrc_codegen_scope *s, const pm_integer_t *iv)
     }
     int off = new_litbint(s, digits, 10, iv->negative);
     genop_2(s, OP_LOADL, cursp(), off);
-    pm_buffer_free(&buf);
+    pm_buffer_cleanup(&buf);
   }
 }
 
@@ -5127,7 +5138,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
   if (s->rlev > MRC_CODEGEN_LEVEL_MAX) {
     codegen_error(s, "too complex expression");
   }
-  uint32_t token_pos = (uint32_t)(tree->location.start - s->c->p->start);
+  uint32_t token_pos = tree->location.start;
 
   if (s->filename_index+1 < s->c->filename_table_length) {
     if (s->c->filename_table[s->filename_index+1].start <= token_pos) {
@@ -5147,7 +5158,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
   int nt = nint(tree);
 
   s->lineno = node_lineno(s->c, tree);
-  s->loc = tree->location.start;
+  s->loc = s->c->p->start + tree->location.start;
 
   switch (nt) {
     case PM_PROGRAM_NODE: {
@@ -5786,7 +5797,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     /* A build without Float still has to compile source that spells a
        float literal, so the literal is warned about and read as Integer 0,
        as the lrama parser did under MRB_NO_FLOAT. */
-    mrc_diagnostic_list_append(s->c, tree->location.start,
+    mrc_diagnostic_list_append(s->c, s->c->p->start + tree->location.start,
                                "floating-point numbers are not supported",
                                MRC_GENERATOR_WARNING);
     if (val) {
@@ -7373,7 +7384,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     default:
     {
       char buf[256];
-      snprintf(buf, sizeof(buf), "Not implemented: %s", pm_node_type_to_str(nt));
+      snprintf(buf, sizeof(buf), "Not implemented: %s", pm_node_type((pm_node_type_t)nt));
       codegen_error(s, buf);
       break;
     }

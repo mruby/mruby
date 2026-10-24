@@ -34,7 +34,7 @@ mrc_presym_id(mrc_sym sym)
 }
 
 void
-mrc_init_presym(pm_constant_pool_t *pool)
+mrc_init_presym(pm_arena_t *arena, pm_constant_pool_t *pool)
 {
   /* The pool is not necessarily empty here: when the compile context carries
      enclosing scopes (an eval or a binding), the parser has already interned
@@ -46,6 +46,6 @@ mrc_init_presym(pm_constant_pool_t *pool)
     if (symTable[i].lit == NULL) { break; }
     mrc_assert(symTable[i].index == i + 1);
     presym_ids[symTable[i].index] =
-      (mrc_sym)pm_constant_pool_insert_constant(pool, (const uint8_t *)symTable[i].lit, strlen(symTable[i].lit));
+      (mrc_sym)pm_constant_pool_insert_constant(arena, pool, (const uint8_t *)symTable[i].lit, strlen(symTable[i].lit));
   }
 }

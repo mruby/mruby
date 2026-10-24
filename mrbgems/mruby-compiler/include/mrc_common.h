@@ -37,6 +37,8 @@
 #endif
 
 #include <stdint.h>
+/* For the PRI* macros MRC_PRId and friends stand for below */
+#include <inttypes.h>
 
 #if !defined(PRISM_XALLOCATOR)
   #define PRISM_XALLOCATOR
@@ -46,10 +48,24 @@
    that a C++ compiler cannot build). When this header is included from a C++
    translation unit -- e.g. an MRB_USE_CXX_ABI build -- its declarations must
    use C linkage so they match the C-compiled Prism objects. */
+/* Prism 2 keeps the parser, the options and the constant pool opaque behind
+   its public headers. The compiler uses the constant pool as its symbol
+   table, switches the parser's file path as a parse crosses from one input
+   file to the next, and embeds the parser in its context, so it reads the
+   internal headers too. Prism is vendored and built with the compiler, so
+   the two always agree on these layouts. */
 #ifdef __cplusplus
 extern "C" {
 #endif
 #include "prism.h"
+#include "prism/internal/allocator.h"
+#include "prism/internal/arena.h"
+#include "prism/internal/buffer.h"
+#include "prism/internal/constant_pool.h"
+#include "prism/internal/integer.h"
+#include "prism/internal/line_offset_list.h"
+#include "prism/internal/options.h"
+#include "prism/internal/parser.h"
 #ifdef __cplusplus
 }
 #endif
