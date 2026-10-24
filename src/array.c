@@ -1805,10 +1805,17 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
      Nested results are concatenated verbatim, so appending every element
      into one shared buffer in depth-first order yields the same bytes a
      per-level recursion would.  The stack is a GC-tracked array; an
-     exception unwind reclaims it, so there is no leak. */
+     exception unwind reclaims it, so there is no leak.  It holds every array
+     on the current path, the one being walked last, with the index to resume
+     each parent at between them: a nested array is pinned by the stack while
+     a to_s/to_str/to_ary call runs, since that Ruby code can drop it from its
+     parent and run GC.  It is hidden from ObjectSpace.each_object so that the
+     same code cannot rewrite the frames either. */
   mrb_value stack = mrb_ary_new(mrb);
   mrb_int idx = 0;
 
+  mrb_ary_ptr(stack)->c = NULL; /* hide from ObjectSpace.each_object */
+  mrb_ary_push(mrb, stack, ary);
   for (;;) {
     while (idx < RARRAY_LEN(ary)) {
       mrb_value val = RARRAY_PTR(ary)[idx];
@@ -1845,18 +1852,15 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
       }
 
       if (as_array) {
-        /* check recursive: val must not be an ancestor on the current path */
-        if (mrb_obj_equal(mrb, val, ary)) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
-        }
+        /* check recursive: val must not be on the current path */
         for (mrb_int j = 0; j < RARRAY_LEN(stack); j += 2) {
           if (mrb_obj_equal(mrb, val, RARRAY_PTR(stack)[j])) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
           }
         }
-        /* descend: save the current frame and switch to val */
-        mrb_ary_push(mrb, stack, ary);
+        /* descend: save the resume index and switch to val */
         mrb_ary_push(mrb, stack, mrb_fixnum_value(idx));
+        mrb_ary_push(mrb, stack, val);
         ary = val;
         idx = 0;
       }
@@ -1865,10 +1869,11 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
       }
     }
 
+    mrb_ary_pop(mrb, stack);    /* the array just walked */
     if (RARRAY_LEN(stack) == 0) break;
     /* ascend: restore the parent frame */
     idx = mrb_fixnum(mrb_ary_pop(mrb, stack));
-    ary = mrb_ary_pop(mrb, stack);
+    ary = RARRAY_PTR(stack)[RARRAY_LEN(stack) - 1];
   }
 
   return result;

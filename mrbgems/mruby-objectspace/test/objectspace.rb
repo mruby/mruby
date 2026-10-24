@@ -59,6 +59,23 @@ assert 'Check class pointer of ObjectSpace.each_object.' do
   assert_nothing_raised { ObjectSpace.each_object { |obj| !obj } }
 end
 
+assert('ObjectSpace.each_object does not reach the frames of Array#join') do
+  # join keeps the arrays it is descending through in an array of its own;
+  # an element's to_s must not be able to find it and rewrite a frame.
+  c = Class.new do
+    attr_accessor :outer
+    def to_s
+      ObjectSpace.each_object(Array) do |a|
+        a[0] = "f" * 64 if a.size == 2 && a[0].equal?(@outer)
+      end
+      "e"
+    end
+  end
+  e = c.new
+  e.outer = [[e], "a", "b"]
+  assert_equal("e,a,b", e.outer.join(","))
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold
