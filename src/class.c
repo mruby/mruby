@@ -3081,6 +3081,7 @@ static mrb_sym
 idx_op_mid(int slot)
 {
   if (slot == MRB_IDX_OP_STR_ADD) return MRB_OPSYM(add);
+  if (slot == MRB_IDX_OP_STR_EQ) return MRB_OPSYM(eq);
   return slot < MRB_IDX_OP_ARY_ASET ? MRB_OPSYM(aref) : MRB_OPSYM(aset);
 }
 

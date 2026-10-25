@@ -4705,6 +4705,21 @@ RETRY_TRY_BLOCK:
           NEXT;
         }
       }
+      /* Two Strings are compared by the builtin while the receiver's class
+         is exactly `String` and `String#==` is the builtin: a subclass or
+         a singleton may override `==`, and the slot is NULL while
+         `String#==` is redefined, so one compare rejects all three, as
+         `OP_ADD` does for `String#+`. */
+      if (mrb_string_p(regs[a]) && mrb_string_p(regs[a+1]) &&
+          mrb_likely(mrb_str_ptr(regs[a])->c == mrb->idx_class[MRB_IDX_OP_STR_EQ])) {
+        if (mrb_str_equal(mrb, regs[a], regs[a+1])) {
+          SET_TRUE_VALUE(regs[a]);
+        }
+        else {
+          SET_FALSE_VALUE(regs[a]);
+        }
+        NEXT;
+      }
       OP_CMP(==,eq);
       NEXT;
     }
