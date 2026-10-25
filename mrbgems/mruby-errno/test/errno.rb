@@ -26,13 +26,17 @@ end
 assert('SystemCallError#initialize with an errno past int') do
   # 2**32 + 2 was cut to 2 and made an Errno::ENOENT. Computed, not written
   # out, so the file still compiles where mrb_int is 32 bits.
+  # A big integer is not an mrb_int either, and is taken as no errno at all.
   shift = 32
-  big = begin
-    (1 << shift) + 2
+  big = nil
+  wide = begin
+    big = (1 << shift) + 2  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][big]                 # nil for an mrb_int index, RangeError for a big integer
+    true
   rescue RangeError
-    nil
+    false
   end
-  skip "no integer past 32 bits" unless big
+  skip "needs 64-bit mrb_int" unless wide
   assert_raise(RangeError) { SystemCallError.new("a", big) }
   assert_raise(RangeError) { SystemCallError.new(-big) }
 end

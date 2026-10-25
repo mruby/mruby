@@ -657,13 +657,17 @@ assert('IO.popen with a redirect descriptor past int') do
   # 2**32 + 1 was cut to 1, and the command wrote to the standard output.
   # Computed, not written out, so the file still compiles where mrb_int is
   # 32 bits.
+  # A big integer is not an mrb_int either, and is no redirect action.
   shift = 32
-  big = begin
-    (1 << shift) + 1
+  big = nil
+  wide = begin
+    big = (1 << shift) + 1  # RangeError where mrb_int is 32 bits and bigint is absent
+    [][big]                 # nil for an mrb_int index, RangeError for a big integer
+    true
   rescue RangeError
-    nil
+    false
   end
-  skip "no integer past 32 bits" unless big
+  skip "needs 64-bit mrb_int" unless wide
   begin
     assert_raise(RangeError) { IO.popen("#{$cmd}echo mruby-io", "r", out: big) { |i| i.read } }
     assert_raise(RangeError) { IO.popen($cat, "r", in: big) { |i| i.read } }
