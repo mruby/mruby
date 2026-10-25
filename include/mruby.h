@@ -312,7 +312,8 @@ typedef void (*mrb_atexit_func)(mrb_state*);
 /**
  * Slots of `mrb_state.idx_class`, one per builtin the inline index opcodes
  * (`OP_GETIDX`, `OP_GETIDX0`, `OP_SETIDX`) reimplement in C, plus one for
- * `String#+`, which `OP_ADD` guards the same way.
+ * `String#+`, which `OP_ADD` guards the same way, and one for `String#==`,
+ * which `OP_EQ` and `mrb_equal()` guard the same way.
  */
 enum mrb_idx_op_slot {
   MRB_IDX_OP_ARY_AREF,          /* Array#[]  */
@@ -322,6 +323,7 @@ enum mrb_idx_op_slot {
   MRB_IDX_OP_HASH_ASET,         /* Hash#[]=  */
   MRB_IDX_OP_STR_ASET,          /* String#[]= */
   MRB_IDX_OP_STR_ADD,           /* String#+  */
+  MRB_IDX_OP_STR_EQ,            /* String#== */
   MRB_IDX_OP_SLOT_COUNT
 };
 

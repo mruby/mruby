@@ -111,6 +111,18 @@ mrb_equal_in_c(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
     return mrb_bint_cmp(mrb, obj1, obj2) == 0;
   }
 #endif
+  /* A String whose class is exactly `String` is compared by the builtin
+     while `String#==` is the builtin: a subclass or a singleton may
+     override `==`, and the slot is NULL while `String#==` is redefined,
+     so one compare rejects all three (see `OP_ADD` for `String#+`).
+     The builtin answers false for a non-String `obj2`, as
+     `mrb_str_equal()` does. This saves `Array#include?`, `Array#index`,
+     `Array#delete` and their kin a method search, and the call frame,
+     for every String element they compare. */
+  else if (mrb_string_p(obj1) &&
+           mrb_str_ptr(obj1)->c == mrb->idx_class[MRB_IDX_OP_STR_EQ]) {
+    return mrb_str_equal(mrb, obj1, obj2);
+  }
   struct RClass *c = mrb_class(mrb, obj1);
   mrb_method_t m = mrb_method_search_vm(mrb, &c, MRB_OPSYM(eq));
   if (MRB_METHOD_UNDEF_P(m) || !MRB_METHOD_CFUNC_P(m)) return -1;

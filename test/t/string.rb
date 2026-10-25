@@ -228,6 +228,55 @@ assert('String#+ redefined on String itself reaches the redefinition') do
   assert_equal 'hi!', 'hi' + '!'
 end
 
+assert('String#== redefined on String itself reaches the redefinition') do
+  # `OP_EQ` answers `s == t` from C for two Strings, and `mrb_equal()` does
+  # the same for the comparisons `Array#include?`, `Array#index` and their
+  # kin make in C, which they may only do while `String#==` is still the
+  # builtin and the receiver's class is exactly `String`. Both test the
+  # receiver against `mrb->idx_class[]` on the same terms as the `+` test
+  # above, so a redefinition installed on `String` itself is honored as in
+  # CRuby, and so is one on a subclass or a singleton. The results are read
+  # before the operator is put back because the assertions themselves
+  # compare strings.
+  String.class_eval do
+    alias_method :__eq_before_test, :==
+    def ==(other)
+      [:overridden, self, other]
+    end
+  end
+  begin
+    s = 'hello'
+    same = s == 'hello'
+    different = s == 'world'
+    other = s == 1
+    index = ['a', 'b'].index('b')          # `mrb_equal()` asks the redefinition
+    included = ['a', 'b'].include?('zzz')  # ... whose answer is truthy here
+  ensure
+    String.class_eval do
+      alias_method :==, :__eq_before_test
+      remove_method :__eq_before_test if respond_to?(:remove_method, true)
+    end
+  end
+  assert_equal [:overridden, 'hello', 'hello'], same
+  assert_equal [:overridden, 'hello', 'world'], different
+  assert_equal [:overridden, 'hello', 1], other
+  assert_equal 0, index
+  assert_true included
+  assert_true 'hello' == 'hello'
+  assert_false 'hello' == 'world'
+  assert_false 'hello' == 1
+  assert_equal 1, ['a', 'b'].index('b')
+  assert_false ['a', 'b'].include?('zzz')
+
+  sub = Class.new(String) { def ==(other) [:subclass, self, other] end }.new('hi')
+  assert_equal [:subclass, 'hi', 'hi'], sub == 'hi'
+  assert_equal 0, [sub].index('hi')
+  single = 'hi'
+  def single.==(other) [:singleton, self, other] end
+  assert_equal [:singleton, 'hi', 'hi'], single == 'hi'
+  assert_true 'hi' == 'hi'
+end
+
 assert('String#[]= redefined on String itself reaches the redefinition') do
   # `OP_SETIDX` answers `s[0] = 'X'` from C whenever the receiver's class is
   # exactly `String`, on the same terms as the `[]` test above: it tests the
