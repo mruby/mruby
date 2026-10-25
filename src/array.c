@@ -1873,7 +1873,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
     if (RARRAY_LEN(stack) == 0) break;
     /* ascend: restore the parent frame */
     idx = mrb_fixnum(mrb_ary_pop(mrb, stack));
-    ary = RARRAY_PTR(stack)[RARRAY_LEN(stack) - 1];
+    ary = mrb_ary_entry(stack, -1);  /* g++ miscompiles PTR[LEN-1] here */
   }
 
   return result;
