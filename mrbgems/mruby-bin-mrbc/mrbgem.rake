@@ -15,9 +15,10 @@ MRuby::Gem::Specification.new 'mruby-bin-mrbc' do |spec|
     compiler = build.gems['mruby-compiler']
 
     # Prism's generated headers are written under the build directory rather
-    # than into the submodule, so both directories are named here.
+    # than into the checkout, so both directories are named here. The
+    # checkout is the compiler gem's, wherever the build took it from.
     spec.cc.include_paths << "#{build.build_root}/prism/include"
-    spec.cc.include_paths << "#{MRUBY_ROOT}/mrbgems/mruby-compiler/lib/prism/include"
+    spec.cc.include_paths << "#{compiler.dir}/lib/prism/include"
 
     # The layout of struct mrc_ccontext depends on MRC_TARGET_*; the tool's own
     # translation units must use the same target define as mruby-compiler,

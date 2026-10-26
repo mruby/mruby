@@ -48,9 +48,8 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
     mrc_ccontext_filename(dst, src->filename);
   }
   if (src->syms && src->slen > 0) {
-    /* The scope arrays come from Prism's allocator, so they must land in
-       dst's arena, where mrc_ccontext_free() gives them back. */
-    void *arena_prev = mrc_ccontext_arena_save(dst);
+    /* The scope arrays come from Prism's allocator; mrc_ccontext_free()
+       gives them back with pm_options_cleanup(). */
     pm_options_t *options = (pm_options_t*)mrc_calloc(dst, 1, sizeof(pm_options_t));
     pm_options_scope_t *scope;
 
@@ -72,7 +71,6 @@ copy_context_to_mrc(mrc_ccontext *dst, const mrb_ccontext *src)
         pm_string_init(&scope->locals[i], copy, len);
       }
     }
-    mrc_ccontext_arena_restore(dst, arena_prev);
   }
 }
 

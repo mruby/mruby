@@ -31,18 +31,11 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   elsif !cc.defines.include?('MRB_NO_GEMS')
     cc.defines << 'MRC_TARGET_MRUBY'
   end
-  # Prism allocates the tree it parses, and the walk that gives the tree back
-  # costs a C frame per level of it; a tree deep enough to run that off the
-  # stack is written in ordinary source, so the tree is taken from an arena
-  # and given back in one piece instead (see include/prism_xallocator.h).
-  #
-  # A C++ ABI build takes the arena's blocks from libc.  Prism is compiled as
-  # C there, so it reaches the arena through the C linkage the header gives
-  # it; what it must not reach is mrb_malloc(), which raises on failure and
-  # would throw through Prism's frames.  Nothing is lost by it: that build
-  # already had every Prism allocation outside mrb_malloc().
-  cc.defines << 'MRC_PRISM_ARENA'
-  cc.defines << 'MRC_PRISM_ARENA_LIBC' if build.cxx_abi_enabled?
+  # Prism takes the blocks of its arenas from the mruby state's allocator
+  # (see include/prism_xallocator.h). A C++ ABI build takes them from libc:
+  # Prism is compiled as C there, and what it must not reach is mrb_malloc(),
+  # which raises on failure and would throw through Prism's frames.
+  cc.defines << 'MRC_PRISM_LIBC' if build.cxx_abi_enabled?
   cc.defines << 'MRC_DEBUG' if cc.has_define?('MRB_DEBUG')
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
   # PRISM_BUILD_MINIMAL stubs out pm_prettyprint(), so `mruby -v` can only dump
@@ -145,9 +138,8 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   # which a C compile refuses, and give back the flags the toolchain keeps
   # for C alone, which enable_cxx_abi took out; mrc_common.h
   # wraps the Prism header in extern "C" so the C++ glue links against them.
-  # Prism's allocator is the arena, which the header declares with C linkage
-  # so that these C objects resolve it; its blocks come from libc there, so
-  # nothing here reaches a C++-linkage symbol (see MRC_PRISM_ARENA_LIBC).
+  # Prism's allocator is libc there (MRC_PRISM_LIBC), so nothing here reaches
+  # a C++-linkage symbol.
   # The compiler is derived when a rule is first resolved (not here) so cc is
   # already fully populated with the build's generated-header include flags.
   #

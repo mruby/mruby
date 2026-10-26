@@ -37,7 +37,8 @@
 #endif
 
 #include <stdint.h>
-/* For the PRI* macros MRC_PRId and friends stand for below */
+/* For the PRI* macros MRC_PRId and friends stand for below; the 64-bit ones
+   are supplied where the libc leaves them out, see prism_xallocator.h. */
 #include <inttypes.h>
 
 #if !defined(PRISM_XALLOCATOR)
