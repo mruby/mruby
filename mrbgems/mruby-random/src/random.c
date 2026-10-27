@@ -113,6 +113,8 @@ rand_real(rand_state *t)
 }
 #endif
 
+static mrb_uint rand_u(rand_state *t, mrb_uint span);
+
 static mrb_value
 random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 {
@@ -126,6 +128,10 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
   /* a negative limit reaches here only from Kernel#rand, which draws from
      its magnitude; the unsigned modulus keeps that defined on any mrb_int */
   uint64_t lim = max < 0 ? 0 - (uint64_t)max : (uint64_t)max;
+  if (lim > UINT32_MAX) {
+    /* a 32-bit draw cannot reach the upper part of a larger limit */
+    return mrb_int_value(mrb, (mrb_int)rand_u(t, (mrb_uint)lim));
+  }
   return mrb_int_value(mrb, (mrb_int)(rand_uint32(t) % lim));
 }
 
