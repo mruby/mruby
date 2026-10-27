@@ -252,3 +252,14 @@ assert("Random#rand with a negative big integer limit") do
     assert_true(0 <= v && v < big)
   end
 end
+
+assert("Random#rand with a limit above 2**32") do
+  big = 1 << 40
+  skip "requires 64-bit Integer" unless big.is_a?(Integer) && big > 0 && (big >> 40) == 1
+  r = Random.new(42)
+  draws = Array.new(200) { r.rand(big) }
+  # a 32-bit draw could never exceed 2**32 - 1
+  assert_true(draws.any? { |v| v > 0xffffffff })
+  assert_true(draws.all? { |v| 0 <= v && v < big })
+  assert_true(Array.new(200) { rand(-big) }.any? { |v| v > 0xffffffff })
+end
