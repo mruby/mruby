@@ -263,6 +263,10 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_bool kernel)
 
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(arg)) {
+    /* check the sign first: truncation would turn -0.5 into 0 */
+    if (!kernel && mrb_float(arg) < 0) {
+      invalid_argument(mrb, orig);
+    }
     /* The limit is truncated through the checked conversion: a Float that
        stands for no Integer, Infinity and NaN among them, is out of range
        rather than whatever the cast makes of it, and one wider than mrb_int
