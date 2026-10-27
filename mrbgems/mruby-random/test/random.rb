@@ -254,8 +254,12 @@ assert("Random#rand with a negative big integer limit") do
 end
 
 assert("Random#rand with a limit above 2**32") do
-  big = 1 << 40
-  skip "requires 64-bit Integer" unless big.is_a?(Integer) && big > 0 && (big >> 40) == 1
+  k = 40
+  big = begin
+    1 << k  # raises RangeError where Integer is 32-bit and there is no bigint
+  rescue RangeError
+    skip "requires 64-bit Integer or bigint"
+  end
   r = Random.new(42)
   draws = Array.new(200) { r.rand(big) }
   # a 32-bit draw could never exceed 2**32 - 1
