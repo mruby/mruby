@@ -16,7 +16,7 @@
     #define mrc_realloc(c,ptr,size)   realloc(ptr, size)
     #define mrc_free(c,ptr)           free(ptr)
   #elif defined(MRC_PRISM_ARENA)
-    extern mrb_state *global_mrb;
+    extern MRC_THREAD_LOCAL mrb_state *global_mrb;
 
     /* mrb_malloc()/mrb_calloc() answer a size of zero with NULL, where
        malloc() and calloc() answer with a pointer.  Prism is written against
@@ -51,7 +51,7 @@
     struct mrc_prism_arena_block {
       struct mrc_prism_arena_block *prev;
     };
-    extern struct mrc_prism_arena_block *mrc_prism_arena;
+    extern MRC_THREAD_LOCAL struct mrc_prism_arena_block *mrc_prism_arena;
 
     void *mrc_prism_arena_alloc(size_t size);
     void *mrc_prism_arena_realloc(void *ptr, size_t size);
@@ -98,7 +98,7 @@
     #define mrc_realloc(c,ptr,size)   mrb_realloc(c->mrb, ptr, size)
     #define mrc_free(c,ptr)           mrb_free(c->mrb, ptr)
   #else
-    extern mrb_state *global_mrb;
+    extern MRC_THREAD_LOCAL mrb_state *global_mrb;
 
     /* mrb_malloc()/mrb_calloc() answer a size of zero with NULL, where
        malloc() and calloc() answer with a pointer.  Prism is written against

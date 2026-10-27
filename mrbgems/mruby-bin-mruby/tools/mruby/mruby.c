@@ -13,7 +13,7 @@
 #include <mruby/proc.h>
 #include <mruby/error.h>
 
-extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+extern MRC_THREAD_LOCAL mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 
 #if defined(_WIN32)
 # include <io.h> /* for setmode */

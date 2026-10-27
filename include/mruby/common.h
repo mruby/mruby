@@ -122,6 +122,44 @@ MRB_BEGIN_DECL
 # endif
 #endif
 
+/*
+ * Storage class of the two variables mruby-compiler keeps for the whole
+ * process: `global_mrb`, the state the Prism allocator allocates through,
+ * and the Prism arena current for a parse.
+ *
+ * By default it is empty, and a process compiles on one thread at a time:
+ * two threads compiling at once, even on mrb_states of their own, share both
+ * variables and allocate through each other's state and arena.  A host that
+ * compiles on several threads defines MRC_USE_THREAD_LOCAL, and both become
+ * per-thread.  It is a choice rather than the default because a target whose
+ * runtime has no thread-local storage (a bare-metal toolchain may accept the
+ * keyword and then fail to link) has to build as before.
+ *
+ * It is defined here, among macros only, because prism_xallocator.h reads it
+ * from inside the extern "C" block mrc_common.h puts around prism.h, where a
+ * header carrying declarations would change their linkage under
+ * MRB_USE_CXX_ABI.  GCC and Clang get `__thread` in C and in C++ alike: the
+ * compiler glue is C++ in that build while Prism stays C, and C++
+ * `thread_local` would reach the variable through a wrapper function the C
+ * side does not call.  A compiler not listed can be served by defining
+ * MRC_THREAD_LOCAL itself.
+ */
+#ifndef MRC_THREAD_LOCAL
+# if !defined(MRC_USE_THREAD_LOCAL)
+#  define MRC_THREAD_LOCAL
+# elif defined(_MSC_VER)
+#  define MRC_THREAD_LOCAL __declspec(thread)
+# elif defined(__GNUC__) || defined(__clang__)
+#  define MRC_THREAD_LOCAL __thread
+# elif defined(__cplusplus) && __cplusplus >= 201103L
+#  define MRC_THREAD_LOCAL thread_local
+# elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  define MRC_THREAD_LOCAL _Thread_local
+# else
+#  error "MRC_USE_THREAD_LOCAL: no thread-local storage qualifier is known for this compiler; define MRC_THREAD_LOCAL"
+# endif
+#endif
+
 MRB_END_DECL
 
 #endif  /* MRUBY_COMMON_H */
