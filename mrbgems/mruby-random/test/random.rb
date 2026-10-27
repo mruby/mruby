@@ -227,6 +227,7 @@ assert("Random#rand with a negative limit") do
   assert_raise(ArgumentError) { Random.new(1).rand(-1) }
   if Object.const_defined?(:Float)
     assert_raise(ArgumentError) { Random.rand(-5.5) }
+    assert_raise(ArgumentError) { Random.new(1).rand(-0.5) }
   end
 
   srand(234)
