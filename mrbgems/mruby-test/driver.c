@@ -19,7 +19,7 @@
 #include <mruby/array.h>
 
 #if defined(MRBTEST_COMPILER_PRISM)
-extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+extern MRC_THREAD_LOCAL mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 #endif
 
 extern const uint8_t mrbtest_assert_irep[];

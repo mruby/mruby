@@ -11,7 +11,7 @@
 #include <stddef.h>
 #include <mruby/error.h>
 
-mrb_state *global_mrb = NULL;
+MRC_THREAD_LOCAL mrb_state *global_mrb = NULL;
 
 #if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
 /* The arena prism allocates a parse from.  Blocks are handed out by bumping a
@@ -33,7 +33,7 @@ mrb_state *global_mrb = NULL;
 # define arena_block_free(ptr)    mrb_free(global_mrb, ptr)
 #endif
 
-struct mrc_prism_arena_block *mrc_prism_arena = NULL;
+MRC_THREAD_LOCAL struct mrc_prism_arena_block *mrc_prism_arena = NULL;
 
 #ifndef MRC_PRISM_ARENA_BLOCK
 #define MRC_PRISM_ARENA_BLOCK (64 * 1024)

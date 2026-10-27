@@ -21,7 +21,7 @@
 #include <mruby/error.h>
 #include <mruby/internal.h>
 
-extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+extern MRC_THREAD_LOCAL mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 
 #include <stdlib.h>
 #include <string.h>

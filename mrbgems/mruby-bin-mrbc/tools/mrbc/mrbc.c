@@ -14,7 +14,7 @@
 
 #if defined(MRC_TARGET_MRUBY)
 #include <mruby/error.h>
-extern mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
+extern MRC_THREAD_LOCAL mrb_state *global_mrb; /* defined in mruby-compiler (ccontext.c) */
 #else
 #define global_mrb NULL
 #endif

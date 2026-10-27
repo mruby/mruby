@@ -249,6 +249,17 @@ end
 
 ## Other configuration
 
+`MRC_USE_THREAD_LOCAL`
+
+- Makes the state of `mruby-compiler` per-thread, so that several threads can
+  compile at once, each on an `mrb_state` of its own.
+- Without it the compiler keeps the `mrb_state` it allocates through and the
+  arena of the parse under way in two process-wide variables, and two threads
+  compiling at the same time corrupt each other's parse.
+- Needs thread-local storage from the compiler and its runtime, which is why
+  it is not the default. `MRC_THREAD_LOCAL` names the storage class where the
+  compiler is not one `include/mruby/common.h` knows.
+
 `MRB_USE_MALLOC_TRIM`
 
 - Call `malloc_trim(0)` for each `mrb_full_gc()` call.

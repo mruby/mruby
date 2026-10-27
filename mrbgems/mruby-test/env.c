@@ -158,7 +158,7 @@ env_cfunc_proc_new(mrb_state *mrb, mrb_value self)
    state compiles, so the caller's has to be put back. */
 #include <mruby/compile.h>
 
-extern mrb_state *global_mrb;
+extern MRC_THREAD_LOCAL mrb_state *global_mrb;
 
 struct shutdown_probe {
   mrb_bool ran;         /* the callback was reached at all */
