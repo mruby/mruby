@@ -123,7 +123,10 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
     max = 100;
 #endif
   }
-  return mrb_int_value(mrb, rand_uint32(t) % max);
+  /* a negative limit reaches here only from Kernel#rand, which draws from
+     its magnitude; the unsigned modulus keeps that defined on any mrb_int */
+  uint64_t lim = max < 0 ? 0 - (uint64_t)max : (uint64_t)max;
+  return mrb_int_value(mrb, (mrb_int)(rand_uint32(t) % lim));
 }
 
 static mrb_int
@@ -239,13 +242,24 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
 #endif
 }
 
+static mrb_noreturn void
+invalid_argument(mrb_state *mrb, mrb_value v)
+{
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid argument - %v", v);
+}
+
+/*
+ * Random.rand and Random#rand reject a negative limit, as CRuby does;
+ * Kernel#rand (kernel == TRUE) uses its absolute value instead.
+ */
 static mrb_value
-random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
+random_rand_impl(mrb_state *mrb, rand_state *t, mrb_bool kernel)
 {
   mrb_value arg;
   if (mrb_get_args(mrb, "|o", &arg) == 0) {
     return random_rand(mrb, t, 0);
   }
+  mrb_value orig = arg;
 
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(arg)) {
@@ -258,7 +272,11 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
 #endif
 
   if (mrb_integer_p(arg)) {
-    return random_rand(mrb, t, mrb_integer(arg));
+    mrb_int max = mrb_integer(arg);
+    if (max < 0 && !kernel) {
+      invalid_argument(mrb, orig);
+    }
+    return random_rand(mrb, t, max);
   }
 
   if (mrb_range_p(arg)) {
@@ -268,7 +286,10 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(arg)) {
     if (mrb_bint_sign(mrb, arg) < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "negative value as random limit");
+      if (!kernel) {
+        invalid_argument(mrb, orig);
+      }
+      arg = mrb_bint_abs(mrb, arg);
     }
     mrb_int size = mrb_bint_bytes_size(mrb, arg);
     mrb_value bytes = mrb_str_new(mrb, NULL, size);
@@ -336,7 +357,8 @@ random_m_init(mrb_state *mrb, mrb_value self)
  * Returns a random number. When called without arguments, returns a
  * random float between 0.0 and 1.0. When called with a positive integer,
  * returns a random integer between 0 and max-1. When called with a range,
- * returns a random number within that range.
+ * returns a random number within that range. A negative max raises
+ * ArgumentError.
  *
  *   prng = Random.new
  *   prng.rand         #=> 0.2725926052826416
@@ -347,7 +369,7 @@ static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
-  return random_rand_impl(mrb, t, self);
+  return random_rand_impl(mrb, t, FALSE);
 }
 
 /*
@@ -560,7 +582,8 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
  * Equivalent to Random.new.rand. When called without arguments, returns
  * a random float between 0.0 and 1.0. When called with a positive integer,
  * returns a random integer between 0 and max-1. When called with a range,
- * returns a random number within that range.
+ * returns a random number within that range. A negative max raises
+ * ArgumentError for Random.rand; Kernel#rand uses its absolute value.
  *
  *   Random.rand       #=> 0.8444218515250481
  *   Random.rand(10)   #=> 5
@@ -570,7 +593,14 @@ static mrb_value
 random_f_rand(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_default_state(mrb);
-  return random_rand_impl(mrb, t, self);
+  return random_rand_impl(mrb, t, FALSE);
+}
+
+static mrb_value
+random_k_rand(mrb_state *mrb, mrb_value self)
+{
+  rand_state *t = random_default_state(mrb);
+  return random_rand_impl(mrb, t, TRUE);
 }
 
 /*
@@ -630,7 +660,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, random, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, random, MRB_SYM(bytes), random_f_bytes, MRB_ARGS_REQ(1));
 
-  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_k_rand, MRB_ARGS_OPT(1));
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
   MRB_MT_INIT_ROM(mrb, random, random_rom_entries);
   mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
