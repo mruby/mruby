@@ -90,3 +90,28 @@ assert('BasicSocket#sysseek') do
     s.close rescue nil
   end
 end
+
+assert('Socket methods keep what they build out of reach of ObjectSpace') do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = $socket_option_seen = []
+  w = Object.new
+  def w.inspect
+    ObjectSpace.each_object(String) { |o| $socket_option_seen << o }
+    "W"
+  end
+  s = Socket::Option.new(Socket::AF_INET, 1, 2, w).inspect
+  $socket_option_seen = nil
+  assert_equal "#<Socket::Option: INET level:1 optname:2 W>", s
+  assert_false seen.any? { |o| o.equal?(s) }
+
+  seen = []
+  ai = Class.new(Addrinfo) do
+    define_method(:initialize) do |*a|
+      ObjectSpace.each_object(Array) { |o| seen << o }
+      super(*a)
+    end
+  end
+  r = ai.getaddrinfo("127.0.0.1", 80, Socket::AF_INET, Socket::SOCK_STREAM)
+  assert_true r.size >= 1
+  assert_false seen.any? { |o| o.equal?(r) }
+end

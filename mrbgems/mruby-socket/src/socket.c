@@ -157,6 +157,8 @@ gen_addrinfo(mrb_state *mrb, mrb_value args)
   mrb_value ary = mrb_ary_new(mrb);
   int arena_idx = mrb_gc_arena_save(mrb);  /* ary must be on arena! */
   struct gen_addrinfo_args *a = (struct gen_addrinfo_args*)mrb_cptr(args);
+  /* a subclass's initialize must not reach the result being filled */
+  mrb_ary_ptr(ary)->c = NULL; /* hide from ObjectSpace.each_object */
 
   for (struct addrinfo *res = a->addrinfo; res != NULL; res = res->ai_next) {
     mrb_value sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
@@ -165,6 +167,7 @@ gen_addrinfo(mrb_state *mrb, mrb_value args)
     mrb_ary_push(mrb, ary, ai);
     mrb_gc_arena_restore(mrb, arena_idx);
   }
+  mrb_ary_ptr(ary)->c = mrb->array_class;
   return ary;
 }
 
@@ -619,6 +622,8 @@ static mrb_value
 socket_option_inspect(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_new_cstr(mrb, "#<Socket::Option: ");
+  /* the attributes' inspect must not reach the string under construction */
+  mrb_str_ptr(str)->c = NULL; /* hide from ObjectSpace.each_object */
 
   mrb_value family = mrb_iv_get(mrb, self, MRB_SYM(family));
   const char *pf = NULL;
@@ -642,6 +647,7 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
   mrb_str_cat_cstr(mrb, str, " ");
   mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_SYM(data))));
   mrb_str_cat_cstr(mrb, str, ">");
+  mrb_str_ptr(str)->c = mrb->string_class;
 
   return str;
 }
@@ -1029,6 +1035,9 @@ mrb_socket_ip_address_list(mrb_state *mrb, mrb_value klass)
   mrb_value sas = mrb_hal_socket_ip_address_list(mrb);
   struct RClass *ainfo = mrb_class_get_id(mrb, MRB_SYM(Addrinfo));
   mrb_value result = mrb_ary_new_capa(mrb, RARRAY_LEN(sas));
+  /* Addrinfo#initialize must not reach the addresses or the result */
+  mrb_ary_ptr(sas)->c = NULL; /* hide from ObjectSpace.each_object */
+  mrb_ary_ptr(result)->c = NULL;
   int arena_idx = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < RARRAY_LEN(sas); i++) {
     mrb_value sa = RARRAY_PTR(sas)[i];
@@ -1036,6 +1045,7 @@ mrb_socket_ip_address_list(mrb_state *mrb, mrb_value klass)
     mrb_ary_push(mrb, result, addr);
     mrb_gc_arena_restore(mrb, arena_idx);
   }
+  mrb_ary_ptr(result)->c = mrb->array_class;
   return result;
 }
 

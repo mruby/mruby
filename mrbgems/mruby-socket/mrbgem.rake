@@ -17,6 +17,11 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   # than a runtime one: the library itself works without Errno being
   # defined, only the tests need to name it.
   spec.add_test_dependency('mruby-errno', :core => 'mruby-errno')
+  # A test reaches what the methods build through ObjectSpace, the way a
+  # script can; it skips where the build has none.
+  if build.gems.any? {|g| g.name == 'mruby-objectspace'}
+    spec.add_test_dependency('mruby-objectspace', :core => 'mruby-objectspace')
+  end
 
   if spec.for_windows?
     spec.linker.libraries << "wsock32"
