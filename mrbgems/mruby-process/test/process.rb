@@ -515,7 +515,7 @@ assert("Process.uid") do
   if ProcessTestUtil.windows?
     assert_raise(Errno::ENOSYS) { Process.uid }
   else
-    assert_instance_of Integer, Process.uid
+    assert_true Integer === Process.uid
   end
 end
 
@@ -523,6 +523,6 @@ assert("Process.euid") do
   if ProcessTestUtil.windows?
     assert_raise(Errno::ENOSYS) { Process.euid }
   else
-    assert_instance_of Integer, Process.euid
+    assert_true Integer === Process.euid
   end
 end
