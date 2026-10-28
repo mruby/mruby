@@ -510,3 +510,19 @@ assert('$? after IO.popen') do
   assert_equal pid, $?.pid
   assert_true $?.success?
 end
+
+assert("Process.uid") do
+  if ProcessTestUtil.windows?
+    assert_raises(Errno::ENOSYS) { Process.uid }
+  else
+    assert_instance_of Integer, Process.uid
+  end
+end
+
+assert("Process.euid") do
+  if ProcessTestUtil.windows?
+    assert_raises(Errno::ENOSYS) { Process.euid }
+  else
+    assert_instance_of Integer, Process.euid
+  end
+end

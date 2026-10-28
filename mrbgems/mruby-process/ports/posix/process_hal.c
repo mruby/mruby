@@ -59,6 +59,18 @@ mrb_hal_process_ppid(mrb_state *mrb)
   return (mrb_int)getppid();
 }
 
+mrb_int
+mrb_hal_process_uid(mrb_state *mrb)
+{
+  return (mrb_int)getuid();
+}
+
+mrb_int
+mrb_hal_process_euid(mrb_state *mrb)
+{
+  return (mrb_int)geteuid();
+}
+
 /*
  * Waiting
  */
