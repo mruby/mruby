@@ -4240,7 +4240,10 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     mrb_value str = mrb_str_new_lit(mrb, "#<Class:");
 
     if (class_ptr_p(v)) {
+      /* the class's inspect must not reach the string under construction */
+      mrb_str_ptr(str)->c = NULL; /* hide from ObjectSpace.each_object */
       mrb_str_cat_str(mrb, str, mrb_inspect(mrb, v));
+      mrb_str_ptr(str)->c = mrb->string_class;
     }
     else {
       mrb_str_cat_str(mrb, str, mrb_any_to_s(mrb, v));
@@ -4253,9 +4256,11 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     mrb_value str = mrb_str_new_lit(mrb, "#<refinement:");
     mrb_value owner = mrb_iv_get(mrb, klass, MRB_SYM(__defined_at__));
 
+    mrb_str_ptr(str)->c = NULL; /* hide from ObjectSpace.each_object */
     mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_obj_value(r->super)));
     mrb_str_cat_lit(mrb, str, "@");
     mrb_str_cat_str(mrb, str, mrb_inspect(mrb, owner));
+    mrb_str_ptr(str)->c = mrb->string_class;
     return mrb_str_cat_lit(mrb, str, ">");
   }
 #endif

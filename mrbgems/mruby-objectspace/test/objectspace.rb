@@ -179,6 +179,18 @@ assert('ObjectSpace.each_object does not reach what Hash builds') do
   assert_false(w.seen?(rest))
 end
 
+assert('ObjectSpace.each_object does not reach the string Module#to_s builds') do
+  w = $os_witness = ObjectSpaceWitness.new(String)
+  c = Class.new
+  def c.inspect
+    $os_witness.inspect
+  end
+  s = (class << c; self; end).to_s
+  $os_witness = nil
+  assert_equal("#<Class:W>", s)
+  assert_false(w.seen?(s))
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold
