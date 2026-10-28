@@ -689,3 +689,47 @@ assert 'Kernel#Rational with a Rational and a Bigint operand stays exact' do
   assert_equal Rational(big * 2, 1), Rational(big, Rational(1, 2))
   assert_equal Rational(1, big * 3), Rational(Rational(1, 3), big)
 end
+
+assert 'Rational keeps a bigint half it boxes after itself across minor GCs' do
+  # A bigint-backed Rational whose other half fits an mrb_int, the 3 of
+  # Rational(big, 3) or the 1 of Rational(1, big), boxes that half for
+  # itself.  Boxed after the Rational was allocated, it was the call's last
+  # allocation: a minor GC run by it left the Rational old, nothing
+  # barriered the young half stored into it, and the next minor GC freed
+  # the half while the Rational still held it, so the slot read back as
+  # whatever was allocated there next.
+  k = 70
+  begin
+    big = 1 << k
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  origin = [GC.generational_mode, GC.interval_ratio]
+  burn = ->(n) { i = 0; while i < n; s = "ab"; i += 1; end }
+  begin
+    GC.generational_mode = true
+    GC.interval_ratio = 100
+    GC.disable
+    ballast = Array.new(8192) { |i| s = "b" * 30; s if i % 8 == 0 }
+    GC.enable
+    [[big, 3], [1, big]].each do |num, den|
+      GC.start
+      debt = GC.stat[:debt]
+      Rational(num, den)
+      n = GC.stat[:debt] - debt
+      # a minor GC on each allocation around the last one the call makes
+      (n - 4).upto(n + 4) do |at|
+        GC.start
+        burn.(-GC.stat[:debt] - at)
+        r = Rational(num, den)
+        burn.(2048)  # twice the credit GC.interval_ratio = 100 leaves
+        assert_equal num, r.numerator
+        assert_equal den, r.denominator
+      end
+    end
+    assert_equal 8192, ballast.size
+  ensure
+    GC.enable
+    GC.generational_mode, GC.interval_ratio = origin
+  end
+end
