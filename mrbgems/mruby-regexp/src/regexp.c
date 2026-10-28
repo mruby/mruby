@@ -1695,6 +1695,12 @@ matchdata_init_copy(mrb_state *mrb, mrb_value self)
   if (mrb_type(self) != mrb_type(orig) || mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig)) {
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
   }
+  /* A method holding the struct across a callback, as MatchData#regexp does
+     around Regexp#initialize, would write into it after a copy freed it, so a
+     MatchData takes a match once, as a Regexp takes a pattern once. */
+  if (DATA_PTR(self)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "already initialized MatchData");
+  }
   mrb_match_data *src = DATA_GET_PTR(mrb, orig, &matchdata_type, mrb_match_data);
   if (!src) {
     mrb_raise(mrb, E_TYPE_ERROR, "uninitialized MatchData");
@@ -1705,7 +1711,6 @@ matchdata_init_copy(mrb_state *mrb, mrb_value self)
   *md = *src;
   md->captures = (int*)(md + 1);
   memcpy(md->captures, src->captures, len);
-  if (DATA_PTR(self)) matchdata_free(mrb, DATA_PTR(self));
   DATA_PTR(self) = md;
   DATA_TYPE(self) = &matchdata_type;
   /* The instance variables are what keep the two values reachable. */

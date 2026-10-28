@@ -726,3 +726,31 @@ assert("a piece cut from a frozen subject is writable") do
   assert_equal 241, f.bytesize
   assert_true f.frozen?
 end
+
+assert("MatchData#initialize_copy refuses a MatchData that holds a match") do
+  # MatchData#regexp held the match across Regexp#initialize, so a copy into
+  # the same MatchData from there freed what it then wrote into.
+  m = "abc".match(/b/)
+  assert_raise(TypeError) { m.__send__(:initialize_copy, "xyz".match(/y/)) }
+  assert_equal "b", m[0]
+  victim = "abc".sub("b", "B") && $~
+  other = "xyz".match(/y/)
+  Regexp.class_eval do
+    alias_method :__md_test_init, :initialize
+    define_method(:initialize) do |*a|
+      begin
+        victim.__send__(:initialize_copy, other)
+      rescue TypeError
+      end
+      __md_test_init(*a)
+    end
+  end
+  begin
+    assert_equal(/b/, victim.regexp)
+  ensure
+    Regexp.class_eval do
+      alias_method :initialize, :__md_test_init
+      remove_method :__md_test_init
+    end
+  end
+end
