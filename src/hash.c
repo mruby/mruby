@@ -2238,6 +2238,9 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
   struct RHash *h = mrb_hash_ptr(hash);
   int ai = mrb_gc_arena_save(mrb);
 
+  /* the keys' #==, #hash and #eql? must not reach the result being filled */
+  mrb_hash_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
+
   /* Both calls below run Ruby: #== on a key, and #hash and #eql? on the key
      being stored. That can replace `keys`, so its buffer and length are read
      afresh each time, and it can rehash `hash` out from under H_EACH, which
@@ -2266,6 +2269,7 @@ mrb_hash_except_keys(mrb_state *mrb, mrb_value hash)
     }
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_hash_ptr(result)->c = mrb->hash_class;
   return result;
 }
 
@@ -2286,6 +2290,8 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, ret, "...}");
     return ret;
   }
+  /* a key's or value's inspect must not reach the string under construction */
+  mrb_str_ptr(ret)->c = NULL; /* hide from ObjectSpace.each_object */
 
   mrb_int i = 0;
   struct RHash *h = mrb_hash_ptr(self);
@@ -2313,6 +2319,7 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, "}");
+  mrb_str_ptr(ret)->c = mrb->string_class;
 
   return ret;
 }
