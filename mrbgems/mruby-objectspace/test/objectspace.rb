@@ -76,6 +76,31 @@ assert('ObjectSpace.each_object does not reach the frames of Array#join') do
   assert_equal("e,a,b", e.outer.join(","))
 end
 
+assert('ObjectSpace.each_object does not reach a message mrb_format() builds') do
+  # The %v argument's to_s could find the half-built message and replace it,
+  # or return it to be appended to itself after its buffer had moved.
+  other = "B" * 32
+  c = Class.new do
+    def to_proc
+      1
+    end
+    define_method(:to_s) do
+      ObjectSpace.each_object(String) do |s|
+        s.replace(other) if s.empty? && !s.frozen? && !s.equal?(other)
+      end
+      "C"
+    end
+  end
+  msg = nil
+  begin
+    [].each(&c.new)
+  rescue TypeError => e
+    msg = e.message
+  end
+  assert_equal("C cannot be converted to Proc by #to_proc", msg)
+  assert_equal("B" * 32, other)
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold

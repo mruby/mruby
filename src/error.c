@@ -299,6 +299,12 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   mrb_value result = mrb_str_new_capa(mrb, 128), obj, str;
   int ai = mrb_gc_arena_save(mrb);
 
+  /* A %v or %S argument's to_s runs Ruby, which must not reach the result
+     through ObjectSpace: it could return the result itself, whose buffer the
+     next mrb_str_cat() moves before the bytes taken from it are copied. The
+     class is set back on return. */
+  mrb_str_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
+
   while (*p) {
     const char c = *p++;
     e = p;
@@ -411,6 +417,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   }
 
   mrb_str_cat(mrb, result, b, p - b);
+  mrb_str_ptr(result)->c = mrb->string_class;
   return result;
 }
 
