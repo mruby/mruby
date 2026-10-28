@@ -485,3 +485,67 @@ assert("Hash#except") do
   h3.default = 42
   assert_nil(h3.except(:a).default)
 end
+
+assert('Hash[] keeps the pair it is storing alive') do
+  # The key's #eql? empties the array of pairs and runs GC while the value
+  # read out of a pair is held by C alone.
+  src = nil
+  k = Class.new do
+    define_method(:hash) { 7 }
+    define_method(:eql?) do |o|
+      if src
+        s = src
+        src = nil
+        s.clear
+        GC.start
+        Array.new(200) { "y" * 40 }
+      end
+      equal?(o)
+    end
+  end
+  src = [[k.new, 1], [k.new, "v" * 100]]
+  h = Hash[src]
+  GC.start
+  assert_equal "v" * 100, h.values[1]
+end
+
+assert('Hash methods keep what they build out of reach of ObjectSpace') do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  look = nil
+  k = Class.new do
+    define_method(:hash) { 1 }
+    define_method(:eql?) do |o|
+      ObjectSpace.each_object(look) { |x| seen << x } if look
+      equal?(o)
+    end
+  end
+  k1, k2 = k.new, k.new
+  h = {k1 => 1, k2 => 2}
+  reached = ->(obj) { seen.any? { |x| x.equal?(obj) } }
+
+  look = Array
+  seen.clear
+  r = h.values_at(k1, k2)
+  assert_equal [1, 2], r
+  assert_false reached.(r)
+
+  look = Hash
+  [-> { h.slice(k1, k2) }, -> { h.except(k2) }, -> { Hash[h] },
+   -> { Hash[[[k1, 1], [k2, 2]]] }, -> { Hash[k1, 1, k2, 2] }].each do |op|
+    seen.clear
+    assert_false reached.(op.call)
+  end
+
+  look = Array
+  seen.clear
+  h2 = {k1 => 1, k2 => 2, z: 3}
+  r = h2.slice!(k1)
+  assert_equal({k1 => 1}, h2)
+  assert_false seen.any? { |a| a.any? { |x| x.equal?(k2) } }
+  look = Hash
+  seen.clear
+  r = {k1 => 1, k2 => 2, z: 3}.slice!(k1)
+  assert_false reached.(r)
+  look = nil
+end

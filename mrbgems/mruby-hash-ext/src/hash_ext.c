@@ -31,11 +31,14 @@ hash_values_at(mrb_state *mrb, mrb_value hash)
   mrb_value result = mrb_ary_new_capa(mrb, argc);
   if (argc == 0) return result;
 
+  /* a key's #hash and #eql? must not reach the result being filled */
+  mrb_ary_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_ary_ptr(result)->c = mrb->array_class;
   return result;
 }
 
@@ -58,6 +61,8 @@ hash_slice(mrb_state *mrb, mrb_value hash)
   mrb_get_args(mrb, "*", &argv, &argc);
   mrb_value result = mrb_hash_new_capa(mrb, argc);
   if (argc == 0) return result; /* empty hash */
+  /* a key's #hash and #eql? must not reach the result being filled */
+  mrb_hash_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value key = argv[i];
@@ -73,6 +78,7 @@ hash_slice(mrb_state *mrb, mrb_value hash)
     }
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_hash_ptr(result)->c = mrb->hash_class;
   return result;
 }
 
@@ -132,16 +138,21 @@ hash_slice_bang(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
+  /* A key's #hash and #eql? run Ruby, which must not reach what is built
+     here: the record of the keys to keep or to remove, or the result. */
   args.keep_keys = mrb_hash_new_capa(mrb, argc);
+  mrb_hash_ptr(args.keep_keys)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_set(mrb, args.keep_keys, argv[i], mrb_true_value());
   }
 
   args.keys_to_remove = mrb_ary_new(mrb);
+  mrb_ary_ptr(args.keys_to_remove)->c = NULL;
   mrb_hash_foreach(mrb, mrb_hash_ptr(self), slice_bang_i, &args);
 
   mrb_int len = RARRAY_LEN(args.keys_to_remove);
   mrb_value removed_hash = mrb_hash_new_capa(mrb, len);
+  mrb_hash_ptr(removed_hash)->c = NULL;
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < len; i++) {
     mrb_value key = mrb_ary_ref(mrb, args.keys_to_remove, i);
@@ -152,6 +163,7 @@ hash_slice_bang(mrb_state *mrb, mrb_value self)
     mrb_hash_set(mrb, removed_hash, key, val);
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_hash_ptr(removed_hash)->c = mrb->hash_class;
 
   return removed_hash;
 }
@@ -176,10 +188,13 @@ hash_except(mrb_state *mrb, mrb_value hash)
   /* build a plain Hash instead of a dup: as in CRuby, the receiver's class
      and default value do not carry over to the result */
   mrb_value result = mrb_hash_new_capa(mrb, mrb_hash_size(mrb, hash));
+  /* a key's #hash and #eql? must not reach the result being filled */
+  mrb_hash_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_hash_merge(mrb, result, hash);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_delete_key(mrb, result, argv[i]);
   }
+  mrb_hash_ptr(result)->c = mrb->hash_class;
   return result;
 }
 
@@ -217,11 +232,10 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
     /* Case 1: Hash argument - copy constructor */
     if (mrb_hash_p(obj)) {
       hash = mrb_hash_new(mrb);
+      mrb_hash_ptr(hash)->c = NULL; /* hide from ObjectSpace.each_object */
       mrb_hash_merge(mrb, hash, obj);
-      /* Set the correct class if it's a subclass */
-      if (mrb_class_ptr(klass) != mrb->hash_class) {
-        mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
-      }
+      /* the class is set here, a subclass's included */
+      mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
       return hash;
     }
 
@@ -229,6 +243,8 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
     if (mrb_array_p(obj)) {
       mrb_int ary_len = RARRAY_LEN(obj);
       hash = mrb_hash_new_capa(mrb, ary_len);
+      mrb_hash_ptr(hash)->c = NULL; /* hide from ObjectSpace.each_object */
+      int ai = mrb_gc_arena_save(mrb);
 
       for (mrb_int i = 0; i < ary_len; i++) {
         mrb_value elem = mrb_ary_ref(mrb, obj, i);
@@ -256,12 +272,16 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
                      "invalid number of elements (%i for 1..2)", elem_len);
         }
 
+        /* On the arena for the set: it asks the key for its eql?, and Ruby
+           there can empty `obj`, after which the pair is held by this frame
+           alone, which the GC does not scan. */
+        mrb_gc_protect(mrb, key);
+        mrb_gc_protect(mrb, val);
         mrb_hash_set(mrb, hash, key, val);
+        mrb_gc_arena_restore(mrb, ai);
       }
-      /* Set the correct class if it's a subclass */
-      if (mrb_class_ptr(klass) != mrb->hash_class) {
-        mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
-      }
+      /* the class is set here, a subclass's included */
+      mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
       return hash;
     }
   }
@@ -272,14 +292,14 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
   }
 
   hash = mrb_hash_new_capa(mrb, argc / 2);
+  /* a key's #hash and #eql? must not reach the hash being filled */
+  mrb_hash_ptr(hash)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i = 0; i < argc; i += 2) {
     mrb_hash_set(mrb, hash, argv[i], argv[i + 1]);
   }
 
-  /* Set the correct class if it's a subclass */
-  if (mrb_class_ptr(klass) != mrb->hash_class) {
-    mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
-  }
+  /* the class is set here, a subclass's included */
+  mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
 
   return hash;
 }
