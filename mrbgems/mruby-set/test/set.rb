@@ -879,3 +879,22 @@ assert('Set - adding and deleting past the small-table mode') do
   assert_true s.include?("seed0")
   assert_false s.include?("fresh0")
 end
+
+assert("Set#inspect and Set#join keep the string they build out of reach") do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  w = Class.new do
+    define_method(:inspect) do
+      ObjectSpace.each_object(String) { |o| seen << o }
+      "w"
+    end
+    alias_method :to_s, :inspect
+  end.new
+  s = Set[w].inspect
+  assert_equal "Set[w]", s
+  assert_false seen.any? { |o| o.equal?(s) }
+  seen.clear
+  s = Set[w].join("-")
+  assert_equal "w", s
+  assert_false seen.any? { |o| o.equal?(s) }
+end

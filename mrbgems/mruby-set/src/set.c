@@ -1093,6 +1093,8 @@ set_join(mrb_state *mrb, mrb_value self)
 
   /* Create result string */
   mrb_value result = mrb_str_new_capa(mrb, 64);  /* Initial capacity */
+  /* an element's to_s must not reach the string under construction */
+  mrb_str_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_bool first = TRUE;
 
   /* Iterate through all elements */
@@ -1113,6 +1115,7 @@ set_join(mrb_state *mrb, mrb_value self)
 
     mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_str_ptr(result)->c = mrb->string_class;
 
   return result;
 }
@@ -1148,6 +1151,8 @@ set_inspect(mrb_state *mrb, mrb_value self)
 
   /* Create the beginning of the string with pre-allocated capacity */
   mrb_value result_str = mrb_str_new_capa(mrb, buffer_size);
+  /* an element's inspect must not reach the string under construction */
+  mrb_str_ptr(result_str)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_str_cat_cstr(mrb, result_str, classname);
   mrb_str_cat_lit(mrb, result_str, "[");
 
@@ -1171,6 +1176,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
 
   /* Add the closing part */
   mrb_str_cat_lit(mrb, result_str, "]");
+  mrb_str_ptr(result_str)->c = mrb->string_class;
 
   return result_str;
 }
