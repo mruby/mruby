@@ -788,6 +788,23 @@ assert('Array#delete') do
   assert_equal [], a
 end
 
+assert('Array#delete when the last == empties the array') do
+  # the kept count was written back as the length of the emptied array, whose
+  # slots then held the freed buffer's pointer
+  e = Object.new
+  def e.ary=(a)
+    @ary = a
+  end
+  def e.==(_)
+    @ary.clear
+    true
+  end
+  a = [1, 2, 3, e]
+  e.ary = a
+  assert_raise(RuntimeError) { a.delete(:x) }
+  assert_equal [], a
+end
+
 assert('Array#hash with self-referencing arrays') do
   a = []
   a << a

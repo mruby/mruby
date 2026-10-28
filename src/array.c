@@ -2152,6 +2152,11 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
     return mrb_yield(mrb, blk, obj);
   }
 
+  /* the last == can have shrunk the array below what was kept */
+  if (j > ARY_LEN(ary)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during delete");
+  }
+  ary_modify(mrb, ary);
   ARY_SET_LEN(ary, j);
   return ret;
 }
