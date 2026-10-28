@@ -883,6 +883,20 @@ assert("String#start_with? keeps the arguments it walks out of reach") do
   assert_equal ["zz"], seen
 end
 
+assert("String#gsub keeps the string it builds out of reach") do
+  # The block, and a Hash's default proc, run while the result is built.
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  look = -> { ObjectSpace.each_object(String) { |o| seen << o } }
+  r = "a-a-a".gsub(/a/) { look.(); "b" }
+  assert_equal "b-b-b", r
+  assert_false seen.any? { |o| o.equal?(r) }
+  seen.clear
+  r = "a-a".gsub(/a/, Hash.new { look.(); "c" })
+  assert_equal "c-c", r
+  assert_false seen.any? { |o| o.equal?(r) }
+end
+
 assert("String#start_with? with regexp sets the match globals") do
   assert_true "hello".start_with?(/(h)(e)/)
   assert_equal "h", $1

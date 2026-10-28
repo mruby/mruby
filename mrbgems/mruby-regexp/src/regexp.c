@@ -2303,6 +2303,10 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal,
   int cap_size = pat->num_captures * 2;
   int captures[RE_MAX_CAPTURES * 2];
   mrb_value result = mrb_str_new_capa(mrb, RSTRING_LEN(str));
+  /* The block, a Hash's default proc and a piece's to_s run Ruby, which must
+     not reach the result under construction; the class is set back on
+     return. */
+  mrb_str_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   /* The match the block was given last, and the offset it was found from:
      what the closing search below starts from, or stands in for. */
   mrb_value last_md = mrb_nil_value();
@@ -2384,6 +2388,7 @@ re_gsub_walk(mrb_state *mrb, mrb_value re, mrb_value str, mrb_bool literal,
        which publishes what it finds or clears the globals for a miss. */
     exec_match(mrb, re, str, last, literal, literal);
   }
+  mrb_str_ptr(result)->c = mrb->string_class;
   return result;
 }
 
