@@ -18,16 +18,13 @@ ary_cmp_ordered(mrb_state *mrb, mrb_value a, mrb_value b)
 
 /* `<=>` can run Ruby, which can grow the array, shrink it or drop an element
    held as an answer so far, so the length and the element are read afresh each
-   time round and both answers are kept in the arena. */
+   time round and both answers are kept in the arena. The pair is made once the
+   comparisons are done, so that Ruby cannot reach it through ObjectSpace. */
 static mrb_value
 ary_minmax(mrb_state *mrb, mrb_value self)
 {
-  mrb_value pair = mrb_ary_new_capa(mrb, 2);
-
   if (RARRAY_LEN(self) == 0) {
-    mrb_ary_push(mrb, pair, mrb_nil_value());
-    mrb_ary_push(mrb, pair, mrb_nil_value());
-    return pair;
+    return mrb_assoc_new(mrb, mrb_nil_value(), mrb_nil_value());
   }
 
   mrb_value min = RARRAY_PTR(self)[0];
@@ -41,9 +38,7 @@ ary_minmax(mrb_state *mrb, mrb_value self)
     mrb_gc_protect(mrb, min);
     mrb_gc_protect(mrb, max);
   }
-  mrb_ary_push(mrb, pair, min);
-  mrb_ary_push(mrb, pair, max);
-  return pair;
+  return mrb_assoc_new(mrb, min, max);
 }
 
 /* `Enumerable#count` with an argument reaches an element the same way and

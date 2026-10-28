@@ -448,3 +448,20 @@ assert("Array#count with a NaN") do
   assert_equal 0, [a].count(b)
   assert_equal 2, [a, a].count(a)
 end
+
+assert("Array#minmax keeps the pair it returns out of reach") do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  c = Class.new do
+    attr_reader :v
+    def initialize(v); @v = v; end
+    define_method(:<=>) do |o|
+      ObjectSpace.each_object(Array) { |a| seen << a }
+      @v <=> o.v
+    end
+  end
+  a = [c.new(2), c.new(1), c.new(3)]
+  r = a.minmax
+  assert_equal [1, 3], r.map(&:v)
+  assert_false seen.any? { |x| x.equal?(r) }
+end
