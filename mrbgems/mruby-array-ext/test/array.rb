@@ -1289,3 +1289,31 @@ assert('Array#intersection with no argument copies the receiver') do
   assert_equal [2, 3], [1, 2, 3].intersection([2, 3])
   assert_equal [1, 2, 3], [1, 2, 3].intersection((1..40).to_a)
 end
+
+assert('Array set operations keep their results out of reach of ObjectSpace') do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  c = Class.new do
+    attr_reader :v
+    def initialize(v); @v = v; end
+    define_method(:hash) do
+      ObjectSpace.each_object(Array) { |a| seen << a }
+      @v.hash
+    end
+    define_method(:eql?) do |o|
+      ObjectSpace.each_object(Array) { |a| seen << a }
+      o.is_a?(self.class) && @v == o.v
+    end
+    alias_method :==, :eql?
+  end
+  [2, 20].each do |n|
+    a = Array.new(n) { |i| c.new(i % (n / 2 + 1)) }
+    b = Array.new(n) { |i| c.new(i + 1) }
+    [-> { a - b }, -> { a | b }, -> { a & b }, -> { a.difference(b) },
+     -> { a.union(b) }, -> { a.intersection(b) }, -> { a.uniq }].each do |op|
+      seen.clear
+      r = op.call
+      assert_false seen.any? { |x| x.equal?(r) }
+    end
+  end
+end

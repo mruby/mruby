@@ -689,6 +689,8 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
   mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
   mrb_value result = mrb_ary_new(mrb);
+  /* an element's #hash, #eql? and #== must not reach the result being filled */
+  mrb_ary_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
 
   /* Both sides have to be worth a set: it costs O(total_len) to build and is
      then asked RARRAY_LEN(self) questions. A short receiver cannot repay a
@@ -701,6 +703,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
 
   struct ary_subtract_ctx ctx = { &memb, self, result };
   ARY_MEMB_RUN(mrb, result, ary_subtract_body, &ctx, &memb);
+  mrb_ary_ptr(result)->c = mrb->array_class;
 
   return result;
 }
@@ -783,6 +786,8 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
   mrb_int total_len = ary_get_array_args(mrb, argc, &argv) + RARRAY_LEN(self);
 
   mrb_value result = mrb_ary_new(mrb);
+  /* an element's #hash, #eql? and #== must not reach the result being filled */
+  mrb_ary_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
 
   /* The record of what has been kept is the result itself; the sources are
      walked in place, each element kept in encounter order the first time it
@@ -805,6 +810,7 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
 
   struct ary_union_ctx ctx = { &memb, self, result, argv, argc };
   ARY_MEMB_RUN(mrb, result, ary_union_body, &ctx, &memb);
+  mrb_ary_ptr(result)->c = mrb->array_class;
 
   return result;
 }
@@ -919,6 +925,8 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
   mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
   mrb_value result = mrb_ary_new(mrb);
+  /* an element's #hash, #eql? and #== must not reach the result being filled */
+  mrb_ary_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
 
   ary_memb memb;
   ary_memb_init(mrb, &memb, argv, argc, total_len,
@@ -926,6 +934,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
 
   struct ary_intersection_ctx ctx = { &memb, self, result };
   ARY_MEMB_RUN(mrb, result, ary_intersection_body, &ctx, &memb);
+  mrb_ary_ptr(result)->c = mrb->array_class;
 
   return result;
 }
@@ -1269,7 +1278,10 @@ static mrb_value
 ary_uniq(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_ary_dup(mrb, self);
+  /* an element's #hash and #eql? must not reach the copy being narrowed */
+  mrb_ary_ptr(ary)->c = NULL; /* hide from ObjectSpace.each_object */
   ary_uniq_bang(mrb, ary);
+  mrb_ary_ptr(ary)->c = mrb->array_class;
   return ary;
 }
 
