@@ -288,8 +288,11 @@ range_inspect(mrb_state *mrb, mrb_value range)
     str = mrb_str_new(mrb, "...", RANGE_EXCL(r) ? 3 : 2);
   }
   if (!mrb_nil_p(RANGE_END(r))) {
+    /* the end's inspect must not reach the string under construction */
+    mrb_str_ptr(str)->c = NULL; /* hide from ObjectSpace.each_object */
     mrb_value str2 = mrb_inspect(mrb, RANGE_END(r));
     mrb_str_cat_str(mrb, str, str2);
+    mrb_str_ptr(str)->c = mrb->string_class;
   }
 
   return str;
