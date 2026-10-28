@@ -377,3 +377,20 @@ assert('sprintf("%.*") ignores the smallest negative precision') do
   assert_equal "..f", sprintf("%.*x", int_min, -1)
   assert_equal "..f", sprintf("%.*x", -1, -1)
 end
+
+assert('sprintf keeps the result it builds out of a callback\'s reach') do
+  # A %s argument's to_s could find the half-built result through ObjectSpace
+  # and replace its buffer with a smaller one, which the next write overran.
+  skip unless Object.const_defined?(:ObjectSpace)
+  other = "B" * 32
+  evil = Object.new
+  evil.define_singleton_method(:to_s) do
+    ObjectSpace.each_object(String) do |s|
+      s.replace(other) if s.empty? && !s.frozen? && !s.equal?(other)
+    end
+    "C" * 64
+  end
+  assert_equal "A" * 40 + "C" * 64, sprintf("A" * 40 + "%s", evil)
+  assert_equal "B" * 32, other
+  assert_equal String, sprintf("%s", 1).class
+end

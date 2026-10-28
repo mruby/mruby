@@ -15,4 +15,10 @@ MRuby::Gem::Specification.new('mruby-sprintf') do |spec|
   if build.gems.any? {|g| g.name == 'mruby-encoding'}
     spec.add_test_dependency 'mruby-encoding', :core => 'mruby-encoding'
   end
+
+  # The same for mruby-objectspace, which a test uses to reach the result
+  # under construction the way a script can.
+  if build.gems.any? {|g| g.name == 'mruby-objectspace'}
+    spec.add_test_dependency 'mruby-objectspace', :core => 'mruby-objectspace'
+  end
 end

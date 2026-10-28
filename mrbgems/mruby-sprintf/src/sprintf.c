@@ -432,6 +432,10 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   }
   if (bsiz > 4096) bsiz = 4096;
   result = mrb_str_new_capa(mrb, bsiz);
+  /* bsiz and buf track result's buffer, so a to_s/inspect callback must not
+     reach it through ObjectSpace and swap that buffer; the class is set back
+     on return. */
+  mrb_str_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   /* The bytes between the specifiers are the format string's own, so what is
      built out of them is read the way the format string was read, ASCII bytes
      and all: the reading a receiver holds, which nothing written into it
@@ -967,6 +971,7 @@ retry:
 
   sprint_exit:
   mrb_str_resize(mrb, result, blen);
+  mrb_str_ptr(result)->c = mrb->string_class;
 
   return result;
 }
