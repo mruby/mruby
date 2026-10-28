@@ -615,6 +615,8 @@ set_core_xor(mrb_state *mrb, mrb_value self)
   }
   if (kset_is_empty(other_set)) {
     kh_replace(set_val, mrb, result_set, self_set);
+    /* a subclass's initialize can run GC and leave the result old */
+    mrb_write_barrier(mrb, mrb_basic_ptr(result));
     return result;
   }
 
@@ -1373,6 +1375,8 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   kset_t temp_data = *self_set;
   *self_set = *temp_set;
   *temp_set = temp_data;
+  /* the elements came in by the swap, past the barrier on each insert */
+  mrb_write_barrier(mrb, mrb_basic_ptr(self));
 
   return self;
 }

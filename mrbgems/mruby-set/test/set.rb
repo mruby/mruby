@@ -103,6 +103,48 @@ assert("Set#initialize_copy keeps the elements of an old receiver alive") do
   end
 end
 
+assert("Set#^ keeps the elements of a result its initialize made old") do
+  # Set#^ copies the receiver into a new result in one go; a subclass's
+  # initialize can run GC and leave that result old, so without a barrier the
+  # next minor GCs free the copied elements while the result holds them.
+  origin = [GC.generational_mode, GC.interval_ratio]
+  klass = Class.new(Set) do
+    def initialize(*a)
+      super
+      h = $set_xor_hook
+      $set_xor_hook = nil
+      h.call if h
+    end
+  end
+  begin
+    GC.generational_mode = true
+    GC.interval_ratio = 100
+    GC.disable
+    ballast = Array.new(8192) { |i| s = "b" * 30; s if i % 8 == 0 }
+    GC.enable
+    recv = klass.new
+    recv << 0
+    other = klass.new
+    $set_xor_hook = -> {
+      GC.start
+      young = klass.new
+      20.times { |i| young << "value#{i}" * 4 }
+      recv.__send__(:initialize_copy, young)
+      young.clear
+    }
+    result = recv ^ other
+    recv.clear
+    100_000.times { "garbage" * 4 }
+    assert_equal 20, result.size
+    20.times { |i| assert_include result.to_a, "value#{i}" * 4 }
+    assert_equal 8192, ballast.size
+  ensure
+    $set_xor_hook = nil
+    GC.enable
+    GC.generational_mode, GC.interval_ratio = origin
+  end
+end
+
 assert("Set#size") do
   assert_equal(0, Set[].size)
   assert_equal(1, Set[nil].size)
