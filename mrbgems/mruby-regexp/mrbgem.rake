@@ -65,6 +65,12 @@ MRuby::Gem::Specification.new('mruby-regexp') do |spec|
     spec.add_test_dependency 'mruby-eval', :core => 'mruby-eval'
   end
 
+  # Same deal for mruby-objectspace, which a test uses to reach the copy
+  # String#start_with? walks the way a script can.
+  if build.gems.any? {|g| g.name == 'mruby-objectspace'}
+    spec.add_test_dependency 'mruby-objectspace', :core => 'mruby-objectspace'
+  end
+
   # The tests reach for `remove_method`, `singleton_class`,
   # `instance_variable_set` and `send`, all mruby-metaprog's. A test
   # dependency costs a build nothing outside mrbtest, so unlike the gems

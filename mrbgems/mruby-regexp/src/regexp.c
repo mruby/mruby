@@ -3535,6 +3535,9 @@ str_start_with_p(mrb_state *mrb, mrb_value self)
     return mrb_funcall_argv(mrb, self, MRB_SYM_Q(__start_with), argc, argv);
   }
   mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+  /* The loop is bounded by argc, so the `__start_with?` it calls must not
+     reach the copy through ObjectSpace and shorten it. */
+  mrb_ary_ptr(args)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value arg = RARRAY_PTR(args)[i];
     if (regexp_arg_p(mrb, arg)) {

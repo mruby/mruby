@@ -861,6 +861,28 @@ assert("String#start_with? with regexp") do
   assert_raise(TypeError) { "hello".end_with?(/o/) }
 end
 
+assert("String#start_with? keeps the arguments it walks out of reach") do
+  # A String argument goes to `__start_with?`, which could find the copy of
+  # the arguments through ObjectSpace and shorten it under the walk.
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  c = Class.new(String) do
+    define_method(:__start_with?) do |*a|
+      seen.concat(a)
+      ObjectSpace.each_object(Array) do |o|
+        if o.size == 30 && o[0] == "zz"
+          o.clear
+          o.concat([1, 2, 3, 4])
+        end
+      end
+      false
+    end
+  end
+  args = ["zz"] + Array.new(29) { /q/ }
+  assert_false c.new("abc").start_with?(*args)
+  assert_equal ["zz"], seen
+end
+
 assert("String#start_with? with regexp sets the match globals") do
   assert_true "hello".start_with?(/(h)(e)/)
   assert_equal "h", $1
