@@ -571,8 +571,12 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
   kset_t *other_set = set_get_kset(mrb, other);
   if (kset_is_uninitialized(other_set)) return result;
 
+  /* The lookup can run #hash and #eql?, which may drop the key from the set
+     it was read from; the arena holds it until it is in the result. */
+  int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
+    mrb_gc_protect(mrb, key);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
     /* If key exists in self, add it to result */
@@ -580,6 +584,7 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
       kset_put(mrb, result_set, key);
       mrb_field_write_barrier_value(mrb, kset_to_rset(result_set), key);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return result;
@@ -620,10 +625,12 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     return result;
   }
 
-  /* Add elements from self that are not in other */
+  /* Add elements from self that are not in other. As in
+     set_core_intersection(), the arena holds each key across its lookup. */
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
     mrb_value key = kset_key(self_set, k);
+    mrb_gc_protect(mrb, key);
     kset_iter_t other_k = kset_get(mrb, other_set, key);
 
     /* Add to result if not in other */
@@ -637,6 +644,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
   /* Add elements from other that are not in self */
   KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
+    mrb_gc_protect(mrb, key);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
     /* Add to result if not in self */
