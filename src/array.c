@@ -1939,12 +1939,15 @@ mrb_ary_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, ret, "...]");
     return ret;
   }
+  /* an element's inspect must not reach the string under construction */
+  mrb_str_ptr(ret)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i=0; i<RARRAY_LEN(self); i++) {
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, "]");
+  mrb_str_ptr(ret)->c = mrb->string_class;
 
   return ret;
 }

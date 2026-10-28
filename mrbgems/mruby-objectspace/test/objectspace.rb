@@ -127,6 +127,41 @@ assert('ObjectSpace.each_object does not reach the string Kernel#inspect builds'
   assert_equal("-" * 4000, donor)
 end
 
+class ObjectSpaceWitness
+  # Records every object of `klass` ObjectSpace yields while one of its
+  # methods runs, so a test can ask whether a result under construction was
+  # among them.
+  attr_reader :seen
+  def initialize(klass)
+    @klass = klass
+    @seen = []
+  end
+  def look
+    ObjectSpace.each_object(@klass) { |o| @seen << o }
+  end
+  def seen?(obj)
+    @seen.any? { |o| o.equal?(obj) }
+  end
+  def inspect
+    look
+    "W"
+  end
+  def ==(other)
+    look
+    false
+  end
+  def <=>(other)
+    0
+  end
+end
+
+assert('ObjectSpace.each_object does not reach the string Array#inspect builds') do
+  w = ObjectSpaceWitness.new(String)
+  s = [1, w].inspect
+  assert_equal("[1, W]", s)
+  assert_false(w.seen?(s))
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold
