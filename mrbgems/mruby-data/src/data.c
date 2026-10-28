@@ -325,6 +325,10 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   mrb_value rest = mrb_ary_new_from_values(mrb, argc, argv);
+  /* The members become the class's __members__, which every method reads
+     as an array of Symbols; Ruby must not reach it through ObjectSpace and
+     rewrite it. Data.members hands out a copy. */
+  mrb_ary_ptr(rest)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i=0; i<argc; i++) {
     mrb_sym id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
     mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
@@ -604,6 +608,8 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
   mrb_value *mems = RARRAY_PTR(members);
   mrb_value ret = mrb_str_new_lit(mrb, "#<data ");
   int ai = mrb_gc_arena_save(mrb);
+  /* a member's inspect must not reach the string under construction */
+  mrb_str_ptr(ret)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_value cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
 
   if (!mrb_nil_p(cname)) {
@@ -620,6 +626,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
+  mrb_str_ptr(ret)->c = mrb->string_class;
 
   return ret;
 }

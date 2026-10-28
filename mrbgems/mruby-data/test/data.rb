@@ -240,3 +240,37 @@ assert "Data in a pattern" do
                        else :none
                        end)
 end
+
+assert('Data keeps its members out of reach of ObjectSpace') do
+  # Data#inspect walks the class's members while each value's inspect runs
+  # Ruby, which could find them through ObjectSpace, replace them with a
+  # longer array and run GC, leaving the walk reading the freed buffer.
+  skip unless Object.const_defined?(:ObjectSpace)
+  d = Data.define(:m0, :m1, :m2, :m3, :m4, :m5, :m6, :m7)
+  evil = Class.new do
+    def inspect
+      ObjectSpace.each_object(Array) do |a|
+        a.replace(Array.new(40) { :zz }) if a.size == 8 && a[0] == :m0 && a[7] == :m7
+      end
+      GC.start
+      "e"
+    end
+  end
+  s = d.new(evil.new, 1, 2, 3, 4, 5, 6, 7)
+  assert_equal "#<data m0=e, m1=1, m2=2, m3=3, m4=4, m5=5, m6=6, m7=7>", s.inspect
+  assert_equal [:m0, :m1, :m2, :m3, :m4, :m5, :m6, :m7], d.members
+end
+
+assert('Data#inspect keeps the string it builds out of reach') do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  evil = Class.new do
+    define_method(:inspect) do
+      ObjectSpace.each_object(String) { |o| seen << o }
+      "e"
+    end
+  end
+  s = Data.define(:a, :b).new(evil.new, 1).inspect
+  assert_equal "#<data a=e, b=1>", s
+  assert_false seen.any? { |o| o.equal?(s) }
+end
