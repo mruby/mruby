@@ -640,3 +640,19 @@ assert 'Method/UnboundMethod on C-defined (native) methods' do
   # binding a C UnboundMethod to an incompatible receiver still raises cleanly.
   assert_raise(TypeError) { String.instance_method(:upcase).bind(42) }
 end
+
+assert 'Method#inspect keeps the string it builds out of reach' do
+  # A singleton method's receiver answers to_s while the string is built.
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = $method_inspect_seen = []
+  o = Object.new
+  def o.to_s
+    ObjectSpace.each_object(String) { |s| $method_inspect_seen << s }
+    "obj"
+  end
+  def o.foo; end
+  s = o.method(:foo).inspect
+  $method_inspect_seen = nil
+  assert_equal "#<Method: obj.foo", s[0, 17]
+  assert_false seen.any? { |x| x.equal?(s) }
+end

@@ -554,6 +554,9 @@ method_to_s(mrb_state *mrb, mrb_value self)
   mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
   mrb_value str = mrb_str_new_lit(mrb, "#<");
   mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
+  /* the receiver's and the classes' to_s must not reach the string under
+     construction */
+  mrb_str_ptr(str)->c = NULL; /* hide from ObjectSpace.each_object */
 
   mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, self));
   mrb_str_cat_lit(mrb, str, ": ");
@@ -605,6 +608,7 @@ method_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_concat(mrb, str, RARRAY_PTR(loc)[1]);
   }
   mrb_str_cat_lit(mrb, str, ">");
+  mrb_str_ptr(str)->c = mrb->string_class;
   return str;
 }
 
