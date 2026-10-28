@@ -146,6 +146,7 @@ class ObjectSpaceWitness
     look
     "W"
   end
+  alias to_s inspect
   def ==(other)
     look
     false
@@ -159,6 +160,13 @@ assert('ObjectSpace.each_object does not reach the string Array#inspect builds')
   w = ObjectSpaceWitness.new(String)
   s = [1, w].inspect
   assert_equal("[1, W]", s)
+  assert_false(w.seen?(s))
+end
+
+assert('ObjectSpace.each_object does not reach the string Array#join builds') do
+  w = ObjectSpaceWitness.new(String)
+  s = [1, [w]].join("-")
+  assert_equal("1-W", s)
   assert_false(w.seen?(s))
 end
 

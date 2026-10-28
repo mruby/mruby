@@ -1815,6 +1815,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
   mrb_int idx = 0;
 
   mrb_ary_ptr(stack)->c = NULL; /* hide from ObjectSpace.each_object */
+  mrb_str_ptr(result)->c = NULL; /* and the string under construction */
   mrb_ary_push(mrb, stack, ary);
   for (;;) {
     while (idx < RARRAY_LEN(ary)) {
@@ -1875,6 +1876,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep)
     idx = mrb_fixnum(mrb_ary_pop(mrb, stack));
     ary = mrb_ary_entry(stack, -1);  /* g++ miscompiles PTR[LEN-1] here */
   }
+  mrb_str_ptr(result)->c = mrb->string_class;
 
   return result;
 }
