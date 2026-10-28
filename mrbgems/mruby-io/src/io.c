@@ -962,13 +962,6 @@ fd_write_buf(mrb_state *mrb, int fd, const char *ptr, mrb_int len)
   return len;
 }
 
-static mrb_int
-fd_write(mrb_state *mrb, int fd, mrb_value str)
-{
-  str = mrb_obj_as_string(mrb, str);
-  return fd_write_buf(mrb, fd, RSTRING_PTR(str), RSTRING_LEN(str));
-}
-
 #define FD_WRITE_LIT(mrb, fd, s) fd_write_buf(mrb, fd, "" s "", sizeof(s) - 1)
 
 /* Writing to a stream that has read ahead of what the caller consumed puts
@@ -995,17 +988,35 @@ io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
   fptr->buf->start = fptr->buf->len = 0;
 }
 
+/* The descriptor to write to, valid only until Ruby runs again: an
+   argument's #to_s can close or reopen the stream, and the number a close
+   frees goes to the next file opened, so every writer below looks it up
+   again after each conversion. */
+static int
+io_write_fd(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+
+  io_prepare_write(mrb, fptr);
+  return io_get_write_fd(fptr);
+}
+
+static mrb_int
+io_write_obj(mrb_state *mrb, mrb_value io, mrb_value obj)
+{
+  mrb_value str = mrb_obj_as_string(mrb, obj);
+  return fd_write_buf(mrb, io_write_fd(mrb, io), RSTRING_PTR(str), RSTRING_LEN(str));
+}
+
 static mrb_value
 io_write(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
-
-  io_prepare_write(mrb, fptr);
+  /* A stream that cannot be written fails before any argument is converted. */
+  io_write_fd(mrb, io);
 
   mrb_int len = 0;
   if (mrb_get_argc(mrb) == 1) {
-    len = fd_write(mrb, fd, mrb_get_arg1(mrb));
+    len = io_write_obj(mrb, io, mrb_get_arg1(mrb));
   }
   else {
     mrb_value *argv;
@@ -1013,7 +1024,7 @@ io_write(mrb_state *mrb, mrb_value io)
 
     mrb_get_args(mrb, "*", &argv, &argc);
     while (argc--) {
-      len += fd_write(mrb, fd, *argv++);
+      len += io_write_obj(mrb, io, *argv++);
     }
   }
   return mrb_int_value(mrb, len);
@@ -1021,14 +1032,15 @@ io_write(mrb_state *mrb, mrb_value io)
 
 /* Helper function to write a string followed by newline if needed */
 static void
-io_puts_str(mrb_state *mrb, int fd, mrb_value str)
+io_puts_str(mrb_state *mrb, mrb_value io, mrb_value str)
 {
   str = mrb_obj_as_string(mrb, str);
   const char *ptr = RSTRING_PTR(str);
   mrb_int len = RSTRING_LEN(str);
+  int fd = io_write_fd(mrb, io);
 
   /* Write the original string */
-  fd_write(mrb, fd, str);
+  fd_write_buf(mrb, fd, ptr, len);
 
   /* Add newline if string doesn't end with one */
   if (len == 0 || ptr[len-1] != '\n') {
@@ -1042,10 +1054,10 @@ io_puts_str(mrb_state *mrb, int fd, mrb_value str)
 
 /* Recursive helper for puts with arrays */
 static void
-io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
+io_puts_ary(mrb_state *mrb, mrb_value io, mrb_value ary, int depth)
 {
   if (depth >= IO_PUTS_MAX_DEPTH) {
-    FD_WRITE_LIT(mrb, fd, "[...]\n");
+    FD_WRITE_LIT(mrb, io_write_fd(mrb, io), "[...]\n");
     return;
   }
 
@@ -1053,7 +1065,7 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 
   if (len == 0) {
     /* Empty array - write a single newline */
-    FD_WRITE_LIT(mrb, fd, "\n");
+    FD_WRITE_LIT(mrb, io_write_fd(mrb, io), "\n");
     return;
   }
 
@@ -1069,11 +1081,11 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
          with it. */
       int ai = mrb_gc_arena_save(mrb);
       mrb_gc_protect(mrb, elem);
-      io_puts_ary(mrb, fd, elem, depth + 1);
+      io_puts_ary(mrb, io, elem, depth + 1);
       mrb_gc_arena_restore(mrb, ai);
     }
     else {
-      io_puts_str(mrb, fd, elem);
+      io_puts_str(mrb, io, elem);
     }
   }
 }
@@ -1081,11 +1093,7 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
 static mrb_value
 io_puts(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
-
-  /* Prepare IO for writing (handle read buffer adjustment) */
-  io_prepare_write(mrb, fptr);
+  int fd = io_write_fd(mrb, io);
 
   mrb_value *argv;
   mrb_int argc;
@@ -1101,10 +1109,10 @@ io_puts(mrb_state *mrb, mrb_value io)
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value arg = argv[i];
     if (mrb_array_p(arg)) {
-      io_puts_ary(mrb, fd, arg, 0);
+      io_puts_ary(mrb, io, arg, 0);
     }
     else {
-      io_puts_str(mrb, fd, arg);
+      io_puts_str(mrb, io, arg);
     }
   }
 
@@ -1122,11 +1130,7 @@ io_puts(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_print(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
-
-  /* Prepare IO for writing (handle read buffer adjustment) */
-  io_prepare_write(mrb, fptr);
+  io_write_fd(mrb, io);         /* fail before converting, as #write does */
 
   mrb_value *argv;
   mrb_int argc;
@@ -1134,8 +1138,7 @@ io_print(mrb_state *mrb, mrb_value io)
 
   /* Convert each argument to string and write it */
   for (mrb_int i = 0; i < argc; i++) {
-    mrb_value str = mrb_obj_as_string(mrb, argv[i]);
-    fd_write(mrb, fd, str);
+    io_write_obj(mrb, io, argv[i]);
   }
 
   return mrb_nil_value();
@@ -1152,13 +1155,10 @@ io_print(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_putc(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
+  int fd = io_write_fd(mrb, io);
   mrb_value c = mrb_get_arg1(mrb);
   const char *ptr;
   mrb_int write_len;
-
-  io_prepare_write(mrb, fptr);
 
   if (mrb_integer_p(c)) {
     unsigned char byte = (unsigned char)(mrb_integer(c) & 0xff);
@@ -1176,6 +1176,7 @@ io_putc(mrb_state *mrb, mrb_value io)
   }
   else {
     str = mrb_obj_as_string(mrb, c);
+    fd = io_write_fd(mrb, io);
   }
 
   ptr = RSTRING_PTR(str);
@@ -1213,16 +1214,8 @@ io_putc(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_lshift(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
-
-  /* Prepare IO for writing (handle read buffer adjustment) */
-  io_prepare_write(mrb, fptr);
-
-  mrb_value str = mrb_get_arg1(mrb);
-  str = mrb_obj_as_string(mrb, str);
-  fd_write(mrb, fd, str);
-
+  io_write_fd(mrb, io);         /* fail before converting, as #write does */
+  io_write_obj(mrb, io, mrb_get_arg1(mrb));
   return io;
 }
 

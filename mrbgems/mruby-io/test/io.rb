@@ -216,6 +216,36 @@ assert('IO#puts keeps a nested array its element drops') do
   assert_equal "d\na\nb\n" + "c\n" * 30, File.read($mrbtest_io_wfname)
 end
 
+assert('IO writers do not write to a descriptor #to_s closed') do
+  # #to_s closes the stream and opens another file, which is handed the number
+  # the close freed. The write has to find the stream closed, not land there.
+  elem = Class.new do
+    attr_reader :other
+    def initialize(io, path); @io = io; @path = path; end
+    def to_s
+      @io.close
+      @other = File.open(@path, "w")
+      "leak"
+    end
+  end
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  path = "#{dir}/other"
+  begin
+    [[:write, false], [:print, false], [:<<, false], [:putc, false],
+     [:puts, false], [:puts, true]].each do |m, nest|
+      io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+      e = elem.new(io, path)
+      label = "IO##{m}#{nest ? ' with an array' : ''}"
+      assert_raise(IOError, label) { io.__send__(m, nest ? [e] : e) }
+      e.other.close
+      assert_equal "", File.read(path), label
+    end
+  ensure
+    File.delete(path) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO#read', '15.2.20.5.14') do
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
     assert_raise(ArgumentError) { io.read(-5) }
