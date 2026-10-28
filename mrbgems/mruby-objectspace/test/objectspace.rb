@@ -101,6 +101,32 @@ assert('ObjectSpace.each_object does not reach a message mrb_format() builds') d
   assert_equal("B" * 32, other)
 end
 
+class ObjectSpaceInspectTarget
+  def initialize(a)
+    @a = a
+    @b = 1
+  end
+end
+
+assert('ObjectSpace.each_object does not reach the string Kernel#inspect builds') do
+  # An instance variable's inspect could swap in a buffer shared with a
+  # frozen string, whose first byte inspect then wrote in place.
+  donor = ("-" * 4000).freeze
+  c = Class.new do
+    define_method(:inspect) do
+      ObjectSpace.each_object(String) do |s|
+        s.replace(donor) if s[0, 26] == "#<ObjectSpaceInspectTarget" && !s.frozen?
+      end
+      ""
+    end
+  end
+  s = ObjectSpaceInspectTarget.new(c.new).inspect
+  assert_equal(String, s.class)
+  assert_equal("#<ObjectSpaceInspectTarget:", s[0, 27])
+  assert_equal(" @a=, @b=1>", s[-11, 11])
+  assert_equal("-" * 4000, donor)
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold

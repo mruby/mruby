@@ -56,6 +56,10 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   if (mrb_nil_p(a->str)) {
     const char *cn = mrb_obj_classname(mrb, a->obj);
     a->str = mrb_str_new_capa(mrb, 30);
+    /* Each value's inspect runs Ruby, which must not reach the string
+       through ObjectSpace: it could swap in a shared buffer, and the first
+       byte below is written in place. mrb_obj_inspect() sets the class back. */
+    mrb_str_ptr(a->str)->c = NULL; /* hide from ObjectSpace.each_object */
 
     mrb_str_cat_lit(mrb, a->str, "-<");
     mrb_str_cat_cstr(mrb, a->str, cn);
@@ -111,6 +115,7 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
     if (!mrb_nil_p(a.str)) {
       mrb_assert(mrb_string_p(a.str));
       mrb_str_cat_lit(mrb, a.str, ">");
+      mrb_str_ptr(a.str)->c = mrb->string_class;
       return a.str;
     }
   }
