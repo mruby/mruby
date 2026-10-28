@@ -384,12 +384,17 @@ assert('sprintf keeps the result it builds out of a callback\'s reach') do
   skip unless Object.const_defined?(:ObjectSpace)
   other = "B" * 32
   evil = Object.new
-  evil.define_singleton_method(:to_s) do
+  def evil.other=(o)
+    @other = o
+  end
+  def evil.to_s
+    o = @other
     ObjectSpace.each_object(String) do |s|
-      s.replace(other) if s.empty? && !s.frozen? && !s.equal?(other)
+      s.replace(o) if s.empty? && !s.frozen? && !s.equal?(o)
     end
     "C" * 64
   end
+  evil.other = other
   assert_equal "A" * 40 + "C" * 64, sprintf("A" * 40 + "%s", evil)
   assert_equal "B" * 32, other
   assert_equal String, sprintf("%s", 1).class
