@@ -1064,7 +1064,13 @@ io_puts_ary(mrb_state *mrb, int fd, mrb_value ary, int depth)
   for (mrb_int i = 0; i < len && i < RARRAY_LEN(ary); i++) {
     mrb_value elem = RARRAY_PTR(ary)[i];
     if (mrb_array_p(elem)) {
+      /* Nothing but this walk holds a nested array once an element's #to_s
+         drops it from `ary`, so it stays on the arena until the walk is done
+         with it. */
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_gc_protect(mrb, elem);
       io_puts_ary(mrb, fd, elem, depth + 1);
+      mrb_gc_arena_restore(mrb, ai);
     }
     else {
       io_puts_str(mrb, fd, elem);

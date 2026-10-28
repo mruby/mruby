@@ -195,6 +195,27 @@ assert('IO#puts with an element that replaces the array') do
   assert_equal "x\n" + "0\n" * 63, File.read($mrbtest_io_wfname)
 end
 
+assert('IO#puts keeps a nested array its element drops') do
+  # The element's #to_s drops the inner array from the outer one and runs GC
+  # while puts is still walking the inner one, which nothing else holds.
+  elem = Class.new do
+    attr_accessor :outer
+    def to_s
+      @outer[0] = nil
+      GC.start
+      $io_puts_keep = Array.new(2000) { ["r"] * 4 }
+      "d"
+    end
+  end
+  e = elem.new
+  e.outer = [[e, "a", "b"] + ["c"] * 30]
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, 'w'), 'w')
+  io.puts e.outer
+  io.close
+  $io_puts_keep = nil
+  assert_equal "d\na\nb\n" + "c\n" * 30, File.read($mrbtest_io_wfname)
+end
+
 assert('IO#read', '15.2.20.5.14') do
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
     assert_raise(ArgumentError) { io.read(-5) }
