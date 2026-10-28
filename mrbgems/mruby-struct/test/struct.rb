@@ -586,3 +586,88 @@ assert "Struct in a pattern" do
                        else :none
                        end)
 end
+
+assert('Struct keeps its members out of reach of ObjectSpace') do
+  # Struct#inspect walks the class's members while each value's inspect runs
+  # Ruby, which could find them through ObjectSpace, replace them with a
+  # longer array and run GC, leaving the walk reading the freed buffer.
+  skip unless Object.const_defined?(:ObjectSpace)
+  st = Struct.new(:m0, :m1, :m2, :m3, :m4, :m5, :m6, :m7)
+  evil = Class.new do
+    def inspect
+      ObjectSpace.each_object(Array) do |a|
+        a.replace(Array.new(40) { :zz }) if a.size == 8 && a[0] == :m0 && a[7] == :m7
+      end
+      GC.start
+      "e"
+    end
+  end
+  s = st.new(evil.new, 1, 2, 3, 4, 5, 6, 7)
+  assert_equal "#<struct m0=e, m1=1, m2=2, m3=3, m4=4, m5=5, m6=6, m7=7>", s.inspect
+  assert_equal [:m0, :m1, :m2, :m3, :m4, :m5, :m6, :m7], st.members
+end
+
+assert('Struct#inspect keeps the string it builds out of reach') do
+  skip unless Object.const_defined?(:ObjectSpace)
+  seen = []
+  evil = Class.new do
+    define_method(:inspect) do
+      ObjectSpace.each_object(String) { |o| seen << o }
+      "e"
+    end
+  end
+  s = Struct.new(:a, :b).new(evil.new, 1).inspect
+  assert_equal "#<struct a=e, b=1>", s
+  assert_false seen.any? { |o| o.equal?(s) }
+end
+
+assert('Struct keyword init keeps its temporaries out of reach') do
+  # An unknown key's #eql? could rewrite the keys being checked, so that a
+  # second unknown keyword went unreported.
+  skip unless Object.const_defined?(:ObjectSpace)
+  st = Struct.new(:aa, :bb, keyword_init: true)
+  evil = Class.new do
+    def hash; 1; end
+    def to_s; "evil"; end
+    def eql?(o)
+      unless @busy
+        @busy = true
+        ObjectSpace.each_object(Array) do |a|
+          a[1] = :aa if a.size == 2 && a[0].equal?(self) && a[1] == :zz
+        end
+        @busy = false
+      end
+      equal?(o)
+    end
+  end
+  e = assert_raise(ArgumentError) { st.new({evil.new => 1, zz: 2}) }
+  assert_equal "unknown keywords: evil, zz", e.message
+end
+
+assert('Struct#deconstruct_keys reads the keys afresh') do
+  # Storing a Rational key in the result runs its #eql?, which can empty the
+  # keys array and run GC under the walk.
+  skip unless Object.const_defined?(:Rational)
+  st = Struct.new(:m0, :m1, :m2, :m3, :m4, :m5, :m6, :m7)
+  keys = [:m0, 1r, 2r, 3r, 4r, 5r, 6r, 7r]
+  $struct_dk_keys = keys
+  Rational.class_eval do
+    alias_method :__struct_dk_eql, :eql?
+    def eql?(o)
+      if $struct_dk_keys
+        k = $struct_dk_keys
+        $struct_dk_keys = nil
+        k.clear
+        GC.start
+      end
+      __struct_dk_eql(o)
+    end
+  end
+  begin
+    h = st.new(*0..7).deconstruct_keys(keys)
+  ensure
+    Rational.class_eval { alias_method :eql?, :__struct_dk_eql }
+    $struct_dk_keys = nil
+  end
+  assert_equal({m0: 0, 1r => 1}, h)
+end

@@ -336,6 +336,10 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     argcnt--;
   }
   mrb_value members = mrb_ary_new_from_values(mrb, argcnt, pargv);
+  /* The members become the class's __members__, which every method reads
+     as an array of Symbols; Ruby must not reach it through ObjectSpace and
+     rewrite it. Struct.members hands out a copy. */
+  mrb_ary_ptr(members)->c = NULL; /* hide from ObjectSpace.each_object */
   for (mrb_int i=0; i<argcnt; i++) {
     mrb_sym sym = mrb_obj_to_sym(mrb, RARRAY_PTR(members)[i]);
     mrb_ary_set(mrb, members, i, mrb_symbol_value(sym));
@@ -408,9 +412,13 @@ mrb_struct_init_with_keywords(mrb_state *mrb, mrb_value hash, mrb_value self)
     mrb_hash_set(mrb, members_hash, RARRAY_PTR(members)[i], mrb_true_value());
   }
 
-  /* Check if all keys in the hash are valid members */
+  /* Check if all keys in the hash are valid members. A key's #eql? runs
+     Ruby, which must not reach the three temporaries through ObjectSpace. */
   mrb_value invalid_keys = mrb_ary_new(mrb);
   mrb_value keys = mrb_hash_keys(mrb, hash);
+  mrb_hash_ptr(members_hash)->c = NULL; /* hide from ObjectSpace.each_object */
+  mrb_ary_ptr(invalid_keys)->c = NULL;
+  mrb_ary_ptr(keys)->c = NULL;
   for (mrb_int i = 0; i < RARRAY_LEN(keys); i++) {
     mrb_value key = RARRAY_PTR(keys)[i];
     if (!mrb_hash_key_p(mrb, members_hash, key)) {
@@ -867,12 +875,20 @@ mrb_struct_deconstruct_keys(mrb_state *mrb, mrb_value self)
   if (num_members(mrb, self) < klen) return mrb_hash_new(mrb);
 
   mrb_value ret = mrb_hash_new_capa(mrb, klen);
-  for (mrb_int i=0; i<klen; i++) {
+  /* Storing a key runs its #eql?, which can empty `keys`, so the length is
+     read afresh and the key is pinned while it is stored, and must not reach
+     the result through ObjectSpace. */
+  mrb_hash_ptr(ret)->c = NULL; /* hide from ObjectSpace.each_object */
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i=0; i<klen && i<RARRAY_LEN(keys); i++) {
     mrb_value key = RARRAY_PTR(keys)[i];
     mrb_int pos = struct_pos(mrb, self, key);
     if (pos < 0) break;
+    mrb_gc_protect(mrb, key);
     mrb_hash_set(mrb, ret, key, mrb_ary_ref(mrb, self, pos));
+    mrb_gc_arena_restore(mrb, ai);
   }
+  mrb_hash_ptr(ret)->c = mrb->hash_class;
   return ret;
 }
 
@@ -909,6 +925,8 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, ret, "...>");
     return ret;
   }
+  /* a member's inspect must not reach the string under construction */
+  mrb_str_ptr(ret)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_value members = struct_members(mrb, self);
   mrb_int mlen = RARRAY_LEN(members);
   mrb_value *mems = RARRAY_PTR(members);
@@ -922,6 +940,7 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
+  mrb_str_ptr(ret)->c = mrb->string_class;
 
   return ret;
 }
