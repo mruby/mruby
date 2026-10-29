@@ -1211,10 +1211,16 @@ ary_uniq_bang_body(mrb_state *mrb, void *data)
 {
   struct ary_uniq_bang_ctx *ctx = (struct ary_uniq_bang_ctx *)data;
   mrb_value self = ctx->self;
+  /* Under the set this is the shared copy, not `self`: the set keeps each
+     element it is asked about as a key, and only the copy keeps a key alive.
+     An element that `hash` put into `self` after the copy was taken would
+     become a key nothing pins (GHSA-6vh7-2mq3-mhc5). Under the walk it is
+     `self`; the walk keeps no keys. */
+  mrb_value src = ctx->memb->arys[0];
 
   int ai = mrb_gc_arena_save(mrb);
-  for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(self); read_pos++) {
-    mrb_value elem = RARRAY_PTR(self)[read_pos];
+  for (mrb_int read_pos = 0; read_pos < RARRAY_LEN(src); read_pos++) {
+    mrb_value elem = RARRAY_PTR(src)[read_pos];
     mrb_gc_protect(mrb, elem); // elem may be removed from self by ary_memb_first()
     if (ary_memb_first(mrb, ctx->memb, elem, self, *ctx->write_pos)) {
       if (*ctx->write_pos != read_pos && *ctx->write_pos < RARRAY_LEN(self)) {
@@ -1250,8 +1256,8 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
 
   /* The kept prefix of `self` is the record of first occurrences, so the
      membership object holds `self` itself: under the set as a shared copy
-     that keeps every element alive while `hash` runs, under the walk as the
-     array whose prefix first() reads. */
+     that keeps every element alive while `hash` runs and that the body reads
+     from, under the walk as the array whose prefix first() reads. */
   ary_memb memb;
   ary_memb_init(mrb, &memb, &self, 1, len, len > SET_OP_HASH_THRESHOLD);
 
