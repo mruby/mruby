@@ -192,9 +192,19 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khval_t *old_vals = kh_vals_##name(h);                              \
     uint8_t *old_flags = kh__is_small_##name(h) ? NULL : kh_flags_##name(h); \
     khint_t limit = old_flags ? h->n_buckets : h->size;                 \
+    void *kh__data = h->data;                                           \
+    khint_t kh__n = h->n_buckets, kh__size = h->size;                   \
     for (khint_t i = 0; i < limit; i++) {                               \
       if (old_flags && __ac_iseither(old_flags, i)) continue;           \
       khint_t k = kh_put_##name(mrb, &hh, old_keys[i], NULL);           \
+      /* Hashing an old key can call back into Ruby, which can change   \
+         'h' under the loop; 'limit' and the old pointers are then      \
+         stale, so give up on the copy rather than read through them. */ \
+      if (h->data != kh__data || h->n_buckets != kh__n ||               \
+          h->size != kh__size) {                                        \
+        mrb_free(mrb, hh.data);                                         \
+        mrb_raise(mrb, E_RUNTIME_ERROR, "hash table modified during callback"); \
+      }                                                                 \
       if (kh_is_map) {                                                  \
         kh_val(name, &hh, k) = old_vals[i];                             \
       }                                                                 \
