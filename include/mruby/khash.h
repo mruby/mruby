@@ -54,13 +54,15 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 /*
  * A hash/eql callback that dispatches into Ruby (as mruby-set does) can mutate
  * the same table mid-probe: a rehash frees h->data, leaving the keys/flags
- * pointers cached before the callback dangling. Snapshot h->data around every
- * such callback and raise if it moved, the way Hash does with H_CHECK_MODIFIED,
- * so the stale pointers are never dereferenced.
+ * pointers cached before the callback dangling. Snapshot h->data and
+ * h->n_buckets around every such callback and raise if either changed, the
+ * way Hash does with H_CHECK_MODIFIED, so the stale pointers are never
+ * dereferenced. The address alone is not enough: the allocator can hand a
+ * smaller replacement table back at the address the old one had.
  */
-#define KHASH_CHECK_MODIFIED(mrb, h, saved)                              \
+#define KHASH_CHECK_MODIFIED(mrb, h, data0, n0)                          \
   do {                                                                   \
-    if ((h)->data != (saved))                                           \
+    if ((h)->data != (data0) || (h)->n_buckets != (n0))                  \
       mrb_raise((mrb), E_RUNTIME_ERROR, "hash table modified during callback"); \
   } while (0)
 
@@ -175,7 +177,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     void *kh__data = h->data;                                           \
     for (khint_t i = 0; i < h->size; i++) {                             \
       mrb_bool kh__eq = __hash_equal(mrb, keys[i], key);                \
-      KHASH_CHECK_MODIFIED(mrb, h, kh__data);                           \
+      KHASH_CHECK_MODIFIED(mrb, h, kh__data, 0);                        \
       if (kh__eq) return i;                                             \
     }                                                                   \
     return h->size;  /* Not found - return end position */              \
@@ -254,9 +256,10 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
     void *kh__data = h->data;                                           \
+    khint_t kh__n = h->n_buckets;                                       \
     khint_t k = kh__key_idx_##name(mrb, key, h), step = 0;              \
     khint_t probes = h->n_buckets;                                      \
-    KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
+    KHASH_CHECK_MODIFIED(mrb, h, kh__data, kh__n);                      \
     (void)mrb;                                                          \
     /* A deleted bucket is not an empty one, so a table drained one      \
        element at a time can hold no empty bucket at all; this walk      \
@@ -266,7 +269,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
         mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
-        KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
+        KHASH_CHECK_MODIFIED(mrb, h, kh__data, kh__n);                  \
         if (kh__eq) return k;                                           \
       }                                                                 \
       k = kh__next_probe_##name(k, &step, h);                           \
@@ -296,13 +299,14 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
     void *kh__data = h->data;                                           \
+    khint_t kh__n = h->n_buckets;                                       \
     k = kh__key_idx_##name(mrb, key, h);                                \
-    KHASH_CHECK_MODIFIED(mrb, h, kh__data);                             \
+    KHASH_CHECK_MODIFIED(mrb, h, kh__data, kh__n);                      \
     del_k = kh_end(h);                                                  \
     while (!__ac_isempty(ed_flags, k) && probes-- > 0) {                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
         mrb_bool kh__eq = __hash_equal(mrb, keys[k], key);              \
-        KHASH_CHECK_MODIFIED(mrb, h, kh__data);                         \
+        KHASH_CHECK_MODIFIED(mrb, h, kh__data, kh__n);                  \
         if (kh__eq) {                                                   \
           if (ret) *ret = 0;                                            \
           return k;                                                     \
