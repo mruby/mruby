@@ -96,6 +96,17 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   end
 
   task prism_templates: :prism_submodule do
+    # A Prism upgrade can retire a template (2.1.0 turned include/prism/
+    # diagnostic.h into a plain header and generates internal/diagnostic.h
+    # instead). The file an earlier build generated from it stays in
+    # prism_gen_dir, which the include path searches before the checkout, so
+    # it hides the checkout's header of the same name and includes headers
+    # that no longer exist. Drop every file there that no template produces.
+    Dir.glob("#{prism_gen_dir}/**/*").each do |path|
+      next unless File.file?(path)
+      FileUtils.rm_f(path) unless prism_generated_files.include?(path)
+    end
+
     missing = prism_generated_files.reject { |path| File.exist?(path) }
     unless missing.empty?
       FileUtils.cd prism_dir do
@@ -161,9 +172,15 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
       cc
     end
   end
-  cc.define_rules(prism_obj_dir, prism_src_dir, &prism_compiler)
+  # Both source trees map to the same object names, and a rule is taken by
+  # the first source that exists, so the generated tree comes first. A
+  # checkout that once ran Prism's own make holds the generated sources in
+  # place too (ignored by git, from the Prism of that time); with the rules
+  # the other way round those stale files would be compiled instead of the
+  # ones prism_templates wrote, against the headers of the current Prism.
   prism_gen_src_dir = "#{prism_gen_dir}/src"
   cc.define_rules(prism_obj_dir, prism_gen_src_dir, &prism_compiler)
+  cc.define_rules(prism_obj_dir, prism_src_dir, &prism_compiler)
   Dir.glob("#{prism_src_dir}/**/*.c").each do |src|
     objs << objfile(src.relative_path_from(prism_src_dir).pathmap("#{prism_obj_dir}/%X"))
   end

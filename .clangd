@@ -93,7 +93,7 @@ CompileFlags:
 # target can strip the define back out with `CompileFlags: Remove` in its
 # own .clangd.
 #
-# PRISM_XALLOCATOR is what makes prism/defines.h include the gem's
+# PRISM_XALLOCATOR is what makes prism/internal/allocator.h include the gem's
 # prism_xallocator.h, so the vendored Prism sources see mruby's allocator.
 # Both are settings rather than paths, which is why they are here and the
 # include paths are not.
