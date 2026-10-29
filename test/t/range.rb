@@ -284,6 +284,56 @@ assert('Range#to_a with a Float end past the largest mrb_int') do
   assert_raise(RangeError) { (0..top).to_a }
 end
 
+assert('Range#to_a keeps the Integer objects it makes across minor GCs') do
+  # Past the fixnums an Integer is an object of its own, and so is a big
+  # integer.  Range#to_a stored each one into the array it had allocated
+  # with no write barrier: a minor GC run by one of them left the array old,
+  # and the next minor GC freed the elements made after it while the array
+  # still held them.  Every element also stayed on the arena until the call
+  # returned, which a fixed arena cannot hold past about a hundred of them.
+  half = 1 << 30
+  begin
+    k = 62
+    [][1 << k]    # nil for an mrb_int index, RangeError for a big integer
+    half = 1 << k
+  rescue RangeError
+  end
+  max = half - 1 + half
+  bases = [max - 299]
+  begin
+    bases << max + 1
+  rescue RangeError
+  end
+  origin = [GC.generational_mode, GC.interval_ratio]
+  burn = ->(n) { i = 0; while i < n; s = "ab"; i += 1; end }
+  begin
+    GC.generational_mode = true
+    GC.interval_ratio = 100
+    GC.disable
+    ballast = Array.new(8192) { |i| s = "b" * 30; s if i % 8 == 0 }
+    GC.enable
+    bases.each do |base|
+      assert_equal Array.new(300) { |i| base + i }, (base..base + 299).to_a
+      GC.start
+      debt = GC.stat[:debt]
+      (base..base + 15).to_a
+      n = GC.stat[:debt] - debt
+      # a minor GC on each allocation the call makes
+      1.upto(n) do |at|
+        GC.start
+        burn.(-GC.stat[:debt] - at)
+        a = (base..base + 15).to_a
+        burn.(2048)  # twice the credit GC.interval_ratio = 100 leaves
+        assert_equal Array.new(16) { |i| base + i }, a
+      end
+    end
+    assert_equal 8192, ballast.size
+  ensure
+    GC.enable
+    GC.generational_mode, GC.interval_ratio = origin
+  end
+end
+
 assert('symbol GC keeps the symbols a Range holds') do
   stress
   # A Range is a container like an Array, and its ends are the only holder of
