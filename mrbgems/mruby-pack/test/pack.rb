@@ -419,3 +419,45 @@ assert 'unpack of a fixed size directive past the end' do
   assert_equal [], "".unpack("w")
   assert_equal [""], "".unpack("a")
 end
+
+assert 'pack and unpack of an unsigned value past mrb_int' do
+  # 0x83AA7E80 (the NTP epoch offset) is formed at run time: the literal does
+  # not fit MRB_INT32 without bigint and would stop this file from compiling.
+  # With bigint it is a big integer there, and a plain mrb_int on MRB_INT64.
+  hi = 0x83AA
+  value = begin
+    (hi << 16) | 0x7E80  # RangeError where mrb_int is 32 bits and bigint is absent
+  rescue RangeError
+    nil
+  end
+  if value
+    assert_equal [0x83, 0xAA, 0x7E, 0x80], [value].pack("N").unpack("C*")
+    assert_equal [0x80, 0x7E, 0xAA, 0x83], [value].pack("V").unpack("C*")
+    assert_equal [value], "\x83\xAA\x7E\x80".unpack("N")
+    assert_equal [value], "\x80\x7E\xAA\x83".unpack("V")
+    assert_equal [value], [value].pack("Q").unpack("Q")
+    # the low bits are kept, as CRuby keeps them, for a value past the directive
+    shift = 32
+    assert_equal [0x41], [(1 << shift) + 0x41].pack("N").unpack("N")
+    assert_equal [0x7E80], [value].pack("n").unpack("n")
+  else
+    assert_raise(RangeError) { "\x83\xAA\x7E\x80".unpack("N") }
+  end
+  # 2**64 - 1 exists only with bigint, whatever the width of mrb_int
+  shift = 64
+  top = begin
+    (1 << shift) - 1
+  rescue RangeError
+    nil
+  end
+  if top
+    assert_equal [0xFF] * 8, [top].pack("Q").unpack("C*")
+    assert_equal [top], ("\xFF" * 8).unpack("Q")
+    assert_equal [-1], ("\xFF" * 8).unpack("q")
+    # past 64 bits the low bits are kept, two's complement for a negative value
+    assert_equal "A", [top + 66].pack("C")
+    assert_equal [-1], [-top - 2].pack("q").unpack("q")
+    # one big integer per element over a "*" count must not fill the GC arena
+    assert_equal [top] * 128, ("\xFF" * 8 * 128).unpack("Q*")
+  end
+end

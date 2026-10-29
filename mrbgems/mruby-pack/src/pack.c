@@ -18,6 +18,30 @@
 #define INT_OVERFLOW_P(n)  ((n) < MRB_INT_MIN || (n) > MRB_INT_MAX)
 #define UINT_OVERFLOW_P(n) ((n) > MRB_INT_MAX)
 
+/* The bits of an integer element. A big integer keeps its low 64 bits, as
+   CRuby keeps the low 8*size bits of every element, so that a value past
+   mrb_int (an unsigned 32-bit field on MRB_INT32, such as an NTP timestamp)
+   packs instead of raising while it is narrowed to mrb_int. */
+static uint64_t
+pack_int_bits(mrb_state *mrb, mrb_value o)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(o)) {
+    /* Integer#& with a 64-bit mask answers the low bits, two's complement
+       for a negative value, as a non-negative value below 2**64 that
+       mrb_bint_as_uint64() takes without a range check. The mask and the
+       result are short-lived objects, so the arena is given back. */
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_value low = mrb_bint_and(mrb, o, mrb_bint_new_uint64(mrb, UINT64_MAX));
+    uint64_t bits = mrb_bigint_p(low) ? mrb_bint_as_uint64(mrb, low)
+                                      : (uint64_t)mrb_integer(low);
+    mrb_gc_arena_restore(mrb, ai);
+    return bits;
+  }
+#endif
+  return (uint64_t)mrb_integer(o);
+}
+
 #ifndef EOF
 # define EOF (-1) /* for MRB_NO_STDIO */
 #endif
@@ -342,7 +366,7 @@ static int
 pack_char(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 1);
-  RSTRING_PTR(str)[sidx] = (char)mrb_integer(o);
+  RSTRING_PTR(str)[sidx] = (char)pack_int_bits(mrb, o);
   return 1;
 }
 
@@ -360,7 +384,7 @@ static int
 pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 2);
-  uint16_t n = (uint16_t)mrb_integer(o);
+  uint16_t n = (uint16_t)pack_int_bits(mrb, o);
   char *dptr = RSTRING_PTR(str) + sidx;
 
   /* use lookup tables to eliminate branching */
@@ -389,7 +413,7 @@ static int
 pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 4);
-  uint32_t n = (uint32_t)mrb_integer(o);
+  uint32_t n = (uint32_t)pack_int_bits(mrb, o);
   char *dptr = RSTRING_PTR(str) + sidx;
 
   /* use lookup tables to eliminate branching */
@@ -402,7 +426,7 @@ pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
   return 4;
 }
 
-#ifndef MRB_INT64
+#if !defined(MRB_INT64) && !defined(MRB_USE_BIGINT)
 static void
 u32tostr(char *buf, size_t len, uint32_t n)
 {
@@ -433,12 +457,12 @@ u32tostr(char *buf, size_t len, uint32_t n)
   snprintf(buf, len, "%" PRIu32, n);
 #endif /* MRB_NO_STDIO */
 }
-#endif /* MRB_INT64 */
+#endif /* !MRB_INT64 && !MRB_USE_BIGINT */
 
 static int
 unpack_long(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
-#ifndef MRB_INT64
+#if !defined(MRB_INT64) && !defined(MRB_USE_BIGINT)
   char msg[60];
 #endif
   uint32_t ul;
@@ -457,8 +481,17 @@ unpack_long(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
   else {
 #ifndef MRB_INT64
     if (UINT_OVERFLOW_P(ul)) {
+#ifdef MRB_USE_BIGINT
+      /* Past mrb_int on a 32-bit build: answered as a big integer. The
+         array keeps it; the arena entry would pile up over a "*" count. */
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_ary_push(mrb, ary, mrb_bint_new_uint64(mrb, ul));
+      mrb_gc_arena_restore(mrb, ai);
+      return 4;
+#else
       u32tostr(msg, sizeof(msg), ul);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
+#endif
     }
 #endif
     n = ul;
@@ -471,7 +504,7 @@ static int
 pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 8);
-  uint64_t n = (uint64_t)mrb_integer(o);
+  uint64_t n = pack_int_bits(mrb, o);
   char *dptr = RSTRING_PTR(str) + sidx;
 
   /* use lookup tables to eliminate branching */
@@ -488,6 +521,7 @@ pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
   return 8;
 }
 
+#ifndef MRB_USE_BIGINT
 static void
 u64tostr(char *buf, size_t len, uint64_t n)
 {
@@ -515,8 +549,9 @@ u64tostr(char *buf, size_t len, uint64_t n)
   snprintf(buf, len, "%" PRIu64, n);
 #endif /* MRB_NO_STDIO */
 }
+#endif /* MRB_USE_BIGINT */
 
-#ifndef MRB_INT64
+#if !defined(MRB_INT64) && !defined(MRB_USE_BIGINT)
 static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
@@ -534,12 +569,14 @@ i64tostr(char *buf, size_t len, int64_t n)
   snprintf(buf, len, "%" PRId64, n);
 #endif /* MRB_NO_STDIO */
 }
-#endif /* MRB_INT64 */
+#endif /* !MRB_INT64 && !MRB_USE_BIGINT */
 
 static int
 unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value ary, unsigned int flags)
 {
+#ifndef MRB_USE_BIGINT
   char msg[60];
+#endif
   mrb_int n;
 
   /* use lookup tables to eliminate branching */
@@ -557,16 +594,31 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
     int64_t sll = ull;
 #ifndef MRB_INT64
     if (INT_OVERFLOW_P(sll)) {
+#ifdef MRB_USE_BIGINT
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_ary_push(mrb, ary, mrb_bint_new_int64(mrb, sll));
+      mrb_gc_arena_restore(mrb, ai);
+      return 8;
+#else
       i64tostr(msg, sizeof(msg), sll);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
+#endif
     }
 #endif
     n = (mrb_int)sll;
   }
   else {
     if (UINT_OVERFLOW_P(ull)) {
+#ifdef MRB_USE_BIGINT
+      /* Past mrb_int: answered as a big integer. */
+      int ai = mrb_gc_arena_save(mrb);
+      mrb_ary_push(mrb, ary, mrb_bint_new_uint64(mrb, ull));
+      mrb_gc_arena_restore(mrb, ai);
+      return 8;
+#else
       u64tostr(msg, sizeof(msg), ull);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
+#endif
     }
     n = (mrb_int)ull;
   }
@@ -577,7 +629,8 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
 static int
 pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  mrb_int n = mrb_integer(o);
+  /* A big integer has no spelling here and is refused, as before. */
+  mrb_int n = mrb_integer(mrb_ensure_int_type(mrb, o));
 
   if (n < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
@@ -745,7 +798,8 @@ unpack_float(mrb_state *mrb, const unsigned char * src, mrb_int srclen, mrb_valu
 static int
 pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, unsigned int flags)
 {
-  mrb_int c = mrb_integer(o);
+  /* A big integer has no spelling here and is refused, as before. */
+  mrb_int c = mrb_integer(mrb_ensure_int_type(mrb, o));
 
   /* Every value up to 0x7FFFFFFF has a spelling here, over up to six bytes,
      as CRuby writes it: a value past U+10FFFF as well as a surrogate. A
@@ -1847,7 +1901,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
       o = RARRAY_PTR(ary)[aidx];
       if (type == PACK_TYPE_INTEGER) {
-        o = mrb_ensure_int_type(mrb, o);
+        /* Kept whole: a big integer is reduced to the bits of its directive
+           by pack_int_bits(), not narrowed to mrb_int here. */
+        o = mrb_ensure_integer_type(mrb, o);
       }
 #ifndef MRB_NO_FLOAT
       else if (type == PACK_TYPE_FLOAT) {
