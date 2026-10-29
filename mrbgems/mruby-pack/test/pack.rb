@@ -454,5 +454,10 @@ assert 'pack and unpack of an unsigned value past mrb_int' do
     assert_equal [0xFF] * 8, [top].pack("Q").unpack("C*")
     assert_equal [top], ("\xFF" * 8).unpack("Q")
     assert_equal [-1], ("\xFF" * 8).unpack("q")
+    # past 64 bits the low bits are kept, two's complement for a negative value
+    assert_equal "A", [top + 66].pack("C")
+    assert_equal [-1], [-top - 2].pack("q").unpack("q")
+    # one big integer per element over a "*" count must not fill the GC arena
+    assert_equal [top] * 128, ("\xFF" * 8 * 128).unpack("Q*")
   end
 end

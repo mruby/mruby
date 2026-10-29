@@ -27,10 +27,16 @@ pack_int_bits(mrb_state *mrb, mrb_value o)
 {
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(o)) {
-    if (mrb_bint_sign(mrb, o) < 0) {
-      return (uint64_t)mrb_bint_as_int64(mrb, o);
-    }
-    return mrb_bint_as_uint64(mrb, o);
+    /* Integer#& with a 64-bit mask answers the low bits, two's complement
+       for a negative value, as a non-negative value below 2**64 that
+       mrb_bint_as_uint64() takes without a range check. The mask and the
+       result are short-lived objects, so the arena is given back. */
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_value low = mrb_bint_and(mrb, o, mrb_bint_new_uint64(mrb, UINT64_MAX));
+    uint64_t bits = mrb_bigint_p(low) ? mrb_bint_as_uint64(mrb, low)
+                                      : (uint64_t)mrb_integer(low);
+    mrb_gc_arena_restore(mrb, ai);
+    return bits;
   }
 #endif
   return (uint64_t)mrb_integer(o);
@@ -476,8 +482,11 @@ unpack_long(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
 #ifndef MRB_INT64
     if (UINT_OVERFLOW_P(ul)) {
 #ifdef MRB_USE_BIGINT
-      /* Past mrb_int on a 32-bit build: answered as a big integer. */
+      /* Past mrb_int on a 32-bit build: answered as a big integer. The
+         array keeps it; the arena entry would pile up over a "*" count. */
+      int ai = mrb_gc_arena_save(mrb);
       mrb_ary_push(mrb, ary, mrb_bint_new_uint64(mrb, ul));
+      mrb_gc_arena_restore(mrb, ai);
       return 4;
 #else
       u32tostr(msg, sizeof(msg), ul);
@@ -586,7 +595,9 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
 #ifndef MRB_INT64
     if (INT_OVERFLOW_P(sll)) {
 #ifdef MRB_USE_BIGINT
+      int ai = mrb_gc_arena_save(mrb);
       mrb_ary_push(mrb, ary, mrb_bint_new_int64(mrb, sll));
+      mrb_gc_arena_restore(mrb, ai);
       return 8;
 #else
       i64tostr(msg, sizeof(msg), sll);
@@ -600,7 +611,9 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, mrb_int srclen, mrb_value 
     if (UINT_OVERFLOW_P(ull)) {
 #ifdef MRB_USE_BIGINT
       /* Past mrb_int: answered as a big integer. */
+      int ai = mrb_gc_arena_save(mrb);
       mrb_ary_push(mrb, ary, mrb_bint_new_uint64(mrb, ull));
+      mrb_gc_arena_restore(mrb, ai);
       return 8;
 #else
       u64tostr(msg, sizeof(msg), ull);
