@@ -36,9 +36,14 @@
   #define mrb_state void
 #endif
 
+/* <sys/types.h> before <inttypes.h>: newlib's <inttypes.h> defines the
+   64-bit PRI macros (cdump.c and codedump.c print with PRId64) only once its
+   own <sys/_stdint.h> has been seen, and under a toolchain whose <stdint.h>
+   is GCC's own that happens through <sys/types.h>. mruby.h takes care of it
+   on the mruby target; mrubyc.h does not, so it is done here for every
+   target. Prism's integer.c does the same for its own PRIu64. */
+#include <sys/types.h>
 #include <stdint.h>
-/* For the PRI* macros MRC_PRId and friends stand for below; the 64-bit ones
-   are supplied where the libc leaves them out, see prism_xallocator.h. */
 #include <inttypes.h>
 
 #if !defined(PRISM_XALLOCATOR)

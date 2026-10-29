@@ -5,35 +5,6 @@
    pulls <stdlib.h> in before this header. */
 #include <stdlib.h>
 
-/* Prism and the compiler print 64-bit values with PRId64 and friends. An
-   arm-none-eabi toolchain whose <stdint.h> is GCC's own (Debian's, for one)
-   never sets the marker newlib's <inttypes.h> tests before it defines the
-   64-bit macros, so they are missing there while the 32-bit ones are not.
-   Prism 1.9 included <sys/types.h> ahead of <inttypes.h> in its defines.h
-   for this (prism 61ebe5123); the header went in 2.0 (prism 400b21739) and
-   the workaround with it. This header reaches every translation unit of
-   Prism and of the compiler through prism/internal/allocator.h, so the
-   fallback lives here, and stays whatever Prism does about it. */
-#include <inttypes.h>
-#ifndef PRId64
-# define PRId64 "lld"
-#endif
-#ifndef PRIi64
-# define PRIi64 "lli"
-#endif
-#ifndef PRIu64
-# define PRIu64 "llu"
-#endif
-#ifndef PRIo64
-# define PRIo64 "llo"
-#endif
-#ifndef PRIx64
-# define PRIx64 "llx"
-#endif
-#ifndef PRIX64
-# define PRIX64 "llX"
-#endif
-
 #if defined(MRC_TARGET_MRUBY)
   #include "mruby.h"
   #include <string.h>
