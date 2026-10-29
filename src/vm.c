@@ -4411,7 +4411,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-#if !defined(MRB_USE_BIGINT) || defined(MRB_INT32)
+#ifndef MRB_USE_BIGINT
   L_INT_OVERFLOW:
     RAISE_LIT(mrb, E_RANGE_ERROR, "integer overflow");
 #endif
