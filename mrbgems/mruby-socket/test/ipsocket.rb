@@ -7,6 +7,13 @@ assert('IPSocket.getaddress') do
   assert_true (l == "127.0.0.1" or l == "::1")
 end
 
+assert('IPSocket.pton') do
+  assert_equal "\x01\x02\x03\x04", IPSocket.pton(Socket::AF_INET, "1.2.3.4")
+  assert_raise(ArgumentError) { IPSocket.pton(Socket::AF_INET, "1.2.3.4junk") }
+  assert_raise(ArgumentError) { IPSocket.pton(Socket::AF_INET, "1.2.3.4\0junk") }
+  assert_raise(ArgumentError) { IPSocket.pton(Socket::AF_INET6, "::1\0junk") }
+end
+
 assert('IPSocket.addr') do
   localhost = "127.0.0.1"
   s = UDPSocket.new

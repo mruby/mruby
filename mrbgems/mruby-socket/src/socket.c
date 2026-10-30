@@ -927,7 +927,7 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
   char buf[50];
 
   mrb_get_args(mrb, "is", &af, &bp, &n);
-  if ((size_t)n > sizeof(buf) - 1) {
+  if ((size_t)n > sizeof(buf) - 1 || memchr(bp, '\0', n)) {
     invalid_address_error(mrb);
   }
   memcpy(buf, bp, n);
