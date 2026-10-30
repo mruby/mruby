@@ -17,20 +17,22 @@ mrc_load_exec(mrc_ccontext *c, mrc_node *ast)
 {
   mrc_irep *irep;
   /* parse error */
-  if (0 < c->p->error_list.size) {
-    pm_diagnostic_t *e = (pm_diagnostic_t *)c->p->error_list.head;
+  if (0 < pm_parser_errors_size(c->p)) {
+    const pm_diagnostic_t *e = pm_parser_errors_first(c->p);
     while (e) {
-      mrc_diagnostic_list_append(c, e->location.start, e->message, MRC_PARSER_ERROR);
-      e = (pm_diagnostic_t *)e->node.next;
+      mrc_diagnostic_list_append(c, c->p->start + pm_diagnostic_location(e).start,
+                                 pm_diagnostic_message(e), MRC_PARSER_ERROR);
+      e = pm_diagnostic_next(e);
     }
     return NULL;
   }
   /* parse warning */
-  if (0 < c->p->warning_list.size) {
-    pm_diagnostic_t *w = (pm_diagnostic_t *)c->p->warning_list.head;
+  if (0 < pm_parser_warnings_size(c->p)) {
+    const pm_diagnostic_t *w = pm_parser_warnings_first(c->p);
     while (w) {
-      mrc_diagnostic_list_append(c, w->location.start, w->message, MRC_PARSER_WARNING);
-      w = (pm_diagnostic_t *)w->node.next;
+      mrc_diagnostic_list_append(c, c->p->start + pm_diagnostic_location(w).start,
+                                 pm_diagnostic_message(w), MRC_PARSER_WARNING);
+      w = pm_diagnostic_next(w);
     }
   }
 #if defined(MRC_DUMP_PRETTY) && !defined(MRC_NO_STDIO)
@@ -41,7 +43,7 @@ mrc_load_exec(mrc_ccontext *c, mrc_node *ast)
        NUL terminated, so it must be written by length. */
     fwrite(pm_buffer_value(&buffer), 1, pm_buffer_length(&buffer), stdout);
     putchar('\n');
-    pm_buffer_free(&buffer);
+    pm_buffer_cleanup(&buffer);
   }
 #endif
   irep = mrc_generate_code(c, ast);
@@ -97,7 +99,7 @@ lex_nesting_check(mrc_ccontext *c, pm_token_t *token)
 }
 
 static void
-partial_hook(void *data, pm_parser_t *p, pm_token_t *token)
+partial_hook(pm_parser_t *p, pm_token_t *token, void *data)
 {
   mrc_ccontext *c = (mrc_ccontext *)data;
 
@@ -111,12 +113,8 @@ partial_hook(void *data, pm_parser_t *p, pm_token_t *token)
   }
   if (c->filename_table[c->current_filename_index + 1].start <= token_pos) {
     c->current_filename_index++;
-    pm_string_t filename_string;
-    pm_string_constant_init(
-        &filename_string,
-        c->filename_table[c->current_filename_index].filename,
-        strlen(c->filename_table[c->current_filename_index].filename));
-    p->filepath = filename_string;
+    const char *filename = c->filename_table[c->current_filename_index].filename;
+    pm_string_init(&p->filepath, (const uint8_t *)filename, strlen(filename));
   }
 }
 
@@ -160,7 +158,7 @@ mrc_mruby_options_scope_local_init(mrc_ccontext *cc, pm_string_t *local, mrc_sym
   length = strlen(name);
   copy = (uint8_t *)mrc_malloc(cc, length);
   memcpy(copy, name, length);
-  pm_string_constant_init(local, (const char *)copy, length);
+  pm_string_init(local, copy, length);
 }
 
 static void
@@ -172,8 +170,7 @@ mrc_pm_options_init(mrc_ccontext *cc)
   struct RProc *u;
 
   pm_options_t *options = (pm_options_t *)mrc_calloc(cc, 1, sizeof(pm_options_t));
-  pm_string_t *encoding = &options->encoding;
-  pm_string_constant_init(encoding, "UTF-8", 5);
+  pm_string_init(&options->encoding, (const uint8_t *)"UTF-8", 5);
 
   /* The scopes the string is compiled against are the ones codegen can reach
      from here, so this walk ends where the chain of local variables does
@@ -226,22 +223,23 @@ mrc_pm_options_init(mrc_ccontext *cc)
 static void
 mrc_pm_parser_init(mrc_parser_state *p, uint8_t **source, size_t size, mrc_ccontext *cc)
 {
-  pm_lex_callback_t *cb = (pm_lex_callback_t *)mrc_malloc(cc, sizeof(pm_lex_callback_t));
-  cb->data = cc;
-  cb->callback = partial_hook;
 #if defined(MRC_TARGET_MRUBY)
   mrc_pm_options_init(cc);
 #endif
   cc->nesting = 0;
   mrc_diagnostic_source_reset(cc);
-  pm_parser_init(p, *source, size, cc->options);
-  p->lex_callback = cb;
-  mrc_init_presym(&p->constant_pool);
+  if (p->arena) {
+    /* A parse before this one on the same context: what it left is done
+       with, since its irep has been generated and dumped. */
+    pm_parser_cleanup(p);
+    pm_arena_cleanup(&cc->node_arena);
+  }
+  pm_parser_init(&cc->node_arena, p, *source, size, cc->options);
+  pm_parser_lex_callback_set(p, partial_hook, cc);
+  mrc_init_presym(&p->metadata_arena, &p->constant_pool);
   if (cc->filename_table) {
-    pm_string_t filename_string;
-    pm_string_constant_init(&filename_string, cc->filename_table[0].filename,
-                                             strlen(cc->filename_table[0].filename));
-    p->filepath = filename_string;
+    const char *filename = cc->filename_table[0].filename;
+    pm_string_init(&p->filepath, (const uint8_t *)filename, strlen(filename));
   }
 }
 
@@ -256,27 +254,28 @@ mrc_pm_parse(mrc_ccontext *cc)
   uint32_t nlocals = program->locals.size;
   pm_options_t *options = (pm_options_t *)mrc_malloc(cc, sizeof(pm_options_t));
   memset(options, 0, sizeof(pm_options_t));
-  pm_string_t *encoding = &options->encoding;
-  pm_string_constant_init(encoding, "UTF-8", 5);
+  pm_string_init(&options->encoding, (const uint8_t *)"UTF-8", 5);
   pm_options_scopes_init(options, 1);
   pm_options_scope_t *options_scope = &options->scopes[0];
   pm_options_scope_init(options_scope, nlocals);
   pm_constant_id_t id;
   pm_constant_t *local;
   pm_string_t *scope_local;
-  char *allocated;
+  uint8_t *allocated;
   for (int i = 0; i < nlocals; i++) {
     scope_local = &options_scope->locals[i];
     id = program->locals.ids[i];
     local = pm_constant_pool_id_to_constant(&cc->p->constant_pool, id);
-    allocated = (char *)mrc_malloc(cc, local->length);
+    allocated = (uint8_t *)mrc_malloc(cc, local->length);
     memcpy(allocated, local->start, local->length);
-    pm_string_constant_init(scope_local, (const char *)allocated, local->length);
+    pm_string_init(scope_local, allocated, local->length);
   }
   if (cc->options && cc->options->scopes) {
     for (int i = 0; i < cc->options->scopes[0].locals_count; i++) {
       mrc_free(cc, (void *)cc->options->scopes[0].locals[i].source);
     }
+    /* The scope and locals arrays are Prism's own allocations. */
+    pm_options_cleanup(cc->options);
     mrc_free(cc, cc->options);
   }
   cc->options = options;
@@ -285,19 +284,15 @@ mrc_pm_parse(mrc_ccontext *cc)
   return node;
 }
 
-/* Give back the tree.  Where the arena is in use nothing is done here: the
-   parser is still holding what it allocated from the same arena, and the
-   whole of it is given back at mrc_ccontext_free() instead.  Where the arena
-   is not in use, which is a build with its own allocator, the tree is walked
-   as prism walks it. */
+/* Give back the tree.  Nothing is done here: Prism 2 builds the tree in
+   c->node_arena, and the constant pool keeps the bytes of some names (an
+   attribute writer's `foo=`) in that arena too.  The pool outlives the parse,
+   since the irep is dumped from it, so the arena is given back where the
+   parser is: at the next parse on c, or at mrc_ccontext_free(). */
 static void
 mrc_prism_release_tree(mrc_ccontext *c, mrc_node *root)
 {
-#if defined(MRC_TARGET_MRUBY) && defined(MRC_PRISM_ARENA)
   (void)c; (void)root;
-#else
-  if (root) pm_node_destroy(c->p, root);
-#endif
 }
 
 #ifndef MRC_NO_STDIO
@@ -472,18 +467,12 @@ mrc_parse_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 MRC_API mrc_irep *
 mrc_load_file_cxt(mrc_ccontext *c, const char **filenames, uint8_t **source)
 {
-  void *arena_prev = mrc_ccontext_arena_save(c);
   mrc_node *root = mrc_parse_file_cxt(c, filenames, source);
   if (root == NULL) {
-    mrc_ccontext_arena_restore(c, arena_prev);
     return NULL;
   }
   mrc_irep *irep = mrc_load_exec(c, root);
-  /* The tree is given back with the arena it was parsed into rather than
-     walked: see prism_xallocator.h.  Everything prism allocated for this
-     parse goes with it, so nothing is left behind. */
   mrc_prism_release_tree(c, root);
-  mrc_ccontext_arena_restore(c, arena_prev);
   return irep;
 }
 #endif
@@ -503,14 +492,9 @@ mrc_parse_string_cxt(mrc_ccontext *c, const uint8_t **source, size_t length)
 MRC_API mrc_irep *
 mrc_load_string_cxt(mrc_ccontext *c, const uint8_t **source, size_t length)
 {
-  void *arena_prev = mrc_ccontext_arena_save(c);
   mrc_node *root = mrc_parse_string_cxt(c, source, length);
   mrc_irep *irep = mrc_load_exec(c, root);
-  /* The tree is given back with the arena it was parsed into rather than
-     walked: see prism_xallocator.h.  Everything prism allocated for this
-     parse goes with it, so nothing is left behind. */
   mrc_prism_release_tree(c, root);
-  mrc_ccontext_arena_restore(c, arena_prev);
   return irep;
 }
 

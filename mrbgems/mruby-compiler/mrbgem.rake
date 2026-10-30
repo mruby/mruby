@@ -31,18 +31,11 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   elsif !cc.defines.include?('MRB_NO_GEMS')
     cc.defines << 'MRC_TARGET_MRUBY'
   end
-  # Prism allocates the tree it parses, and the walk that gives the tree back
-  # costs a C frame per level of it; a tree deep enough to run that off the
-  # stack is written in ordinary source, so the tree is taken from an arena
-  # and given back in one piece instead (see include/prism_xallocator.h).
-  #
-  # A C++ ABI build takes the arena's blocks from libc.  Prism is compiled as
-  # C there, so it reaches the arena through the C linkage the header gives
-  # it; what it must not reach is mrb_malloc(), which raises on failure and
-  # would throw through Prism's frames.  Nothing is lost by it: that build
-  # already had every Prism allocation outside mrb_malloc().
-  cc.defines << 'MRC_PRISM_ARENA'
-  cc.defines << 'MRC_PRISM_ARENA_LIBC' if build.cxx_abi_enabled?
+  # Prism takes the blocks of its arenas from the mruby state's allocator
+  # (see include/prism_xallocator.h). A C++ ABI build takes them from libc:
+  # Prism is compiled as C there, and what it must not reach is mrb_malloc(),
+  # which raises on failure and would throw through Prism's frames.
+  cc.defines << 'MRC_PRISM_LIBC' if build.cxx_abi_enabled?
   cc.defines << 'MRC_DEBUG' if cc.has_define?('MRB_DEBUG')
   cc.defines << 'PRISM_BUILD_MINIMAL' unless cc.defines.include?('MRC_DEBUG')
   # PRISM_BUILD_MINIMAL stubs out pm_prettyprint(), so `mruby -v` can only dump
@@ -67,12 +60,13 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   prism_template_names = %w[
     ext/prism/api_node.c
     include/prism/ast.h
-    include/prism/diagnostic.h
+    include/prism/internal/diagnostic.h
     src/diagnostic.c
+    src/json.c
     src/node.c
     src/prettyprint.c
     src/serialize.c
-    src/token_type.c
+    src/tokens.c
   ]
   # Written where the build writes, not into the submodule: a checkout is not
   # the build's to change, and an out-of-source build left it holding the
@@ -102,6 +96,17 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   end
 
   task prism_templates: :prism_submodule do
+    # A Prism upgrade can retire a template (2.1.0 turned include/prism/
+    # diagnostic.h into a plain header and generates internal/diagnostic.h
+    # instead). The file an earlier build generated from it stays in
+    # prism_gen_dir, which the include path searches before the checkout, so
+    # it hides the checkout's header of the same name and includes headers
+    # that no longer exist. Drop every file there that no template produces.
+    Dir.glob("#{prism_gen_dir}/**/*").each do |path|
+      next unless File.file?(path)
+      FileUtils.rm_f(path) unless prism_generated_files.include?(path)
+    end
+
     missing = prism_generated_files.reject { |path| File.exist?(path) }
     unless missing.empty?
       FileUtils.cd prism_dir do
@@ -128,7 +133,7 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
 
   Rake::Task[:prism_templates].invoke
 
-  %w(node prettyprint serialize token_type).each do |name|
+  %w(node prettyprint serialize tokens).each do |name|
     dst = "#{prism_gen_dir}/src/#{name}.c"
     file dst => ["#{prism_templates_dir}/src/#{name}.c.erb", "#{prism_templates_dir}/template.rb"] do
       Rake::Task[:prism_templates].invoke
@@ -144,9 +149,8 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   # which a C compile refuses, and give back the flags the toolchain keeps
   # for C alone, which enable_cxx_abi took out; mrc_common.h
   # wraps the Prism header in extern "C" so the C++ glue links against them.
-  # Prism's allocator is the arena, which the header declares with C linkage
-  # so that these C objects resolve it; its blocks come from libc there, so
-  # nothing here reaches a C++-linkage symbol (see MRC_PRISM_ARENA_LIBC).
+  # Prism's allocator is libc there (MRC_PRISM_LIBC), so nothing here reaches
+  # a C++-linkage symbol.
   # The compiler is derived when a rule is first resolved (not here) so cc is
   # already fully populated with the build's generated-header include flags.
   #
@@ -168,9 +172,15 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
       cc
     end
   end
-  cc.define_rules(prism_obj_dir, prism_src_dir, &prism_compiler)
+  # Both source trees map to the same object names, and a rule is taken by
+  # the first source that exists, so the generated tree comes first. A
+  # checkout that once ran Prism's own make holds the generated sources in
+  # place too (ignored by git, from the Prism of that time); with the rules
+  # the other way round those stale files would be compiled instead of the
+  # ones prism_templates wrote, against the headers of the current Prism.
   prism_gen_src_dir = "#{prism_gen_dir}/src"
   cc.define_rules(prism_obj_dir, prism_gen_src_dir, &prism_compiler)
+  cc.define_rules(prism_obj_dir, prism_src_dir, &prism_compiler)
   Dir.glob("#{prism_src_dir}/**/*.c").each do |src|
     objs << objfile(src.relative_path_from(prism_src_dir).pathmap("#{prism_obj_dir}/%X"))
   end

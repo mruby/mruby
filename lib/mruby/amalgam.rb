@@ -97,7 +97,7 @@ module MRuby
     # gem-local ones its mrbgem.rake adds (mruby-compiler's vendored
     # lib/prism/include) and the ones it writes under the build tree for the
     # headers it generates (mruby-compiler's prism/ast.h and
-    # prism/diagnostic.h, built from the templates). Only the paths the gem
+    # prism/internal/diagnostic.h, built from the templates). Only the paths the gem
     # itself adds count: the build's own include dirs carry the core headers,
     # which belong to the amalgamated mruby.h, not to a gem. Another gem's
     # include dir, added here as a dependency, is left to that gem's own

@@ -48,7 +48,8 @@ One compilation is held in `mrc_ccontext`
   local variable names for `eval` and `binding`
 - **filename_table**: where in the joined source each input file begins
 - **diagnostic_list**: parser and code generator errors and warnings
-- **prism_arena**: the arena Prism allocates from (see
+- **node_arena**: the arena Prism builds the tree in, given back as a
+  whole at the next parse or with the context (see
   `mrbgems/mruby-compiler/include/prism_xallocator.h`)
 - **no_optimize**, **no_ext_ops**, **keep_lv**, **dump_ast**: switches taken
   from the command line or from an `mrb_ccontext`
@@ -69,8 +70,8 @@ expression.
 Prism's `error_list` and `warning_list` are copied into the context's
 `mrc_diagnostic_list` once the parse is over.
 
-The tree belongs to the Prism arena and is given back with it when the
-context is freed.
+The tree belongs to the context's node arena and is given back with it, at
+the next parse on the context or when the context is freed.
 
 ### Local Variables
 

@@ -17,7 +17,7 @@ enum mrc_opsym {
 #define MRC_SYM_1(name)   mrc_presym_id(MRC_SYM_1__##name)
 #define MRC_SYM_2(name)   mrc_presym_id(MRC_SYM_2__##name)
 
-void mrc_init_presym(pm_constant_pool_t *pool);
+void mrc_init_presym(pm_arena_t *arena, pm_constant_pool_t *pool);
 mrc_sym mrc_presym_id(mrc_sym sym);
 
 MRC_END_DECL

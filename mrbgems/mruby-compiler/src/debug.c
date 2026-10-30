@@ -175,7 +175,7 @@ mrc_debug_info_append_file(mrc_ccontext *c, mrc_irep_debug_info *d,
   d->pc_count = end_pos;
 
   size_t fn_len = strlen(filename);
-  f->filename_sym = pm_constant_pool_insert_constant(&c->p->constant_pool, (const uint8_t *)filename, fn_len);
+  f->filename_sym = pm_constant_pool_insert_constant(&c->p->metadata_arena, &c->p->constant_pool, (const uint8_t *)filename, fn_len);
 
   f->line_type = mrc_debug_line_packed_map;
   f->lines.ptr = NULL;

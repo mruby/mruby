@@ -3101,7 +3101,7 @@ assert("Regexp - lookbehind against a binary subject rewinds by bytes") do
   bin = "Āx".b
   assert_equal "x", bin.match(/(?<=Ā)x/)[0]
   assert_nil bin.match(/(?<=[Ā])x/)
-  assert_equal "x", bin.match(/(?<=[\x80])x/)[0]
+  assert_equal "x", bin.match(Regexp.new('(?<=[\x80])x'))[0]
   assert_equal "x", bin.match(/(?<=.)x/)[0]
 end
 
@@ -3117,22 +3117,26 @@ assert("Regexp - lookbehind measures bytes that spell no character") do
   # reads them, so the character rewind is asked of the build that reads none,
   # and the byte rewind below puts the same question to the same bytes in
   # either build.
+  #
+  # A regexp literal may not escape a byte that spells no character in the
+  # source encoding (a SyntaxError, as in CRuby), so the patterns that do are
+  # built with Regexp.new from the same source text.
   if __ENCODING__ == "UTF-8"
-    assert_raise(ArgumentError) { "\x80ab" =~ /(?<=\x80a)b/ }
-    assert_raise(ArgumentError) { "\x80ab" =~ /(?<!\x80a)b/ }
-    assert_raise(ArgumentError) { "\xE3\x81ab" =~ /(?<=\xE3\x81a)b/ }
+    assert_raise(ArgumentError) { "\x80ab" =~ Regexp.new('(?<=\x80a)b') }
+    assert_raise(ArgumentError) { "\x80ab" =~ Regexp.new('(?<!\x80a)b') }
+    assert_raise(ArgumentError) { "\xE3\x81ab" =~ Regexp.new('(?<=\xE3\x81a)b') }
     assert_raise(ArgumentError) { "\x80ab" =~ Regexp.new("(?<=\x80a)b") }
   else
-    assert_equal 2, ("\x80ab" =~ /(?<=\x80a)b/)
-    assert_nil ("\x80ab" =~ /(?<!\x80a)b/)
+    assert_equal 2, ("\x80ab" =~ Regexp.new('(?<=\x80a)b'))
+    assert_nil ("\x80ab" =~ Regexp.new('(?<!\x80a)b'))
     # a sequence cut short spells no character either, so each of its bytes is
     # one: E3 leads three bytes and only two follow it here
-    assert_equal 3, ("\xE3\x81ab" =~ /(?<=\xE3\x81a)b/)
+    assert_equal 3, ("\xE3\x81ab" =~ Regexp.new('(?<=\xE3\x81a)b'))
     # the same bytes written into the pattern rather than escaped
     assert_equal 2, ("\x80ab" =~ Regexp.new("(?<=\x80a)b"))
   end
   # a subject that spells characters throughout is read in either build
-  assert_nil ("ab" =~ /(?<=\x80a)b/)
+  assert_nil ("ab" =~ Regexp.new('(?<=\x80a)b'))
   # a byte-indexed subject counts the same bytes, and rewinds by them
   assert_equal 2, ("\x80ab".b =~ Regexp.new("(?<=\x80a)b"))
   assert_equal 3, ("\xE3\x81ab".b =~ Regexp.new("(?<=\xE3\x81a)b"))
@@ -3152,22 +3156,25 @@ assert("Regexp - lookbehind over a class holding a byte that spells no character
   # A subject whose bytes spell no character is refused wherever an encoding
   # reads them, so the stray byte is put to a binary subject, which rewinds by
   # bytes in either build.
-  assert_equal "x", "\xB5x".b.match(/(?<=[\xB5])x/)[0]
-  assert_equal 1, ("\xB5x".b =~ /(?<=[\xB5])x/)
+  #
+  # A regexp literal may not escape such a byte (a SyntaxError, as in CRuby),
+  # so the patterns are built with Regexp.new from the same source text.
+  assert_equal "x", "\xB5x".b.match(Regexp.new('(?<=[\xB5])x'))[0]
+  assert_equal 1, ("\xB5x".b =~ Regexp.new('(?<=[\xB5])x'))
   if __ENCODING__ == "UTF-8"
-    assert_raise(ArgumentError) { "\xB5x" =~ /(?<=[\xB5])x/ }
+    assert_raise(ArgumentError) { "\xB5x" =~ Regexp.new('(?<=[\xB5])x') }
     # the byte written into a class is still asked about a character: Ā is
     # C4 80, and the rewind steps back over the whole of it, so the class is
     # handed U+0100 rather than either of its bytes
-    assert_nil ("Āx" =~ /(?<=[\x80])x/)
-    assert_nil ("Āx" =~ /(?<=[\xC4])x/)
+    assert_nil ("Āx" =~ Regexp.new('(?<=[\x80])x'))
+    assert_nil ("Āx" =~ Regexp.new('(?<=[\xC4])x'))
     assert_equal 1, ("Āx" =~ /(?<=[Ā])x/)
   else
     # a build that reads its strings by byte has one character per byte, so
     # the same class does see the continuation byte, and only that one
-    assert_equal 1, ("\xB5x" =~ /(?<=[\xB5])x/)
-    assert_equal 2, ("\xC4\x80x" =~ /(?<=[\x80])x/)
-    assert_nil ("\xC4\x80x" =~ /(?<=[\xC4])x/)
+    assert_equal 1, ("\xB5x" =~ Regexp.new('(?<=[\xB5])x'))
+    assert_equal 2, ("\xC4\x80x" =~ Regexp.new('(?<=[\x80])x'))
+    assert_nil ("\xC4\x80x" =~ Regexp.new('(?<=[\xC4])x'))
   end
 end
 
