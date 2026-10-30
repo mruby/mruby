@@ -189,6 +189,34 @@ process_euid(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
+ *   Process.gid -> integer
+ *
+ * The (real) group ID belonging to the current process.
+ */
+static mrb_value
+process_gid(mrb_state *mrb, mrb_value self)
+{
+  mrb_int gid = mrb_hal_process_gid(mrb);
+  if (gid < 0) mrb_sys_fail(mrb, "getgid");
+  return mrb_int_value(mrb, gid);
+}
+
+/*
+ * call-seq:
+ *   Process.egid -> integer
+ *
+ * The (effective) group ID belonging to the current process.
+ */
+static mrb_value
+process_egid(mrb_state *mrb, mrb_value self)
+{
+  mrb_int egid = mrb_hal_process_egid(mrb);
+  if (egid < 0) mrb_sys_fail(mrb, "getegid");
+  return mrb_int_value(mrb, egid);
+}
+
+/*
+ * call-seq:
  *   Process.kill(signal, pid, ...) -> integer
  *
  * Sends +signal+ to each process, and returns how many it was sent to.
@@ -369,6 +397,8 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(ppid),    process_ppid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(kill),    process_kill,    MRB_ARGS_REQ(2)|MRB_ARGS_REST());
   mrb_define_module_function_id(mrb, process, MRB_SYM(waitpid),  process_waitpid,  MRB_ARGS_OPT(2));
   mrb_define_module_function_id(mrb, process, MRB_SYM(wait),     process_waitpid,  MRB_ARGS_OPT(2));

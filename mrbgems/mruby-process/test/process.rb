@@ -511,18 +511,14 @@ assert('$? after IO.popen') do
   assert_true $?.success?
 end
 
-assert("Process.uid") do
-  if ProcessTestUtil.windows?
-    assert_raise(Errno::ENOSYS) { Process.uid }
-  else
-    assert_true Integer === Process.uid
-  end
-end
-
-assert("Process.euid") do
-  if ProcessTestUtil.windows?
-    assert_raise(Errno::ENOSYS) { Process.euid }
-  else
-    assert_true Integer === Process.euid
+%w[uid euid gid egid].each do |name|
+  assert("Process.#{name}") do
+    id = Process.__send__(name)
+    if ProcessTestUtil.windows?
+      assert_equal 0, id   # as CRuby reports it
+    else
+      assert_true Integer === id
+      assert_true id >= 0
+    end
   end
 end

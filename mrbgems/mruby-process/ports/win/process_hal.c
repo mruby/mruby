@@ -122,18 +122,30 @@ mrb_hal_process_ppid(mrb_state *mrb)
   return ppid;
 }
 
+/* Windows has no numeric user or group IDs; like CRuby, report 0 for all
+   of them. */
 mrb_int
 mrb_hal_process_uid(mrb_state *mrb)
 {
-  errno = ENOSYS;
-  return -1;
+  return 0;
 }
 
 mrb_int
 mrb_hal_process_euid(mrb_state *mrb)
 {
-  errno = ENOSYS;
-  return -1;
+  return 0;
+}
+
+mrb_int
+mrb_hal_process_gid(mrb_state *mrb)
+{
+  return 0;
+}
+
+mrb_int
+mrb_hal_process_egid(mrb_state *mrb)
+{
+  return 0;
 }
 
 /*
