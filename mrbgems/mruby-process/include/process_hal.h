@@ -177,6 +177,14 @@ mrb_int mrb_hal_process_pid(mrb_state *mrb);
    cannot name a parent (errno ENOSYS when it has no such notion at all). */
 mrb_int mrb_hal_process_ppid(mrb_state *mrb);
 
+/* The (real) user ID belonging to a process.
+   Returns -1 with errno set on failure. */
+mrb_int mrb_hal_process_uid(mrb_state *mrb);
+
+/* The (effective) user ID belonging to a process.
+   Returns -1 with errno set on failure. */
+mrb_int mrb_hal_process_euid(mrb_state *mrb);
+
 #ifdef MRB_HAL_PROCESS_HAS_WAIT
 /*
  * Wait for a child process to change state.

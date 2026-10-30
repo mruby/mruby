@@ -122,6 +122,20 @@ mrb_hal_process_ppid(mrb_state *mrb)
   return ppid;
 }
 
+mrb_int
+mrb_hal_process_uid(mrb_state *mrb)
+{
+  errno = ENOSYS;
+  return -1;
+}
+
+mrb_int
+mrb_hal_process_euid(mrb_state *mrb)
+{
+  errno = ENOSYS;
+  return -1;
+}
+
 /*
  * Signalling
  */
