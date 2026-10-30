@@ -400,9 +400,13 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       }
       mrb_value ary = mrb_ary_new_capa(mrb, len);
       mrb_value *ptr = RARRAY_PTR(ary);
+      int ai = mrb_gc_arena_save(mrb);
       for (mrb_int i=0; i<len; i++) {
         ptr[i] = mrb_int_value(mrb, a+i);
         ARY_SET_LEN(RARRAY(ary), i+1);
+        /* past the fixnums the element is an object, kept by the array alone */
+        mrb_field_write_barrier_value(mrb, mrb_basic_ptr(ary), ptr[i]);
+        mrb_gc_arena_restore(mrb, ai);
       }
       return ary;
     }
@@ -425,9 +429,13 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
     mrb_int len = mrb_integer(lenv);
     if (!RANGE_EXCL(r)) len++;
     mrb_value ary = mrb_ary_new_capa(mrb, len);
+    int ai = mrb_gc_arena_save(mrb);
     for (mrb_int i=0; i<len; i++) {
-      RARRAY_PTR(ary)[i] = mrb_bint_add(mrb, beg, mrb_int_value(mrb, i));
+      mrb_value v = mrb_bint_add(mrb, beg, mrb_int_value(mrb, i));
+      RARRAY_PTR(ary)[i] = v;
       ARY_SET_LEN(RARRAY(ary), i+1);
+      mrb_field_write_barrier_value(mrb, mrb_basic_ptr(ary), v);
+      mrb_gc_arena_restore(mrb, ai);
     }
     return ary;
   }
