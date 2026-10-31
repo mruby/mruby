@@ -726,9 +726,21 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 
   /* Normalize microseconds to avoid overflow when converting to nanoseconds */
   if (ausec >= USECS_PER_SEC || ausec <= -USECS_PER_SEC) {
-    mrb_int sec_adjustment = ausec / USECS_PER_SEC;
-    ausec -= sec_adjustment * USECS_PER_SEC;
-    nowsecs += (time_t)sec_adjustment;
+    mrb_int carry = ausec / USECS_PER_SEC;
+    time_t sec_adjustment;
+
+    /* the carried seconds and the sum must both fit in time_t */
+    if (sizeof(time_t) < sizeof(mrb_int) &&
+        (carry > (mrb_int)MRB_TIME_MAX || carry < (mrb_int)MRB_TIME_MIN)) {
+      time_out_of_range(mrb, mrb_int_value(mrb, ausec));
+    }
+    sec_adjustment = (time_t)carry;
+    if (sec_adjustment >= 0 ? nowsecs > MRB_TIME_MAX - sec_adjustment
+                            : nowsecs < MRB_TIME_MIN - sec_adjustment) {
+      time_out_of_range(mrb, mrb_int_value(mrb, ausec));
+    }
+    nowsecs += sec_adjustment;
+    ausec -= carry * USECS_PER_SEC;
   }
 
   return time_alloc_time(mrb, nowsecs, ausec * NSECS_PER_USEC, timezone);
