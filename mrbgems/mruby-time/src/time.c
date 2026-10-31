@@ -724,6 +724,13 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     /* Original time was valid epoch-1, keep nowsecs = -1 */
   }
 
+  /* Normalize microseconds to avoid overflow when converting to nanoseconds */
+  if (ausec >= USECS_PER_SEC || ausec <= -USECS_PER_SEC) {
+    mrb_int sec_adjustment = ausec / USECS_PER_SEC;
+    ausec -= sec_adjustment * USECS_PER_SEC;
+    nowsecs += (time_t)sec_adjustment;
+  }
+
   return time_alloc_time(mrb, nowsecs, ausec * NSECS_PER_USEC, timezone);
 }
 

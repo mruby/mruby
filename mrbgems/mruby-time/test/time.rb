@@ -44,6 +44,23 @@ assert('Time.gm', '15.2.19.6.2') do
   assert_operator(   0, :eql?, t.usec)
 end
 
+assert('Time.gm with a second or more of microseconds') do
+  base = Time.gm(2024, 1, 1).to_i
+  t = Time.gm(2024, 1, 1, 0, 0, 0, 1_500_000)
+  assert_equal(base + 1, t.to_i)
+  assert_equal(500_000, t.usec)
+
+  # 10**16 microseconds is past MRB_INT_MAX / 1000, so converting it to
+  # nanoseconds before carrying the seconds out would overflow
+  begin
+    t = Time.gm(2024, 1, 1, 0, 0, 0, 10_000_000_000 * 1_000_000)
+  rescue RangeError
+    skip 'mrb_int or time_t narrower than 64 bits'
+  end
+  assert_equal(base + 10_000_000_000, t.to_i)
+  assert_equal(0, t.usec)
+end
+
 assert('Time.local', '15.2.19.6.3') do
   t = Time.local(2014, 12, 27, 18)
   assert_operator(2014, :eql?, t.year)
