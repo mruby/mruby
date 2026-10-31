@@ -199,11 +199,15 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
     const uint8_t *pool_start = src;
     uint16_t pre_plen, pre_slen;
     if (ilen > 0) {
-      size_t iseq_len;
+      size_t iseq_len, rest = (size_t)(end - src);
       if (SIZE_ERROR_MUL(ilen, sizeof(mrb_code))) return FALSE;
-      iseq_len = sizeof(mrb_code) * ilen +
-                 sizeof(struct mrb_irep_catch_handler) * clen;
-      if (src + iseq_len > end) return FALSE;
+      iseq_len = sizeof(mrb_code) * ilen;
+      /* compare each part with what is left, so that adding the catch
+         handler table cannot wrap the total on a 32-bit size_t */
+      if (iseq_len > rest ||
+          clen > (rest - iseq_len) / sizeof(struct mrb_irep_catch_handler))
+        return FALSE;
+      iseq_len += sizeof(struct mrb_irep_catch_handler) * clen;
       pool_start = src + iseq_len;
     }
     if (!prescan_pool_syms(pool_start, end, &pre_plen, &pre_slen)) return FALSE;
