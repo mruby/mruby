@@ -44,6 +44,15 @@ assert('Time.gm', '15.2.19.6.2') do
   assert_operator(   0, :eql?, t.usec)
 end
 
+assert('Time.gm refuses microseconds outside a second') do
+  assert_equal(999_999, Time.gm(2024, 1, 1, 0, 0, 0, 999_999).usec)
+  assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, 1_000_000) }
+  assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, -1) }
+  # converting this to nanoseconds used to overflow mrb_int
+  assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, 10**16) }
+  assert_raise(ArgumentError) { Time.local(2024, 1, 1, 0, 0, 0, 1_000_000) }
+end
+
 assert('Time.local', '15.2.19.6.3') do
   t = Time.local(2014, 12, 27, 18)
   assert_operator(2014, :eql?, t.year)

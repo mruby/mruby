@@ -674,10 +674,13 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   /* Adjust year to be relative to TM_YEAR_BASE (1900) for struct tm */
   ayear -= TM_YEAR_BASE;
 
-  /* Validate arguments: year (after adjustment), month, day, hour, minute, second.
+  /* Validate arguments: year (after adjustment), month, day, hour, minute, second,
+   * microsecond.
    * This checks for valid ranges for each component.
    * For hour, it allows 24 only if minutes and seconds are zero (midnight).
    * For second, it allows up to 60 to accommodate leap seconds.
+   * Microseconds stay below a second, as in CRuby; they are not carried into
+   * the seconds.
    */
   if (OUTINT(ayear) ||
       amonth  < 1 || amonth  > MONTHS_PER_YEAR ||
@@ -685,7 +688,8 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
       ahour   < 0 || ahour   > HOURS_PER_DAY ||
       (ahour == HOURS_PER_DAY && (amin > 0 || asec > 0)) || /* Allow 24:00:00 */
       amin    < 0 || amin    > (MINS_PER_HOUR -1) ||
-      asec    < 0 || asec    > SECS_PER_MIN) /* tm_sec can be 60 for leap seconds */
+      asec    < 0 || asec    > SECS_PER_MIN || /* tm_sec can be 60 for leap seconds */
+      ausec   < 0 || ausec   >= USECS_PER_SEC)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
 
   nowtime.tm_year  = (int)ayear;
