@@ -48,8 +48,10 @@ assert('Time.gm refuses microseconds outside a second') do
   assert_equal(999_999, Time.gm(2024, 1, 1, 0, 0, 0, 999_999).usec)
   assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, 1_000_000) }
   assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, -1) }
-  # converting this to nanoseconds used to overflow mrb_int
-  assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, 10**16) }
+  # converting these to nanoseconds used to overflow a 32-bit and a 64-bit
+  # mrb_int; one too wide for mrb_int is refused before it gets that far
+  assert_raise(ArgumentError) { Time.gm(2024, 1, 1, 0, 0, 0, 0x7fffffff) }
+  assert_raise(ArgumentError, RangeError) { Time.gm(2024, 1, 1, 0, 0, 0, 10**16) }
   assert_raise(ArgumentError) { Time.local(2024, 1, 1, 0, 0, 0, 1_000_000) }
 end
 
