@@ -181,7 +181,18 @@ MRuby::Gem::Specification.new('mruby-compiler') do |spec|
   prism_gen_src_dir = "#{prism_gen_dir}/src"
   cc.define_rules(prism_obj_dir, prism_gen_src_dir, &prism_compiler)
   cc.define_rules(prism_obj_dir, prism_src_dir, &prism_compiler)
-  Dir.glob("#{prism_src_dir}/**/*.c").each do |src|
+  # Only the sources git tracks: the stale generated ones above are ignored
+  # files in the checkout, and the build is not the one to delete them.
+  # Without git (sources put in place by hand) every file is taken.
+  prism_srcs = nil
+  if File.exist?("#{prism_dir}/.git")
+    tracked = IO.popen(%W(git -C #{prism_dir} ls-files -z src), err: File::NULL, &:read)
+    if $?.success?
+      prism_srcs = tracked.split("\0").grep(/\.c\z/).map { |path| "#{prism_dir}/#{path}" }
+    end
+  end
+  prism_srcs ||= Dir.glob("#{prism_src_dir}/**/*.c")
+  prism_srcs.each do |src|
     objs << objfile(src.relative_path_from(prism_src_dir).pathmap("#{prism_obj_dir}/%X"))
   end
   Dir.glob("#{prism_gen_src_dir}/**/*.c").each do |src|
