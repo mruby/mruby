@@ -608,3 +608,62 @@ assert('array pattern with more elements than an operand holds') do
   end
   assert_equal :match, matched
 end
+
+assert('keyword pairs after a double splat or a flush go into one hash') do
+  # The pairs left over once a `**` or a register flush had started the hash
+  # were given a hash of their own when they outnumbered the operand, and the
+  # callee read the first one: the pairs were dropped, and the block slot the
+  # call had counted on held the second hash instead of the block.
+  def codegen_kw(**k, &b) [k, b && b.call(:o)] end
+  h = {z: 0}
+  k, r = codegen_kw(**h, a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8,
+                    i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15) { :blk }
+  assert_equal 16, k.size
+  assert_equal 15, k[:o]
+  assert_equal :blk, r
+
+  class CodegenKwParent
+    def m(**k) k end
+  end
+  class CodegenKwChild < CodegenKwParent
+    def m(h)
+      super(**h, a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8,
+              i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15)
+    end
+  end
+  assert_equal 16, CodegenKwChild.new.m(h).size
+
+  def codegen_kw_yield(h)
+    yield(**h, a: 1, b: 2, c: 3, d: 4, e: 5, f: 6, g: 7, h: 8,
+            i: 9, j: 10, k: 11, l: 12, m: 13, n: 14, o: 15)
+  end
+  assert_equal 16, codegen_kw_yield(h) { |**k| k }.size
+
+  # no `**`: the flush at the register limit starts the hash
+  k, = codegen_kw(k0: 0, k1: 1, k2: 2, k3: 3, k4: 4, k5: 5, k6: 6, k7: 7, k8: 8,
+                  k9: 9, k10: 10, k11: 11, k12: 12, k13: 13, k14: 14, k15: 15, k16: 16, k17: 17,
+                  k18: 18, k19: 19, k20: 20, k21: 21, k22: 22, k23: 23, k24: 24, k25: 25, k26: 26,
+                  k27: 27, k28: 28, k29: 29, k30: 30, k31: 31, k32: 32, k33: 33, k34: 34, k35: 35,
+                  k36: 36, k37: 37, k38: 38, k39: 39, k40: 40, k41: 41, k42: 42, k43: 43, k44: 44,
+                  k45: 45, k46: 46, k47: 47, k48: 48, k49: 49, k50: 50, k51: 51, k52: 52, k53: 53,
+                  k54: 54, k55: 55, k56: 56, k57: 57, k58: 58, k59: 59, k60: 60, k61: 61, k62: 62)
+  assert_equal 63, k.size
+  assert_equal 62, k[:k62]
+
+  # a literal in a frame 64 registers deep, where nothing flushes: the second
+  # hash shifted the gathered arguments by one, and the callee took its first
+  # argument for the array holding them
+  def codegen_kw_last(*a) a.last end
+  k = codegen_kw_last(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                      {**h, k0: 0, k1: 1, k2: 2, k3: 3, k4: 4, k5: 5, k6: 6, k7: 7, k8: 8,
+                       k9: 9, k10: 10, k11: 11, k12: 12, k13: 13, k14: 14, k15: 15, k16: 16, k17: 17,
+                       k18: 18, k19: 19, k20: 20, k21: 21, k22: 22, k23: 23, k24: 24, k25: 25, k26: 26,
+                       k27: 27, k28: 28, k29: 29, k30: 30, k31: 31, k32: 32, k33: 33, k34: 34, k35: 35,
+                       k36: 36, k37: 37, k38: 38, k39: 39, k40: 40, k41: 41, k42: 42, k43: 43, k44: 44,
+                       k45: 45, k46: 46, k47: 47, k48: 48, k49: 49, k50: 50, k51: 51, k52: 52, k53: 53,
+                       k54: 54, k55: 55, k56: 56, k57: 57, k58: 58, k59: 59, k60: 60, k61: 61, k62: 62,
+                       k63: 63, k64: 64})
+  assert_equal 66, k.size
+  assert_equal 64, k[:k64]
+end

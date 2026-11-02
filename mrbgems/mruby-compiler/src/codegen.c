@@ -2606,12 +2606,10 @@ gen_hash(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
     }
     first = FALSE;
   }
-  if (val && len > limit) {
-    pop_n(len*2);
-    genop_2(s, OP_HASH, cursp(), len);
-    push();
-    return -1;
-  }
+  /* Once a `**` or a flush has started the hash, the pairs left over are
+     added to it whatever their count, as gen_values_upto() tests `first`
+     before its limit: a hash of their own would sit a register above the
+     one the caller reads. */
   if (update) {
     if (val && len > 0) {
       pop_n(len*2+1);
@@ -2619,6 +2617,12 @@ gen_hash(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
       push();
     }
     return -1;                  /* variable length */
+  }
+  if (val && len > limit) {
+    pop_n(len*2);
+    genop_2(s, OP_HASH, cursp(), len);
+    push();
+    return -1;
   }
   return len;
 }
