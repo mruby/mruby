@@ -587,3 +587,43 @@ assert("a pending task switch does not stall a synchronous execution") do
   Task.run
   assert_equal [7], got
 end
+
+assert("a block run by instance_eval on an immediate does not end the task") do
+  # The block's frame has no target class (an Integer, a Float and a Symbol
+  # have no singleton class). Returning from it used to leave mrb_vm_exec()
+  # as if the task had switched contexts: the task ended early, and a
+  # later slice resumed it on a frame already gone.
+  recvs = [1, :sym]
+  recvs << 1.5 if Object.const_defined?(:Float)
+  got = []
+  recvs.each do |recv|
+    Task.new do
+      r = recv.instance_eval { 7 }
+      got << [recv, r]
+      r = recv.instance_eval { Task.pass; 8 }
+      got << [recv, r]
+    end
+  end
+  Task.run
+  assert_equal recvs.size * 2, got.size
+  recvs.each do |recv|
+    assert_include got, [recv, 7]
+    assert_include got, [recv, 8]
+  end
+
+  assert_equal [7, :after], TaskTest.run_sync { [1.instance_eval { 7 }, :after] }
+end
+
+assert("def in instance_eval on an immediate still raises in a task") do
+  err = nil
+  Task.new do
+    begin
+      1.instance_eval { def u2_never_defined; end }
+    rescue TypeError => e
+      err = e
+    end
+  end
+  Task.run
+  assert_kind_of TypeError, err
+  assert_false Integer.method_defined?(:u2_never_defined)
+end

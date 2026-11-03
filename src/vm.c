@@ -4385,12 +4385,12 @@ RETRY_TRY_BLOCK:
         ci = mrb->c->ci;
       }
 
-      if (mrb->c->vmexec && !ci->u.keep_context) {
-        mrb_gc_arena_restore(mrb, ai);
-        mrb->c->vmexec = FALSE;
-        mrb->jmp = prev_jmp;
-        return retval;
-      }
+      /* The union of a Ruby frame holds its target class, which is NULL
+         for a block run by `instance_exec` or `instance_eval` on an
+         Integer, a Float or a Symbol; it is not `keep_context`, which
+         only the frame of a C function that switched fibers sets (read
+         at the cfunc epilogue of OP_SEND). A context driven from C
+         (c->vmexec) leaves this VM at its base frame, above. */
       acc = ci->cci;
       ci = cipop(mrb);
       if (acc == CINFO_SKIP || acc == CINFO_DIRECT) {

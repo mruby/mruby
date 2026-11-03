@@ -175,6 +175,32 @@ begin
     assert_equal [1, 2, "3", 4, 5, 6, 7], result
   end
 
+  assert('Fiber resumed from C runs on after instance_eval on an immediate') do
+    # The block's frame has no target class (an Integer, a Float and a
+    # Symbol have no singleton class). Returning from it used to leave the
+    # VM the fiber runs on, as if the fiber had switched, so the fiber
+    # stopped in the middle with nothing after the block run.
+    recvs = [1, :sym]
+    recvs << 1.5 if Object.const_defined?(:Float)
+    recvs.each do |recv|
+      [:resume_by_c_func, :resume_by_c_method].each do |m|
+        f = Fiber.new { [recv.instance_eval { 7 }, :after] }
+        assert_equal [7, :after], f.__send__(m)
+        assert_false f.alive?
+
+        f = Fiber.new { Fiber.yield(recv.instance_eval { 7 }); :after }
+        assert_equal 7, f.__send__(m)
+        assert_equal :after, f.__send__(m)
+        assert_false f.alive?
+
+        f = Fiber.new { recv.instance_eval { Fiber.yield 1; 2 } + 1 }
+        assert_equal 1, f.__send__(m)
+        assert_equal 3, f.__send__(m)
+        assert_false f.alive?
+      end
+    end
+  end
+
   assert('Call Fiber#transfer with C') do
     assert_equal "ok1", Fiber.new { Fiber.new { "ok1" }.resume_by_c_method }.transfer
     assert_equal "ok2", Fiber.new { Fiber.new { "ok2" }.resume_by_c_func }.transfer
