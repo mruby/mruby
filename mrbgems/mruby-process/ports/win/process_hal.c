@@ -124,7 +124,9 @@ mrb_hal_process_ppid(mrb_state *mrb)
 
 /*
  Windows does not implement fork(2):
- set errno (ENOSYS) and return -1.
+ we set errno (ENOSYS), return -1 and
+ then raise NotImplementedError in the
+ process_fork function (see process.c)
 */
 mrb_int
 mrb_hal_process_fork(mrb_state *mrb)
