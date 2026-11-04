@@ -129,8 +129,16 @@ mrb_hal_process_ppid(mrb_state *mrb)
 mrb_int
 mrb_hal_process_fork(mrb_state *mrb)
 {
+  (void)mrb;
   errno = ENOSYS;
   return -1;
+}
+
+mrb_noreturn void
+mrb_hal_process_exit(mrb_state *mrb, mrb_int status)
+{
+  (void)mrb;
+  ExitProcess(status);
 }
 
 /* Windows has no numeric user or group IDs; like CRuby, report 0 for all

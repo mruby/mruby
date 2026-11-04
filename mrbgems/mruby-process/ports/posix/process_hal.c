@@ -92,6 +92,13 @@ mrb_hal_process_fork(mrb_state *mrb)
   return pid < 0 ? -1 : (mrb_int)pid;
 }
 
+mrb_noreturn void
+mrb_hal_process_exit(mrb_state *mrb, mrb_int status)
+{
+  (void)mrb;
+  _exit(status);
+}
+
 /*
  * Waiting
  */

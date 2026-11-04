@@ -529,7 +529,7 @@ assert("Process.fork has a block") do
   elsif ProcessTestUtil.windows?
     assert_raise(Errno::ENOSYS) { Process.wait Process.fork {} }
   else
-    child = (Process.fork { exit(42) })
+    child = Process.fork { Process.exit!(42) }
     assert_true Integer === child
     assert_true child > 0
     assert_true $?.exitstatus == 42
@@ -544,7 +544,7 @@ assert("Process.fork has no block") do
   else
     pid = Process.fork
     if pid.nil?
-      exit!(42)
+      Process.exit!(42)
     else
       Process.wait(pid)
       assert_true $?.exitstatus == 42

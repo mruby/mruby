@@ -188,6 +188,12 @@ process_euid(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, euid);
 }
 
+static mrb_value
+_process_fork_yield(mrb_state *mrb, mrb_value b)
+{
+  return mrb_funcall(mrb, b, "call", 0, NULL);
+}
+
 /*
  * call-seq:
  *   Process.fork -> integer
@@ -207,8 +213,13 @@ process_fork(mrb_state *mrb, mrb_value self)
   } else if (pid == 0) {
     /* context: child process */
     if(mrb_block_given_p(mrb)) {
-      mrb_funcall(mrb, b, "call", 0, NULL);
-      mrb_funcall(mrb, mrb_obj_value(mrb->kernel_module), "exit", 0, NULL);
+        mrb_bool error;
+        mrb_protect(mrb, _process_fork_yield, b, &error);
+        if (error) {
+          mrb_print_error(mrb);
+          mrb_hal_process_exit(mrb, EXIT_FAILURE);
+        }
+        mrb_hal_process_exit(mrb, EXIT_SUCCESS);
     }
     /* ditto: cruby returns nil from child */
     return mrb_nil_value();
@@ -216,6 +227,21 @@ process_fork(mrb_state *mrb, mrb_value self)
     /* context: parent process */
     return mrb_int_value(mrb, pid);
   }
+}
+
+/*
+* call-seq:
+*   Process.exit -> nil
+*
+*   The exit(2) system call terminates the current process.
+*/
+static mrb_value
+process_exit(mrb_state *mrb, mrb_value self)
+{
+  mrb_int i = 0;
+  mrb_get_args(mrb, "|i", &i);
+  mrb_hal_process_exit(mrb, i);
+  return mrb_nil_value();
 }
 
 /*
@@ -429,6 +455,7 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(fork),    process_fork,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, mrb_intern_lit(mrb, "exit!"), process_exit,    MRB_ARGS_OPT(1));
   mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(kill),    process_kill,    MRB_ARGS_REQ(2)|MRB_ARGS_REST());

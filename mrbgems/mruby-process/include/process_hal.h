@@ -197,6 +197,10 @@ mrb_int mrb_hal_process_egid(mrb_state *mrb);
    Returns -1 with errno set on failure. */
 mrb_int mrb_hal_process_fork(mrb_state *mrb);
 
+/* The exit(2) system call.
+   Never returns control to the caller. */
+mrb_noreturn void mrb_hal_process_exit(mrb_state *mrb, mrb_int);
+
 #ifdef MRB_HAL_PROCESS_HAS_WAIT
 /*
  * Wait for a child process to change state.
