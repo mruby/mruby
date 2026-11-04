@@ -209,6 +209,11 @@ process_fork(mrb_state *mrb, mrb_value self)
       mrb_sys_fail(mrb, "fork");
     }
   }
+  if (pid == 0) {
+    mrb_int childpid;
+    childpid = mrb_hal_process_pid(mrb);
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$$"), mrb_int_value(mrb, childpid));
+  }
   return mrb_int_value(mrb, pid);
 }
 
