@@ -1915,6 +1915,9 @@ io_ungetbyte(mrb_state *mrb, mrb_value io)
   mrb_value c = mrb_get_arg1(mrb);
   unsigned char byte_val;
 
+  if (mrb_nil_p(c)) {
+    return mrb_nil_value(); /* nil pushes nothing back, as in CRuby */
+  }
   if (mrb_string_p(c)) {
     if (RSTRING_LEN(c) == 0) {
       return mrb_nil_value(); /* Empty string, do nothing */
@@ -1922,7 +1925,7 @@ io_ungetbyte(mrb_state *mrb, mrb_value io)
     byte_val = (unsigned char)RSTRING_PTR(c)[0];
   }
   else {
-    mrb_int val = mrb_integer(c);
+    mrb_int val = mrb_as_int(mrb, c);
     byte_val = (unsigned char)(val & 0xff);
   }
 
@@ -2131,13 +2134,10 @@ io_gets(mrb_state *mrb, mrb_value io)
       if (mrb_nil_p(rs)) {
         rs_given = FALSE;
       }
-      else if (mrb_integer_p(rs)) {
-        limit = mrb_integer(rs);
+      else if (!mrb_string_p(rs)) {
+        limit = mrb_as_int(mrb, rs);
         limit_given = TRUE;
         rs = mrb_nil_value();
-      }
-      else if (!mrb_string_p(rs)) {
-        mrb_ensure_int_type(mrb, rs);
       }
     }
   }

@@ -806,8 +806,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   mrb_int argc = mrb_get_args(mrb, "o|io", &so, &optname, &optval);
 
   if (argc == 3) {
-    mrb_ensure_int_type(mrb, so);
-    level = mrb_integer(so);
+    level = mrb_as_int(mrb, so);
     if (mrb_string_p(optval)) {
       /* that's good */
     }
