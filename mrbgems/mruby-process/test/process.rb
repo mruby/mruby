@@ -523,41 +523,39 @@ end
   end
 end
 
-assert("Process.fork: yields a block to a child") do
-  if not ProcessTestUtil.wait?
-    skip "Process.wait is not available"
-  elsif ProcessTestUtil.windows?
-    assert_raise(NotImplementedError) { Process.wait Process.fork {} }
-  else
-    child = Process.fork { exit!(42) }
-    Process.wait(child)
-    assert_equal 42, $?.exitstatus
-  end
+##
+# Windows + fork
+assert("Process.fork raises NotImplementedError") do
+  skip "test requires windows" unless ProcessTestUtil.windows?
+  assert_raise(NotImplementedError) { Process.fork {} }
+  assert_raise(NotImplementedError) { Process.fork }
 end
 
-assert("Process.fork: fork(2) without a block") do
-  if not ProcessTestUtil.wait?
-    skip "Process.wait is not available"
-  elsif ProcessTestUtil.windows?
-    assert_raise(NotImplementedError) { Process.fork }
+##
+# UNIX + fork
+assert("Process.fork returns 42") do
+  skip "test requires unix" if ProcessTestUtil.windows?
+  skip "test requires wait" if not ProcessTestUtil.wait?
+  ##
+  # Given no block
+  pid = Process.fork
+  if pid.nil?
+    exit!(42)
   else
-    pid = Process.fork
-    if pid.nil?
-      exit!(42)
-    else
-      Process.wait(pid)
-      assert_equal 42, $?.exitstatus
-    end
+    Process.wait(pid)
+    assert_equal 42, $?.exitstatus
   end
+  ##
+  # Given a block
+  Process.wait Process.fork { exit(42) }
+  assert_equal 42, $?.exitstatus
 end
 
 assert("Process.fork: default exit codes") do
-  if ProcessTestUtil.windows?
-    skip "fork(2) not implemented on Windows"
-  else
-    Process.wait Process.fork { 123 }
-    assert_equal 0, $?.exitstatus
-    Process.wait Process.fork { raise "boom" }
-    assert_equal 1, $?.exitstatus
-  end
+  skip "test requires unix" if ProcessTestUtil.windows?
+  skip "test requires wait" if not ProcessTestUtil.wait?
+  Process.wait Process.fork { 123 }
+  assert_equal 0, $?.exitstatus
+  Process.wait Process.fork { raise "boom" }
+  assert_equal 1, $?.exitstatus
 end
