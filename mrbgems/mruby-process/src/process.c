@@ -214,8 +214,9 @@ process_fork(mrb_state *mrb, mrb_value self)
     /* context: child process */
     if(mrb_block_given_p(mrb)) {
         mrb_bool error;
-        mrb_protect(mrb, _process_fork_yield, b, &error);
+        mrb_value exc = mrb_protect(mrb, _process_fork_yield, b, &error);
         if (error) {
+          mrb->exc = mrb_obj_ptr(exc);
           mrb_print_error(mrb);
           mrb_hal_process_exit(mrb, EXIT_FAILURE);
         }

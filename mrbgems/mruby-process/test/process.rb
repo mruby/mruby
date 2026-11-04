@@ -530,8 +530,7 @@ assert("Process.fork has a block") do
     assert_raise(Errno::ENOSYS) { Process.wait Process.fork {} }
   else
     child = Process.fork { Process.exit!(42) }
-    assert_true Integer === child
-    assert_true child > 0
+    Process.wait(child)
     assert_true $?.exitstatus == 42
   end
 end
