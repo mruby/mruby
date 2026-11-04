@@ -191,6 +191,14 @@ is_ancestor(struct RClass *klass, struct RClass *super)
   return FALSE;
 }
 
+/* a class, module, included-module proxy or singleton class: everything
+   mrb_class_ptr can walk the ancestry of */
+static mrb_bool
+mod_p(mrb_value v)
+{
+  return mrb_class_p(v) || mrb_module_p(v) || mrb_iclass_p(v) || mrb_sclass_p(v);
+}
+
 /*
  * Compare hierarchy relationship between two modules/classes.
  *
@@ -213,8 +221,7 @@ is_ancestor(struct RClass *klass, struct RClass *super)
 static mrb_value
 mod_compare_hierarchy(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  if ((!mrb_class_p(self) && !mrb_module_p(self) && !mrb_iclass_p(self)) ||
-      (!mrb_class_p(other) && !mrb_module_p(other) && !mrb_iclass_p(other))) {
+  if (!mod_p(self) || !mod_p(other)) {
     mrb_raise(mrb, E_TYPE_ERROR, "compared with non class/module");
   }
 
@@ -316,7 +323,7 @@ mrb_mod_cmp(mrb_state *mrb, mrb_value self)
   if (mrb_obj_equal(mrb, self, other)) {
     return mrb_fixnum_value(0);
   }
-  if (!mrb_class_p(other) && !mrb_module_p(other) && !mrb_iclass_p(other)) {
+  if (!mod_p(other)) {
     return mrb_nil_value();
   }
 
