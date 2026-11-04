@@ -212,6 +212,7 @@ process_fork(mrb_state *mrb, mrb_value self)
     mrb_sys_fail(mrb, "fork");
   } else if (pid == 0) {
     /* context: child process */
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$$"), mrb_int_value(mrb, mrb_hal_process_pid(mrb)));
     if(mrb_block_given_p(mrb)) {
         mrb_bool error;
         mrb_value exc = mrb_protect(mrb, _process_fork_yield, b, &error);
