@@ -83,6 +83,15 @@ mrb_hal_process_egid(mrb_state *mrb)
   return (mrb_int)getegid();
 }
 
+mrb_int
+mrb_hal_process_fork(mrb_state *mrb)
+{
+  pid_t pid;
+  errno = 0;
+  pid = fork();
+  return pid < 0 ? -1 : (mrb_int)pid;
+}
+
 /*
  * Waiting
  */

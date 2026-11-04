@@ -522,3 +522,32 @@ end
     end
   end
 end
+
+assert("Process.fork has a block") do
+  if not ProcessTestUtil.wait?
+    skip "Process.wait is not available"
+  elsif ProcessTestUtil.windows?
+    assert_raise(Errno::ENOSYS) { Process.wait Process.fork {} }
+  else
+    child = (Process.fork { exit(42) })
+    assert_true Integer === child
+    assert_true child > 0
+    assert_true $?.exitstatus == 42
+  end
+end
+
+assert("Process.fork has no block") do
+  if not ProcessTestUtil.wait?
+    skip "Process.wait is not available"
+  elsif ProcessTestUtil.windows?
+    assert_raise(Errno::ENOSYS) { Process.fork }
+  else
+    pid = Process.fork
+    if pid.nil?
+      exit!(42)
+    else
+      Process.wait(pid)
+      assert_true $?.exitstatus == 42
+    end
+  end
+end

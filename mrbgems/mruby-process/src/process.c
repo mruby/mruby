@@ -29,6 +29,7 @@
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 /*
  * Refuse a value that would not survive the narrowing a port has to do with
@@ -185,6 +186,36 @@ process_euid(mrb_state *mrb, mrb_value self)
   mrb_int euid = mrb_hal_process_euid(mrb);
   if (euid < 0) mrb_sys_fail(mrb, "geteuid");
   return mrb_int_value(mrb, euid);
+}
+
+/*
+ * call-seq:
+ *   Process.fork -> integer
+ *
+ * The fork(2) system call creates a new process that
+ * inherits from its parent.
+*/
+static mrb_value
+process_fork(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pid;
+  mrb_value b;
+  mrb_get_args(mrb, "&", &b);
+  pid = mrb_hal_process_fork(mrb);
+  if (pid < 0) {
+    mrb_sys_fail(mrb, "fork");
+  } else if (pid == 0) {
+    /* context: child process */
+    if(mrb_block_given_p(mrb)) {
+      mrb_funcall(mrb, b, "call", 0, NULL);
+      mrb_funcall(mrb, mrb_obj_value(mrb->kernel_module), "exit", 0, NULL);
+    }
+    /* ditto: cruby returns nil from child */
+    return mrb_nil_value();
+  } else {
+    /* context: parent process */
+    return mrb_int_value(mrb, pid);
+  }
 }
 
 /*
@@ -397,6 +428,7 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(ppid),    process_ppid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(fork),    process_fork,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(kill),    process_kill,    MRB_ARGS_REQ(2)|MRB_ARGS_REST());
