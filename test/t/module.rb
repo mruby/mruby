@@ -1701,3 +1701,36 @@ assert('constant and class variable lookup: a method written in a block given a 
   assert_raise(NameError) { Test4GivenMethodOwn.new.own_direct }
   assert_raise(NameError) { Test4GivenMethodOwn.new.own_nested }
 end
+
+assert('Module#public, #private, #protected accept String names') do
+  # respond_to? answers only for public methods; the test build has no
+  # mruby-metaprog, so private_method_defined? is not available here
+  c = Class.new do
+    def a; end
+    def b; end
+    def c; end
+    private "a"
+    protected "b", :c
+    def d; end
+    private :d
+    public "d"
+  end
+  o = c.new
+  assert_false o.respond_to?(:a)
+  assert_false o.respond_to?(:b)
+  assert_false o.respond_to?(:c)
+  assert_true o.respond_to?(:d)
+  assert_raise(NoMethodError) { o.a }
+  assert_raise(TypeError) { c.class_eval { private 1 } }
+end
+
+assert('Module#module_function accepts String names') do
+  m = Module.new do
+    def f; :f; end
+    module_function "f"
+  end
+  assert_equal :f, m.f
+  c = Class.new { include m }
+  assert_false c.new.respond_to?(:f)
+  assert_equal :f, c.new.instance_eval { f }
+end
