@@ -13,6 +13,10 @@ MRuby::Gem::Specification.new('mruby-process') do |spec|
   # Struct already does: the members, `#to_a`, `#==` and `#inspect`.
   spec.add_dependency 'mruby-struct', core: 'mruby-struct'
 
+  # 'Process.fork' requires access to Kernel#exit from stdlib.h
+  # when a child process shuts down.
+  spec.add_dependency 'mruby-exit', core: 'mruby-exit'
+
   # mruby-process needs no I/O of its own.  The tests do: waiting on a child
   # is only testable with a child, and IO.popen is how one is made.  The
   # dependency stops at the tests; see README.md.

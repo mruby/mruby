@@ -522,3 +522,42 @@ end
     end
   end
 end
+
+assert("Process.fork: yields a block to a child") do
+  if not ProcessTestUtil.wait?
+    skip "Process.wait is not available"
+  elsif ProcessTestUtil.windows?
+    assert_raise(NotImplementedError) { Process.wait Process.fork {} }
+  else
+    child = Process.fork { exit!(42) }
+    Process.wait(child)
+    assert_equal 42, $?.exitstatus
+  end
+end
+
+assert("Process.fork: fork(2) without a block") do
+  if not ProcessTestUtil.wait?
+    skip "Process.wait is not available"
+  elsif ProcessTestUtil.windows?
+    assert_raise(NotImplementedError) { Process.fork }
+  else
+    pid = Process.fork
+    if pid.nil?
+      exit!(42)
+    else
+      Process.wait(pid)
+      assert_equal 42, $?.exitstatus
+    end
+  end
+end
+
+assert("Process.fork: default exit codes") do
+  if ProcessTestUtil.windows?
+    skip "fork(2) not implemented on Windows"
+  else
+    Process.wait Process.fork { 123 }
+    assert_equal 0, $?.exitstatus
+    Process.wait Process.fork { raise "boom" }
+    assert_equal 1, $?.exitstatus
+  end
+end

@@ -122,6 +122,17 @@ mrb_hal_process_ppid(mrb_state *mrb)
   return ppid;
 }
 
+/*
+ Windows does not implement fork(2):
+ set errno (ENOSYS) and return -1.
+*/
+mrb_int
+mrb_hal_process_fork(mrb_state *mrb)
+{
+  errno = ENOSYS;
+  return -1;
+}
+
 /* Windows has no numeric user or group IDs; like CRuby, report 0 for all
    of them. */
 mrb_int
