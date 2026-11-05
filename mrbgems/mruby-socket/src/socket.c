@@ -145,6 +145,21 @@ sock_sys_fail(mrb_state *mrb, const char *mesg)
   mrb_sys_fail(mrb, mesg);
 }
 
+/* A socket made here is closed in a program run by exec, as the files and
+   pipes mruby-io opens are and as in CRuby. */
+static void
+sock_cloexec(int fd)
+{
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
+  int flags = fcntl(fd, F_GETFD);
+  if (flags != -1 && !(flags & FD_CLOEXEC)) {
+    fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+  }
+#else
+  (void)fd;
+#endif
+}
+
 struct gen_addrinfo_args {
   struct RClass *klass;
   struct addrinfo *addrinfo;
@@ -1065,6 +1080,7 @@ mrb_socket_accept(mrb_state *mrb, mrb_value klass)
   if (s1 == -1) {
     sock_sys_fail(mrb, "accept");
   }
+  sock_cloexec(s1);
   return mrb_fixnum_value(s1);
 }
 
@@ -1083,6 +1099,7 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
   if (s1 == -1) {
     sock_sys_fail(mrb, "accept");
   }
+  sock_cloexec(s1);
 
   mrb_str_resize(mrb, sastr, socklen);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(s1));
@@ -1204,6 +1221,8 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   if (mrb_hal_socket_socketpair(mrb, (int)domain, (int)type, (int)protocol, sv) == -1) {
     sock_sys_fail(mrb, "socketpair");
   }
+  sock_cloexec(sv[0]);
+  sock_cloexec(sv[1]);
 
   mrb_value ary = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[0]));
@@ -1234,6 +1253,7 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
   int s = (int)socket((int)domain, (int)type, (int)protocol);
   if (s == -1)
     sock_sys_fail(mrb, "socket");
+  sock_cloexec(s);
   return mrb_fixnum_value(s);
 }
 

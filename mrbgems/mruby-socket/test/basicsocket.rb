@@ -26,3 +26,19 @@ assert('BasicSocket#setsockopt with a Float level') do
     s.close
   end
 end
+
+assert('a socket is closed across exec') do
+  skip "no FD_CLOEXEC on Windows" if SocketTest.win?
+  skip "IO#close_on_exec? is not available" unless IO.method_defined?(:close_on_exec?)
+  srv = TCPServer.new("127.0.0.1", 0)
+  cli = TCPSocket.new("127.0.0.1", srv.local_address.ip_port)
+  acc = srv.accept
+  u = UDPSocket.new
+  socks = [srv, cli, acc, u]
+  socks.concat(UNIXSocket.pair) if Object.const_defined?(:UNIXSocket)
+  begin
+    socks.each { |s| assert_true s.close_on_exec?, s.class.to_s }
+  ensure
+    socks.each(&:close)
+  end
+end
