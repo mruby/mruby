@@ -62,7 +62,9 @@ assert('BasicSocket methods with an Integer past C int') do
     opt = Socket::SO_REUSEADDR
     assert_raise(RangeError) { s.setsockopt(big + sol, opt, true) }
     assert_raise(RangeError) { s.setsockopt(sol, big + opt, true) }
-    assert_raise(RangeError) { s.setsockopt(sol, opt, big + 1) }
+    # where a value past C int is a Bigint, not an Integer optval, it is
+    # refused as an optval of no kind setsockopt takes
+    assert_raise(RangeError, ArgumentError) { s.setsockopt(sol, opt, big + 1) }
     assert_raise(RangeError) { s.getsockopt(big + sol, opt) }
     assert_raise(RangeError) { s.getsockopt(sol, big + opt) }
     assert_raise(RangeError) { s.send("", big) }
