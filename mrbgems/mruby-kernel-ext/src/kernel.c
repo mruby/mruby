@@ -214,6 +214,27 @@ no_exception_p(mrb_state *mrb, const mrb_value *kw_values)
   return !mrb_undef_p(kw_values[0]) && !mrb_test(kw_values[0]);
 }
 
+/* An illegal radix is a mistake in the call, not a conversion that failed,
+   so exception: false does not turn it into nil: the same error the string
+   conversion would raise, raised before the guard.  What that conversion
+   takes: 0 and -1 let the string's prefix choose the radix, and a negative
+   radix is the positive one with no prefix allowed. */
+static void
+check_radix(mrb_state *mrb, mrb_int base)
+{
+  mrb_int b = base;
+
+  if (b == 0 || b == -1) return;
+  if (b < -MRB_INT_MAX) {
+    /* MRB_INT_MIN: negating it would overflow mrb_int */
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
+  }
+  if (b < 0) b = -b;
+  if (b < 2 || 36 < b) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", b);
+  }
+}
+
 static mrb_value
 mrb_f_integer(mrb_state *mrb, mrb_value self)
 {
@@ -226,6 +247,8 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o|i:", &a.val, &a.base, &kwargs);
   if (no_exception_p(mrb, kw_values)) {
     mrb_bool error;
+
+    if (mrb_string_p(a.val)) check_radix(mrb, a.base);
     mrb_value ret = mrb_protect_error(mrb, integer_body, &a, &error);
     if (error) {
       mrb->exc = NULL;
