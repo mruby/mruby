@@ -672,15 +672,78 @@ assert('Module#public_instance_method') do
 end
 
 assert('Module#define_method with a Method or UnboundMethod') do
-  c = Class.new do
+  a = Class.new do
     def orig(x) x * 2 end
     define_method(:copy, instance_method(:orig))
+    def orig(x) x * 3 end
   end
-  assert_equal 4, c.new.copy(2)
-  o = c.new
-  d = Class.new do
-    define_method(:bound, o.method(:orig))
+  assert_equal 4, a.new.copy(2)   # the body it was taken with
+  assert_equal 6, a.new.orig(2)
+
+  b = Class.new(a) do
+    define_method(:inherited_copy, a.instance_method(:orig))
+    define_method(:bound_copy, a.new.method(:orig))
   end
-  assert_equal 6, d.new.bound(3) rescue assert_true true
+  assert_equal 6, b.new.inherited_copy(2)
+  assert_equal 6, b.new.bound_copy(2)
+
+  m = Module.new do
+    def from_module; :from_module; end
+  end
+  c = Class.new do
+    define_method(:any_class, m.instance_method(:from_module))
+  end
+  assert_equal :from_module, c.new.any_class
+
+  e = Class.new
+  assert_raise(TypeError) { e.define_method(:push, Array.instance_method(:push)) }
+  assert_raise(TypeError) { e.define_method(:orig, a.new.method(:orig)) }
+  assert_false e.method_defined?(:push)
+  o = Object.new
+  def o.single; :single; end
+  assert_raise(TypeError) { e.define_method(:single, o.method(:single)) }
+  (class << o; self; end).define_method(:single2, o.method(:single))
+  assert_equal :single, o.single2
+
   assert_raise(TypeError) { Class.new { define_method(:x, 1) } }
+end
+
+assert('Module#define_method with a Method takes the scope visibility') do
+  a = Class.new do
+    def orig; :orig; end
+    private
+    define_method(:priv, instance_method(:orig))
+    public
+    define_method(:pub, instance_method(:orig))
+  end
+  assert_false a.new.respond_to?(:priv)
+  assert_true a.new.respond_to?(:pub)
+  assert_raise(NoMethodError) { a.new.priv }
+  assert_equal :orig, a.new.pub
+  assert_equal :orig, a.new.__send__(:priv)
+end
+
+assert('Module#define_method with a Method and method_added') do
+  $define_method_added = []
+  a = Class.new do
+    def self.method_added(name) $define_method_added << name end
+    def orig; :orig; end
+    define_method(:copy, instance_method(:orig))
+  end
+  assert_equal [:orig, :copy], $define_method_added
+  $define_method_added = nil
+  assert_equal :orig, a.new.copy
+end
+
+assert('Module#define_method with a Proc still works through mruby-method') do
+  a = Class.new do
+    define_method(:one) { 1 }
+    define_method(:two, proc { 2 })
+    private
+    define_method(:three) { 3 }
+  end
+  assert_equal 1, a.new.one
+  assert_equal 2, a.new.two
+  assert_false a.new.respond_to?(:three)
+  assert_raise(ArgumentError) { Class.new { define_method(:x) } }
 end

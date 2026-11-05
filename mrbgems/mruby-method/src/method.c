@@ -796,6 +796,79 @@ mrb_module_public_instance_method(mrb_state *mrb, mrb_value self)
   return method_alloc(mrb, c, self, name, TRUE, FALSE);
 }
 
+/* Whether `c` is `owner` or inherits from it; the test define_method makes
+   before it takes a method body from a class, so that the body never runs on
+   a receiver its owner did not make. */
+static mrb_bool
+class_inherits_p(struct RClass *c, struct RClass *owner)
+{
+  for (; c; c = c->super) {
+    if (c == owner) return TRUE;
+  }
+  return FALSE;
+}
+
+/*
+ *  call-seq:
+ *     mod.define_method(symbol, method)          -> symbol
+ *     mod.define_method(symbol, unbound_method)  -> symbol
+ *
+ *  Beside the Proc or block the core method takes, the body may be a
+ *  Method or an UnboundMethod: the method it wraps is defined on mod under
+ *  the new name.  As for UnboundMethod#bind, the owner of that method must
+ *  be mod, an ancestor of mod, or a module; a singleton method is defined
+ *  nowhere but on its own singleton class.  Otherwise a TypeError is raised.
+ *
+ *     class A
+ *       def hello; "hello"; end
+ *     end
+ *     class B < A
+ *       define_method(:hi, A.instance_method(:hello))
+ *     end
+ *     B.new.hi   #=> "hello"
+ *     Integer.define_method(:hi, A.instance_method(:hello))
+ *       #=> TypeError: bind argument must be a subclass of A
+ */
+static mrb_value
+mrb_module_define_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym mid;
+  mrb_value body = mrb_undef_value();
+  mrb_value blk;
+  struct RClass *c = mrb_class_ptr(self);
+
+  mrb_get_args(mrb, "n|o&", &mid, &body, &blk);
+  if (mrb_type(body) != MRB_TT_OBJECT ||
+      !(mrb_obj_is_kind_of(mrb, body, mrb_class_get_id(mrb, MRB_SYM(Method))) ||
+        mrb_obj_is_kind_of(mrb, body, mrb_class_get_id(mrb, MRB_SYM(UnboundMethod))))) {
+    /* a Proc, the block, or an error: the core method's business */
+    return mrb_mod_define_method_m(mrb, c);
+  }
+
+  struct RClass *owner = method_extract_owner(mrb, body);
+  if (owner != c && !mrb_module_p(mrb_obj_value(owner)) && !class_inherits_p(c, owner)) {
+    if (owner->tt == MRB_TT_SCLASS) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't bind singleton method to a different class");
+    }
+    mrb_raisef(mrb, E_TYPE_ERROR, "bind argument must be a subclass of %C", owner);
+  }
+  const struct RProc *proc = method_extract_proc(mrb, body);
+  if (!proc) {
+    /* a Method that stands for a respond_to_missing? answer has no body to define */
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't define a method from method_missing: %n", method_extract_mid(mrb, body));
+  }
+
+  /* the copy is what the core method makes of a Proc body: the method
+     keeps the body it was taken with, however the owner changes later */
+  struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
+  mrb_proc_copy(mrb, p, proc);
+  p->flags |= MRB_PROC_STRICT;
+  mrb_method_t m;
+  MRB_METHOD_FROM_PROC(m, p);
+  mrb_mod_define_method_scoped(mrb, c, mid, m);
+  return mrb_symbol_value(mid);
+}
+
 /*
  *  call-seq:
  *     method.owner    -> class_or_module
@@ -893,6 +966,7 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(singleton_method), mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(instance_method), mrb_module_instance_method, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(public_instance_method), mrb_module_public_instance_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(define_method), mrb_module_define_method, MRB_ARGS_ARG(1,1));
 }
 
 void
