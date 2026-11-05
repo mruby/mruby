@@ -224,6 +224,54 @@ process_fork(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
+ *   Process.exec(command)              -> never returns
+ *   Process.exec(cmd, arg1, ...)       -> never returns
+ *
+ * Replaces the current process by running the given command.  A single
+ * _command_ is a command line run by the shell; with arguments, _cmd_ is
+ * the program, found through PATH, and is run without a shell.  Raises
+ * SystemCallError when the command cannot be run, and NotImplementedError
+ * where a process cannot run another program.
+ */
+static mrb_value
+process_exec(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *args;
+  mrb_int argc;
+  char **argv = NULL;
+
+  mrb_get_args(mrb, "*", &args, &argc);
+  if (argc == 0) {
+    mrb_argnum_error(mrb, 0, 1, -1);
+  }
+  /* the copies and the vector are new objects, kept by the arena until
+     this method returns, which it does only when exec failed */
+  const char *cmd = mrb_str_to_cstr(mrb, mrb_ensure_string_type(mrb, args[0]));
+  if (argc > 1) {
+    if ((size_t)argc >= SIZE_MAX / sizeof(char*)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "too many arguments");
+    }
+    mrb_value buf = mrb_str_new_capa(mrb, (mrb_int)((argc + 1) * sizeof(char*)));
+    argv = (char**)RSTRING_PTR(buf);
+    argv[0] = (char*)cmd;
+    for (mrb_int i = 1; i < argc; i++) {
+      argv[i] = mrb_str_to_cstr(mrb, mrb_ensure_string_type(mrb, args[i]));
+    }
+    argv[argc] = NULL;
+  }
+
+  /* output still pending would be lost with the process image */
+  fflush(NULL);
+  mrb_hal_process_exec(mrb, cmd, argv);
+  if (errno == ENOSYS) {
+    mrb_raise(mrb, E_NOTIMP_ERROR, "exec is not implemented on this platform");
+  }
+  mrb_sys_fail(mrb, cmd);
+  return mrb_nil_value();       /* not reached */
+}
+
+/*
+ * call-seq:
  *   Process.__exit_child(exc) -> never returns
  *
  * Ends the child Process.fork ran a block in, through exit(3) so that its
@@ -465,6 +513,7 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(__fork),  process_fork,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(exec),    process_exec,    MRB_ARGS_ANY());
   mrb_define_module_function_id(mrb, process, MRB_SYM(__exit_child), process_exit_child, MRB_ARGS_REQ(1));
   mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());

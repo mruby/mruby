@@ -102,6 +102,24 @@ mrb_hal_process_fork(mrb_state *mrb)
 #endif
 }
 
+int
+mrb_hal_process_exec(mrb_state *mrb, const char *cmd, char *const argv[])
+{
+  (void)mrb;
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  (void)cmd; (void)argv;
+  errno = ENOSYS;
+#else
+  if (argv == NULL) {
+    execl("/bin/sh", "sh", "-c", cmd, (char*)NULL);
+  }
+  else {
+    execvp(cmd, argv);
+  }
+#endif
+  return -1;
+}
+
 /*
  * Waiting
  */

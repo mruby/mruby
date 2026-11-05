@@ -559,3 +559,33 @@ assert("Process.fork: default exit codes") do
   Process.wait Process.fork { raise "boom" }
   assert_equal 1, $?.exitstatus
 end
+
+assert("Process.exec") do
+  if ProcessTestUtil.windows?
+    assert_raise(NotImplementedError) { Process.exec("exit 0") }
+    next
+  end
+  skip "test requires wait" if not ProcessTestUtil.wait?
+  # a command line goes through the shell
+  Process.wait Process.fork { Process.exec("exit 3") }
+  assert_equal 3, $?.exitstatus
+  # with arguments the program runs without one
+  Process.wait Process.fork { exec("sh", "-c", "exit $0", "4") }
+  assert_equal 4, $?.exitstatus
+  # a program that cannot be run raises in the caller
+  Process.wait Process.fork {
+    begin
+      exec("/nonexistent/mruby-process-test", "x")
+    rescue SystemCallError
+      exit!(5)
+    end
+  }
+  assert_equal 5, $?.exitstatus
+end
+
+assert("Process.exec refuses bad arguments before running anything") do
+  assert_raise(ArgumentError) { Process.exec }
+  assert_raise(TypeError) { Process.exec(1) }
+  assert_raise(TypeError) { Process.exec("sh", 1) }
+  assert_raise(ArgumentError) { Process.exec("sh\0") }
+end

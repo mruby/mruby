@@ -36,6 +36,7 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process::CLOCK_MONOTONIC          | o             | mruby's own value, not the platform's   |
 | Process::CLOCK_PROCESS_CPUTIME_ID | o             | mruby's own value, not the platform's   |
 | Process::CLOCK_THREAD_CPUTIME_ID  | o             | mruby's own value, not the platform's   |
+| Process.exec, Kernel#exec         | o             | a command line or argv; no env, options |
 | Process.fork, Kernel#fork         | o             | NotImplementedError on Windows          |
 | Process.uid, .euid, .gid, .egid   | o             | 0 on Windows, as in CRuby               |
 | Process::Status#pid               | o             |                                         |
@@ -52,7 +53,6 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process::Status#inspect           | o             |                                         |
 | Process::Status#==                | o             | the raw status decides, not the pid     |
 | Process.spawn                     |               | separate change                         |
-| Process.exec                      |               | separate change                         |
 | Process.exit, .exit!              |               | see mruby-exit                          |
 | Process.getpgrp, ...              |               | separate change                         |
 

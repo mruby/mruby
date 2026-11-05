@@ -135,6 +135,15 @@ mrb_hal_process_fork(mrb_state *mrb)
   return -1;
 }
 
+/* Nor can a process replace its own image with another program. */
+int
+mrb_hal_process_exec(mrb_state *mrb, const char *cmd, char *const argv[])
+{
+  (void)mrb; (void)cmd; (void)argv;
+  errno = ENOSYS;
+  return -1;
+}
+
 /* Windows has no numeric user or group IDs; like CRuby, report 0 for all
    of them. */
 mrb_int
