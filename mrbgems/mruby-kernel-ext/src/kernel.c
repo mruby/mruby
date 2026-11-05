@@ -155,13 +155,12 @@ arg_error(mrb_state *mrb)
   mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
 }
 
+/* the conversion itself, so exception: false can run it under a guard */
 static mrb_value
-mrb_f_integer(mrb_state *mrb, mrb_value self)
+integer_convert(mrb_state *mrb, mrb_value val, mrb_int base)
 {
-  mrb_value val, tmp;
-  mrb_int base = 0;
+  mrb_value tmp;
 
-  mrb_get_args(mrb, "o|i", &val, &base);
   if (mrb_nil_p(val)) {
     if (base != 0) arg_error(mrb);
     mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
@@ -196,6 +195,47 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
   return mrb_ensure_integer_type(mrb, val);
 }
 
+struct integer_args {
+  mrb_value val;
+  mrb_int base;
+};
+
+static mrb_value
+integer_body(mrb_state *mrb, void *data)
+{
+  struct integer_args *a = (struct integer_args *)data;
+  return integer_convert(mrb, a->val, a->base);
+}
+
+/* exception: false in the keywords: nil instead of a raise */
+static mrb_bool
+no_exception_p(mrb_state *mrb, const mrb_value *kw_values)
+{
+  return !mrb_undef_p(kw_values[0]) && !mrb_test(kw_values[0]);
+}
+
+static mrb_value
+mrb_f_integer(mrb_state *mrb, mrb_value self)
+{
+  struct integer_args a;
+  const mrb_sym kw_names[1] = { MRB_SYM(exception) };
+  mrb_value kw_values[1];
+  const mrb_kwargs kwargs = { 1, 0, kw_names, kw_values, NULL };
+
+  a.base = 0;
+  mrb_get_args(mrb, "o|i:", &a.val, &a.base, &kwargs);
+  if (no_exception_p(mrb, kw_values)) {
+    mrb_bool error;
+    mrb_value ret = mrb_protect_error(mrb, integer_body, &a, &error);
+    if (error) {
+      mrb->exc = NULL;
+      return mrb_nil_value();
+    }
+    return ret;
+  }
+  return integer_convert(mrb, a.val, a.base);
+}
+
 #ifndef MRB_NO_FLOAT
 /*
  *  call-seq:
@@ -210,14 +250,34 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
  *     Float(nil)         #=> TypeError
  */
 static mrb_value
-mrb_f_float(mrb_state *mrb, mrb_value self)
+float_body(mrb_state *mrb, void *data)
 {
-  mrb_value arg = mrb_get_arg1(mrb);
-
+  mrb_value arg = *(mrb_value *)data;
   if (mrb_string_p(arg)) {
     return mrb_float_value(mrb, mrb_str_to_dbl(mrb, arg, TRUE));
   }
   return mrb_ensure_float_type(mrb, arg);
+}
+
+static mrb_value
+mrb_f_float(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg;
+  const mrb_sym kw_names[1] = { MRB_SYM(exception) };
+  mrb_value kw_values[1];
+  const mrb_kwargs kwargs = { 1, 0, kw_names, kw_values, NULL };
+
+  mrb_get_args(mrb, "o:", &arg, &kwargs);
+  if (no_exception_p(mrb, kw_values)) {
+    mrb_bool error;
+    mrb_value ret = mrb_protect_error(mrb, float_body, &arg, &error);
+    if (error) {
+      mrb->exc = NULL;
+      return mrb_nil_value();
+    }
+    return ret;
+  }
+  return float_body(mrb, &arg);
 }
 #endif
 
@@ -292,11 +352,11 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
-  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1) | MRB_ARGS_KEY(1,0) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_string, MRB_SYM(String),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_array, MRB_SYM(Array),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1) | MRB_ARGS_KEY(1,0) | MRB_MT_PRIVATE),
 #endif
   MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
 };
@@ -308,11 +368,11 @@ static const mrb_mt_entry kernel_ext_module_function_entries[] = {
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE()),
-  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1) | MRB_ARGS_KEY(1,0)),
   MRB_MT_ENTRY(mrb_f_string, MRB_SYM(String),    MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_f_array, MRB_SYM(Array),     MRB_ARGS_REQ(1)),
 #ifndef MRB_NO_FLOAT
-  MRB_MT_ENTRY(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_f_float, MRB_SYM(Float),     MRB_ARGS_REQ(1) | MRB_ARGS_KEY(1,0)),
 #endif
   MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1)),
 };
