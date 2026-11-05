@@ -2439,13 +2439,22 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
  *     end
  *     Klass.new.hello   #=> "Hello from Mod.\n"
  */
+/* the base of append_features/prepend_features: a class or a module */
+static void
+check_feature_base(mrb_state *mrb, mrb_value base)
+{
+  if (!mrb_class_p(base) && !mrb_module_p(base)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected Module)", mrb_obj_class(mrb, base));
+  }
+}
+
 /* Module#prepend_features(base): the prepending itself, which a module
  * overrides to take part in its own prepending */
 static mrb_value
 mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
 {
   mrb_value base = mrb_get_arg1(mrb);
-  mrb_check_type(mrb, base, MRB_TT_CLASS);
+  check_feature_base(mrb, base);
   mrb_prepend_module(mrb, mrb_class_ptr(base), mrb_class_ptr(mod));
   return mod;
 }
@@ -2499,9 +2508,7 @@ static mrb_value
 mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
 {
   mrb_value base = mrb_get_arg1(mrb);
-  if (!mrb_class_p(base) && !mrb_module_p(base)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected Module)", mrb_obj_class(mrb, base));
-  }
+  check_feature_base(mrb, base);
   mrb_include_module(mrb, mrb_class_ptr(base), mrb_class_ptr(mod));
   return mod;
 }

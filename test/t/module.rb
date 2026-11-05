@@ -428,6 +428,10 @@ assert('Module#prepend calls prepend_features') do
   c = Class.new { def hi; :klass; end; prepend m }
   assert_equal [:prepend_features, :prepended], log
   assert_equal :mod, c.new.hi
+
+  # super prepends into a module as well as a class
+  n = Module.new { prepend m }
+  assert_equal [m, n], n.ancestors[0, 2]
 end
 
 assert('Kernel#extend calls extend_object') do
