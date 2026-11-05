@@ -36,6 +36,7 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process::CLOCK_MONOTONIC          | o             | mruby's own value, not the platform's    |
 | Process::CLOCK_PROCESS_CPUTIME_ID | o             | mruby's own value, not the platform's    |
 | Process::CLOCK_THREAD_CPUTIME_ID  | o             | mruby's own value, not the platform's    |
+| Process.fork, Kernel#fork         | o             | NotImplementedError on Windows           |
 | Process::Status#pid               | o             |                                          |
 | Process::Status#to_i              | o             | no `#to_int`; mruby converts nothing     |
 | Process::Status#exited?           | o             |                                          |
@@ -49,7 +50,6 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process::Status#to_s              | o             |                                          |
 | Process::Status#inspect           | o             |                                          |
 | Process::Status#==                | o             | the raw status decides, not the pid      |
-| Process.fork                      |               | inherently non-portable; separate change |
 | Process.spawn                     |               | separate change                          |
 | Process.exec                      |               | separate change                          |
 | Process.exit, .exit!              |               | see mruby-exit                           |

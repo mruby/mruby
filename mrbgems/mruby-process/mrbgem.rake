@@ -13,10 +13,6 @@ MRuby::Gem::Specification.new('mruby-process') do |spec|
   # Struct already does: the members, `#to_a`, `#==` and `#inspect`.
   spec.add_dependency 'mruby-struct', core: 'mruby-struct'
 
-  # 'Process.fork' requires access to Kernel#exit from stdlib.h
-  # when a child process shuts down.
-  spec.add_dependency 'mruby-exit', core: 'mruby-exit'
-
   # mruby-process needs no I/O of its own.  The tests do: waiting on a child
   # is only testable with a child, and IO.popen is how one is made.  The
   # dependency stops at the tests; see README.md.
@@ -27,6 +23,11 @@ MRuby::Gem::Specification.new('mruby-process') do |spec|
   # that defines them.  Without this the tests still pass, by taking the
   # branch that settles for any StandardError.
   spec.add_test_dependency 'mruby-errno', core: 'mruby-errno'
+
+  # The fork tests end a child with `exit` and `exit!`.  Process.fork itself
+  # ends one without them, so a build can leave mruby-exit out and keep
+  # scripts from ending the process.
+  spec.add_test_dependency 'mruby-exit', core: 'mruby-exit'
 
   # Asking a Process::Status what instance_variables it hands out needs the
   # gem that defines Object#instance_variables in the first place.

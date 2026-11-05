@@ -28,6 +28,8 @@
 #include <errno.h>
 #include <limits.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /*
@@ -201,6 +203,9 @@ static mrb_value
 process_fork(mrb_state *mrb, mrb_value self)
 {
   mrb_int pid;
+  /* the child inherits the stdio buffers; flush them so that output still
+     pending is not written by both processes */
+  fflush(NULL);
   pid = mrb_hal_process_fork(mrb);
   if (pid == -1) {
     if (errno == ENOSYS) {
@@ -215,6 +220,38 @@ process_fork(mrb_state *mrb, mrb_value self)
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$$"), mrb_int_value(mrb, childpid));
   }
   return mrb_int_value(mrb, pid);
+}
+
+/*
+ * call-seq:
+ *   Process.__exit_child(exc) -> never returns
+ *
+ * Ends the child Process.fork ran a block in, through exit(3) so that its
+ * stdio buffers are flushed.  _exc_ is nil when the block finished, and
+ * the exception that ended it otherwise: a SystemExit gives its status,
+ * anything else is reported and gives failure.  SystemExit is recognized
+ * by its flag, so this gem does not need mruby-exit.
+ */
+static mrb_value
+process_exit_child(mrb_state *mrb, mrb_value self)
+{
+  mrb_value exc = mrb_get_arg1(mrb);
+  int status = EXIT_SUCCESS;
+
+  if (mrb_exception_p(exc)) {
+    struct RObject *e = mrb_obj_ptr(exc);
+    if (MRB_EXC_EXIT_P(e)) {
+      status = MRB_EXC_EXIT_STATUS(mrb, e);
+    }
+    else {
+      mrb->exc = e;
+      mrb_print_error(mrb);
+      status = EXIT_FAILURE;
+    }
+  }
+  exit(status);
+  /* not reached */
+  return mrb_nil_value();
 }
 
 /*
@@ -428,6 +465,7 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(__fork),  process_fork,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(__exit_child), process_exit_child, MRB_ARGS_REQ(1));
   mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(kill),    process_kill,    MRB_ARGS_REQ(2)|MRB_ARGS_REST());

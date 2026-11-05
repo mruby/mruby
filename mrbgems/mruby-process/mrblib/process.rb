@@ -1,36 +1,22 @@
 module Process
   ##
   # call-seq:
-  #  Process.fork -> integer, nil
+  #   Process.fork                  -> integer or nil
+  #   Process.fork { block }        -> integer
+  #
+  # Creates a child process. The parent gets the child's pid. Without a
+  # block the child gets nil; with one, the child runs the block and
+  # exits, with status 0 when it finishes, the status of a SystemExit it
+  # raises, or 1 for any other exception, which is reported.
   def self.fork
-    pid = Process.__fork
+    pid = __fork
     return pid if pid != 0
-    ##
-    # Context switch:
-    # From this point onwards (pid == 0) the
-    # active process is the child process.
-    if block_given?
-      begin
-        yield
-        ##
-        # Given a block:
-        # Don't return control to the caller.
-        # Same as CRuby.
-        exit!(0)
-      rescue SystemExit
-        exit!($!.status)
-      rescue Exception
-        ##
-        # FIXME:
-        # we should dump the error to $stderr here.
-        exit!(1)
-      end
-    else
-      ##
-      # No block given:
-      # Return control to the caller that's now
-      # running on the child process.
-      nil
+    return nil unless block_given?
+    begin
+      yield
+    rescue Exception => e
+      __exit_child(e)
     end
+    __exit_child(nil)
   end
 end
