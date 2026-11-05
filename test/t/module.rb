@@ -388,6 +388,67 @@ assert('Module#include', '15.2.2.4.27') do
   assert_raise(FrozenError) { Module.new.freeze.include Test4Include }
 end
 
+assert('Module#include calls append_features') do
+  log = []
+  m = Module.new do
+    def self.append_features(base)
+      $__af_log << [:append_features, base]
+      super
+    end
+    def self.included(base)
+      $__af_log << [:included, base]
+    end
+    def hi; :hi; end
+  end
+  $__af_log = log
+  c = Class.new { include m }
+  assert_equal [[:append_features, c], [:included, c]], log
+  assert_equal :hi, c.new.hi
+  assert_true c.include?(m)
+
+  # a module that does not call super is not included
+  skip = Module.new { def self.append_features(base); end }
+  d = Class.new { include skip }
+  assert_false d.include?(skip)
+end
+
+assert('Module#prepend calls prepend_features') do
+  log = []
+  m = Module.new do
+    def self.prepend_features(base)
+      $__pf_log << :prepend_features
+      super
+    end
+    def self.prepended(base)
+      $__pf_log << :prepended
+    end
+    def hi; :mod; end
+  end
+  $__pf_log = log
+  c = Class.new { def hi; :klass; end; prepend m }
+  assert_equal [:prepend_features, :prepended], log
+  assert_equal :mod, c.new.hi
+end
+
+assert('Kernel#extend calls extend_object') do
+  log = []
+  m = Module.new do
+    def self.extend_object(obj)
+      $__eo_log << :extend_object
+      super
+    end
+    def self.extended(obj)
+      $__eo_log << :extended
+    end
+    def hi; :ext; end
+  end
+  $__eo_log = log
+  o = Object.new
+  o.extend(m)
+  assert_equal [:extend_object, :extended], log
+  assert_equal :ext, o.hi
+end
+
 assert('Module#include?', '15.2.2.4.28') do
   module Test4IncludeP
   end
