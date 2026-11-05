@@ -17,44 +17,44 @@ from, the second the `Struct` `Process::Tms` is one of.
 
 ## Implemented methods
 
-| method                            | mruby-process | memo                                     |
-| --------------------------------- | ------------- | ---------------------------------------- |
-| Process.pid                       | o             | also `$$`                                |
-| Process.ppid                      | o             |                                          |
-| Process.kill                      | o             | no negative-signal form yet, see below   |
-| Process.wait, .wait2              | o             | if the port waits; not `.waitall`        |
-| Process.waitpid, .waitpid2        | o             | sets `$?`; if the port waits, see below  |
-| Process.clock_gettime             | o             | seven units; symbolic clock ids          |
-| Process.clock_getres              | o             | takes `:hertz` too                       |
-| Process.times                     | o             | needs a build with Float, see below      |
-| Process::Tms                      | o             | a Struct, as in CRuby                    |
-| Process::Tms#utime, #stime        | o             |                                          |
-| Process::Tms#cutime, #cstime      | o             | reaped children only; 0 on Windows       |
-| Process::WNOHANG                  | o             | mruby's own value, not the platform's    |
-| Process::WUNTRACED                | o             | mruby's own value, not the platform's    |
-| Process::CLOCK_REALTIME           | o             | mruby's own value, not the platform's    |
-| Process::CLOCK_MONOTONIC          | o             | mruby's own value, not the platform's    |
-| Process::CLOCK_PROCESS_CPUTIME_ID | o             | mruby's own value, not the platform's    |
-| Process::CLOCK_THREAD_CPUTIME_ID  | o             | mruby's own value, not the platform's    |
-| Process.fork, Kernel#fork         | o             | NotImplementedError on Windows           |
-| Process.uid, .euid, .gid, .egid   | o             | 0 on Windows, as in CRuby                |
-| Process::Status#pid               | o             |                                          |
-| Process::Status#to_i              | o             | no `#to_int`; mruby converts nothing     |
-| Process::Status#exited?           | o             |                                          |
-| Process::Status#exitstatus        | o             |                                          |
-| Process::Status#signaled?         | o             |                                          |
-| Process::Status#termsig           | o             |                                          |
-| Process::Status#stopped?          | o             |                                          |
-| Process::Status#stopsig           | o             |                                          |
-| Process::Status#coredump?         | o             |                                          |
-| Process::Status#success?          | o             |                                          |
-| Process::Status#to_s              | o             |                                          |
-| Process::Status#inspect           | o             |                                          |
-| Process::Status#==                | o             | the raw status decides, not the pid      |
-| Process.spawn                     |               | separate change                          |
-| Process.exec                      |               | separate change                          |
-| Process.exit, .exit!              |               | see mruby-exit                           |
-| Process.getpgrp, ...              |               | separate change                          |
+| method                            | mruby-process | memo                                    |
+| --------------------------------- | ------------- | --------------------------------------- |
+| Process.pid                       | o             | also `$$`                               |
+| Process.ppid                      | o             |                                         |
+| Process.kill                      | o             | no negative-signal form yet, see below  |
+| Process.wait, .wait2              | o             | if the port waits; not `.waitall`       |
+| Process.waitpid, .waitpid2        | o             | sets `$?`; if the port waits, see below |
+| Process.clock_gettime             | o             | seven units; symbolic clock ids         |
+| Process.clock_getres              | o             | takes `:hertz` too                      |
+| Process.times                     | o             | needs a build with Float, see below     |
+| Process::Tms                      | o             | a Struct, as in CRuby                   |
+| Process::Tms#utime, #stime        | o             |                                         |
+| Process::Tms#cutime, #cstime      | o             | reaped children only; 0 on Windows      |
+| Process::WNOHANG                  | o             | mruby's own value, not the platform's   |
+| Process::WUNTRACED                | o             | mruby's own value, not the platform's   |
+| Process::CLOCK_REALTIME           | o             | mruby's own value, not the platform's   |
+| Process::CLOCK_MONOTONIC          | o             | mruby's own value, not the platform's   |
+| Process::CLOCK_PROCESS_CPUTIME_ID | o             | mruby's own value, not the platform's   |
+| Process::CLOCK_THREAD_CPUTIME_ID  | o             | mruby's own value, not the platform's   |
+| Process.fork, Kernel#fork         | o             | NotImplementedError on Windows          |
+| Process.uid, .euid, .gid, .egid   | o             | 0 on Windows, as in CRuby               |
+| Process::Status#pid               | o             |                                         |
+| Process::Status#to_i              | o             | no `#to_int`; mruby converts nothing    |
+| Process::Status#exited?           | o             |                                         |
+| Process::Status#exitstatus        | o             |                                         |
+| Process::Status#signaled?         | o             |                                         |
+| Process::Status#termsig           | o             |                                         |
+| Process::Status#stopped?          | o             |                                         |
+| Process::Status#stopsig           | o             |                                         |
+| Process::Status#coredump?         | o             |                                         |
+| Process::Status#success?          | o             |                                         |
+| Process::Status#to_s              | o             |                                         |
+| Process::Status#inspect           | o             |                                         |
+| Process::Status#==                | o             | the raw status decides, not the pid     |
+| Process.spawn                     |               | separate change                         |
+| Process.exec                      |               | separate change                         |
+| Process.exit, .exit!              |               | see mruby-exit                          |
+| Process.getpgrp, ...              |               | separate change                         |
 
 ## What the port declares
 
