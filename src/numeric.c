@@ -2361,7 +2361,8 @@ int_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base;
 
   if (mrb_get_argc(mrb) > 0) {
-    base = mrb_integer(mrb_get_arg1(mrb));
+    /* a String or nil radix must raise, not be read as an Integer's bits */
+    base = mrb_as_int(mrb, mrb_get_arg1(mrb));
   }
   else {
     base = 10;
