@@ -244,18 +244,22 @@ process_exec(mrb_state *mrb, mrb_value self)
   if (argc == 0) {
     mrb_argnum_error(mrb, 0, 1, -1);
   }
-  /* the copies and the vector are new objects, kept by the arena until
-     this method returns, which it does only when exec failed */
-  const char *cmd = mrb_str_to_cstr(mrb, mrb_ensure_string_type(mrb, args[0]));
+  /* raise for a bad argument before anything is allocated; once done, each
+     argument holds a NUL-terminated buffer and reading it allocates nothing */
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value v = args[i];
+    mrb_string_value_cstr(mrb, &v);
+  }
+  mrb_value v = args[0];
+  const char *cmd = mrb_string_value_cstr(mrb, &v);
   if (argc > 1) {
     if ((size_t)argc >= SIZE_MAX / sizeof(char*)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "too many arguments");
     }
-    mrb_value buf = mrb_str_new_capa(mrb, (mrb_int)((argc + 1) * sizeof(char*)));
-    argv = (char**)RSTRING_PTR(buf);
-    argv[0] = (char*)cmd;
-    for (mrb_int i = 1; i < argc; i++) {
-      argv[i] = mrb_str_to_cstr(mrb, mrb_ensure_string_type(mrb, args[i]));
+    argv = (char**)mrb_malloc(mrb, (size_t)(argc + 1) * sizeof(char*));
+    for (mrb_int i = 0; i < argc; i++) {
+      v = args[i];
+      argv[i] = (char*)mrb_string_value_cstr(mrb, &v);
     }
     argv[argc] = NULL;
   }
@@ -263,7 +267,10 @@ process_exec(mrb_state *mrb, mrb_value self)
   /* output still pending would be lost with the process image */
   fflush(NULL);
   mrb_hal_process_exec(mrb, cmd, argv);
-  if (errno == ENOSYS) {
+  int err = errno;
+  mrb_free(mrb, argv);
+  errno = err;
+  if (err == ENOSYS) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "exec is not implemented on this platform");
   }
   mrb_sys_fail(mrb, cmd);
