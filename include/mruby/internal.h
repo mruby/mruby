@@ -63,6 +63,8 @@ mrb_value mrb_false_to_s(mrb_state *, mrb_value);
 mrb_value mrb_flo_to_s(mrb_state *, mrb_value);
 #endif
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
+mrb_value mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c);
+void mrb_mod_define_method_scoped(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m);
 mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);
 #ifdef MRB_USE_REFINEMENTS

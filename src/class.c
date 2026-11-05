@@ -4748,14 +4748,15 @@ mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
   }
 }
 
-static mrb_value
-define_method_m(mrb_state *mrb, struct RClass *c, int vis)
+/* The body Module#define_method is given, as a method body: the Proc
+   argument or the block, copied and made strict. */
+static struct RProc*
+define_method_proc(mrb_state *mrb, mrb_sym *mid)
 {
-  mrb_sym mid;
   mrb_value proc = mrb_undef_value();
   mrb_value blk;
 
-  mrb_get_args(mrb, "n|o&", &mid, &proc, &blk);
+  mrb_get_args(mrb, "n|o&", mid, &proc, &blk);
   switch (mrb_type(proc)) {
     case MRB_TT_PROC:
       blk = proc;
@@ -4781,28 +4782,39 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
   struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
+  return p;
+}
 
-  mrb_method_t m;
-  MRB_METHOD_FROM_PROC(m, p);
+/* Defines `m` as `mid` on `c` the way Module#define_method does once it has
+   a body: with the visibility the caller's scope gives it, so that a
+   `private` or `module_function` written in the class body reaches it as it
+   would a `def` there, and announced through method_added. */
+void
+mrb_mod_define_method_scoped(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
+{
+  mrb_bool modfunc;
+  int vis = caller_scope_visibility(mrb, c, &modfunc);
+
   MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_method_added(mrb, c, mid);
-  return mrb_symbol_value(mid);
+  if (modfunc) {
+    /* the copy is made of what the name now resolves to, as the copy
+       `module_function :name` makes is */
+    define_modfunc_copy(mrb, c, mid, mrb_method_search(mrb, c, mid));
+  }
 }
 
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  mrb_bool modfunc;
-  int vis = caller_scope_visibility(mrb, c, &modfunc);
-  mrb_value name = define_method_m(mrb, c, vis);
-  if (modfunc) {
-    /* the copy is made of what the name now resolves to, as the copy
-       `module_function :name` makes is */
-    mrb_sym mid = mrb_symbol(name);
-    define_modfunc_copy(mrb, c, mid, mrb_method_search(mrb, c, mid));
-  }
-  return name;
+  mrb_sym mid;
+  struct RProc *p = define_method_proc(mrb, &mid);
+  mrb_method_t m;
+
+  MRB_METHOD_FROM_PROC(m, p);
+  mrb_mod_define_method_scoped(mrb, c, mid, m);
+  return mrb_symbol_value(mid);
 }
 
 static mrb_value
@@ -4814,7 +4826,15 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 top_define_method(mrb_state *mrb, mrb_value self)
 {
-  return define_method_m(mrb, mrb->object_class, MRB_METHOD_PRIVATE_FL);
+  mrb_sym mid;
+  struct RProc *p = define_method_proc(mrb, &mid);
+  mrb_method_t m;
+
+  MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PRIVATE_FL);
+  mrb_define_method_raw(mrb, mrb->object_class, mid, m);
+  mrb_method_added(mrb, mrb->object_class, mid);
+  return mrb_symbol_value(mid);
 }
 
 static mrb_value
