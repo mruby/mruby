@@ -597,8 +597,10 @@ assert('IO#gets') do
   # gets with limit
   io.pos = 0
   assert_equal $mrbtest_io_msg[0, 5], io.gets(5), "gets with limit"
-  io.pos = 0
-  assert_equal $mrbtest_io_msg[0, 5], io.gets(5.0), "gets with a Float limit"
+  if Object.const_defined?(:Float)
+    io.pos = 0
+    assert_equal $mrbtest_io_msg[0, 5], io.gets(5.0), "gets with a Float limit"
+  end
 
   # gets with rs
   io.pos = 0

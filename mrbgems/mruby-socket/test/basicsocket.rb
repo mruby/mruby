@@ -17,6 +17,7 @@ assert('BasicSocket.do_not_reverse_lookup=') do
 end
 
 assert('BasicSocket#setsockopt with a Float level') do
+  skip "no Float in this build" unless Object.const_defined?(:Float)
   s = UDPSocket.new
   begin
     s.setsockopt(Socket::SOL_SOCKET.to_f, Socket::SO_REUSEADDR, true)
