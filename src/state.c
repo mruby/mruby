@@ -202,6 +202,7 @@ mrb_close(mrb_state *mrb)
 
   /* free */
   mrb_gc_free_gv(mrb);
+  mrb_gc_free_giv_all(mrb);
   mrb_gc_destroy(mrb, &mrb->gc);
 #ifdef MRB_USE_REFINEMENTS
   mrb_free(mrb, mrb->refscopes);

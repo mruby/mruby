@@ -388,6 +388,7 @@ struct mrb_state {
   struct mrb_context *c;
   struct mrb_context *root_c;
   struct iv_tbl *globals;                 /* global variable table */
+  struct kh_giv *giv;                     /* instance variables of objects without an iv slot (variable.c) */
 
   struct RObject *exc;                    /* exception */
 

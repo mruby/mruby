@@ -5002,6 +5002,11 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     default:
       break;
   }
+  if (!mrb_obj_iv_slot_p(mrb_unboxed_type(obj))) {
+    /* a String, Array, Range, ... keeps its instance variables in a side
+       table; the copy takes them as an Object's copy does */
+    mrb_iv_copy(mrb, dest, obj);
+  }
   if (!mrb_func_basic_p(mrb, dest, MRB_SYM(initialize_copy), mrb_obj_init_copy)) {
     mrb_funcall_argv(mrb, dest, MRB_SYM(initialize_copy), 1, &obj);
   }

@@ -46,6 +46,24 @@ assert('Kernel#instance_variable_set', '15.3.1.3.22') do
   end
   assert_raise(FrozenError) { o.freeze.instance_variable_set(:@a, 2) }
   assert_raise(FrozenError, ArgumentError) { nil.instance_variable_set(:@a, 2) }
+  # a type without an iv slot keeps them in a side table
+  s = "abc"
+  assert_equal 1, s.instance_variable_set(:@a, 1)
+  assert_equal 1, s.instance_variable_get(:@a)
+  assert_true s.instance_variable_defined?(:@a)
+  assert_equal [:@a], s.instance_variables
+  assert_equal [], "bare".instance_variables
+  assert_equal [], [].instance_variables
+  assert_equal [], (1..2).instance_variables
+  a = []
+  a.instance_variable_set(:@b, 2)
+  assert_equal [:@b], a.instance_variables
+  assert_equal [:@b], a.dup.instance_variables
+  assert_equal 2, a.remove_instance_variable(:@b)
+  assert_equal [], a.instance_variables
+  assert_raise(FrozenError) { "frozen".freeze.instance_variable_set(:@a, 2) }
+  assert_raise(FrozenError, ArgumentError) { 1.instance_variable_set(:@a, 2) }
+  assert_raise(FrozenError, ArgumentError) { :sym.instance_variable_set(:@a, 2) }
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do

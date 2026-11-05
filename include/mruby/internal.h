@@ -884,6 +884,29 @@ mrb_value mrb_exc_const_get(mrb_state *mrb, mrb_sym sym);
 
 /* GC functions */
 void mrb_gc_mark_gv(mrb_state*);
+/* Instance variables of objects whose struct has no iv slot (String, Array,
+   Range, Proc, ...) live in a side table keyed by the object (variable.c).
+   gc.c marks and frees an object's entry through these; the table exists
+   only once such an object has been given an ivar. */
+static inline mrb_bool
+mrb_obj_iv_slot_p(enum mrb_vtype tt)
+{
+  switch (tt) {
+    case MRB_TT_OBJECT:
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
+    case MRB_TT_HASH:
+    case MRB_TT_CDATA:
+    case MRB_TT_EXCEPTION:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+size_t mrb_gc_mark_giv(mrb_state *mrb, struct RBasic *obj);
+void mrb_gc_free_giv(mrb_state *mrb, struct RBasic *obj);
+void mrb_gc_free_giv_all(mrb_state *mrb);
 void mrb_gc_free_gv(mrb_state*);
 size_t mrb_gc_mark_iv(mrb_state*, struct RObject*);
 void mrb_gc_free_iv(mrb_state*, struct RObject*);

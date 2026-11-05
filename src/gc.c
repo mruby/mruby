@@ -990,6 +990,10 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   mrb_assert(is_gray(obj));
   paint_black(obj);
   mrb_gc_mark(mrb, (struct RBasic*)obj->c);
+  if (mrb->giv && !mrb_obj_iv_slot_p(obj->tt)) {
+    /* instance variables of a slotless type live in a side table */
+    children += mrb_gc_mark_giv(mrb, obj);
+  }
   switch (obj->tt) {
   case MRB_TT_ICLASS:
     {
@@ -1233,6 +1237,8 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
       struct RString *s = (struct RString*)obj;
       mrb_gc_mark(mrb, (struct RBasic*)s->as.heap.aux.fshared);
     }
+    /* instance variables, if any string has them: in the side table */
+    if (mrb->giv) mrb_gc_mark_giv(mrb, obj);
     return;
   case MRB_TT_INTEGER:
   case MRB_TT_CPTR:
@@ -1246,6 +1252,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
     /* leaf types: no children besides class */
     paint_black(obj);
     mrb_gc_mark(mrb, (struct RBasic*)obj->c);
+    if (mrb->giv) mrb_gc_mark_giv(mrb, obj);
     return;
   default:
     break;
@@ -1257,6 +1264,9 @@ static void
 obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 {
   DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
+  if (mrb->giv && !mrb_obj_iv_slot_p(obj->tt)) {
+    mrb_gc_free_giv(mrb, obj);
+  }
   switch (obj->tt) {
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
