@@ -220,6 +220,7 @@ assert('Kernel#Integer with exception: false') do
 end
 
 assert('Kernel#Float with exception: false') do
+  skip unless Object.const_defined?(:Float)
   assert_equal 1.5, Float("1.5", exception: false)
   assert_nil Float("x", exception: false)
   assert_nil Float(nil, exception: false)

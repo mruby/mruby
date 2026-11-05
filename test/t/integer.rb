@@ -442,7 +442,7 @@ end
 assert('Integer#to_s with a radix that is not an Integer') do
   assert_raise(TypeError) { 1.to_s("F") }
   assert_raise(TypeError) { 1.to_s(nil) }
-  assert_equal "1", 1.to_s(2.0)
+  assert_equal "1", 1.to_s(2.0) if Object.const_defined?(:Float)
 end
 
 assert('Integer#to_s(2) with the smallest Integer') do
