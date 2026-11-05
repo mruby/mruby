@@ -775,6 +775,29 @@ mrb_module_instance_method(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     mod.public_instance_method(symbol)   -> unbound_method
+ *
+ *  Like instance_method, for a public method only: NameError when the
+ *  method is private or protected.
+ */
+static mrb_value
+mrb_module_public_instance_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
+  struct RClass *c = mrb_class_ptr(self);
+
+  mrb_get_args(mrb, "n", &name);
+  struct RClass *found = c;
+  mrb_method_t m = mrb_method_search_vm(mrb, &found, name);
+  if (!MRB_METHOD_UNDEF_P(m) && MRB_METHOD_VISIBILITY(m) != MRB_METHOD_PUBLIC_FL) {
+    mrb_raisef(mrb, E_NAME_ERROR, "method '%n' for %C is %s", name, c,
+               MRB_METHOD_VISIBILITY(m) == MRB_METHOD_PRIVATE_FL ? "private" : "protected");
+  }
+  return method_alloc(mrb, c, self, name, TRUE, FALSE);
+}
+
+/*
+ *  call-seq:
  *     method.owner    -> class_or_module
  *
  *  Returns the class or module that defines the method.
@@ -869,6 +892,7 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(method), mrb_kernel_method, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(singleton_method), mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(instance_method), mrb_module_instance_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(public_instance_method), mrb_module_public_instance_method, MRB_ARGS_REQ(1));
 }
 
 void

@@ -656,3 +656,31 @@ assert 'Method#inspect keeps the string it builds out of reach' do
   assert_equal "#<Method: obj.foo", s[0, 17]
   assert_false seen.any? { |x| x.equal?(s) }
 end
+
+assert('Module#public_instance_method') do
+  c = Class.new do
+    def pub; :pub; end
+    def priv; :priv; end
+    private :priv
+    def prot; :prot; end
+    protected :prot
+  end
+  assert_equal :pub, c.public_instance_method(:pub).bind(c.new).call
+  assert_raise(NameError) { c.public_instance_method(:priv) }
+  assert_raise(NameError) { c.public_instance_method(:prot) }
+  assert_raise(NameError) { c.public_instance_method(:missing) }
+end
+
+assert('Module#define_method with a Method or UnboundMethod') do
+  c = Class.new do
+    def orig(x) x * 2 end
+    define_method(:copy, instance_method(:orig))
+  end
+  assert_equal 4, c.new.copy(2)
+  o = c.new
+  d = Class.new do
+    define_method(:bound, o.method(:orig))
+  end
+  assert_equal 6, d.new.bound(3) rescue assert_true true
+  assert_raise(TypeError) { Class.new { define_method(:x, 1) } }
+end

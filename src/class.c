@@ -4703,8 +4703,28 @@ define_method_m(mrb_state *mrb, struct RClass *c, int vis)
     case MRB_TT_UNDEF:
       /* ignored */
       break;
+    case MRB_TT_OBJECT:
+      /* a Method or UnboundMethod (mruby-method): the method it wraps is
+         defined under the new name, as CRuby does */
+      if (mrb_respond_to(mrb, proc, MRB_SYM(unbind))) {
+        proc = mrb_funcall_id(mrb, proc, MRB_SYM(unbind), 0);
+      }
+      if (mrb_obj_is_kind_of(mrb, proc, mrb_class_get_id(mrb, MRB_SYM(UnboundMethod)))) {
+        mrb_value owner = mrb_iv_get(mrb, proc, MRB_SYM(_owner));
+        mrb_value name = mrb_iv_get(mrb, proc, MRB_SYM(_name));
+        struct RClass *oc = mrb_class_ptr(owner);
+        mrb_method_t om = mrb_method_search_vm(mrb, &oc, mrb_symbol(name));
+        if (MRB_METHOD_UNDEF_P(om)) {
+          mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%n' for %C", mrb_symbol(name), mrb_class_ptr(owner));
+        }
+        MRB_METHOD_SET_VISIBILITY(om, vis);
+        mrb_define_method_raw(mrb, c, mid, om);
+        mrb_method_added(mrb, c, mid);
+        return mrb_symbol_value(mid);
+      }
+      /* fall through */
     default:
-      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %T (expected Proc)", proc);
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %T (expected Proc/Method/UnboundMethod)", proc);
       break;
   }
   if (mrb_nil_p(blk)) {
