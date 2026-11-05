@@ -189,6 +189,36 @@ process_euid(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
+ *   Process.__fork -> integer
+ *
+ * The fork(2) system call creates a new process that
+ * inherits from its parent.
+ *
+ * See mruby-process/mrblib/kernel.rb for where and how
+ * this method is called.
+*/
+static mrb_value
+process_fork(mrb_state *mrb, mrb_value self)
+{
+  mrb_int pid;
+  pid = mrb_hal_process_fork(mrb);
+  if (pid == -1) {
+    if (errno == ENOSYS) {
+      mrb_raise(mrb, E_NOTIMP_ERROR, "fork(2) is not implemented on this platform");
+    } else {
+      mrb_sys_fail(mrb, "fork");
+    }
+  }
+  if (pid == 0) {
+    mrb_int childpid;
+    childpid = mrb_hal_process_pid(mrb);
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$$"), mrb_int_value(mrb, childpid));
+  }
+  return mrb_int_value(mrb, pid);
+}
+
+/*
+ * call-seq:
  *   Process.gid -> integer
  *
  * The (real) group ID belonging to the current process.
@@ -397,6 +427,7 @@ mrb_mruby_process_gem_init(mrb_state *mrb)
   mrb_define_module_function_id(mrb, process, MRB_SYM(ppid),    process_ppid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(uid),     process_uid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(euid),    process_euid,    MRB_ARGS_NONE());
+  mrb_define_module_function_id(mrb, process, MRB_SYM(__fork),  process_fork,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(gid),     process_gid,     MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(egid),    process_egid,    MRB_ARGS_NONE());
   mrb_define_module_function_id(mrb, process, MRB_SYM(kill),    process_kill,    MRB_ARGS_REQ(2)|MRB_ARGS_REST());

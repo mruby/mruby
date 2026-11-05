@@ -193,6 +193,10 @@ mrb_int mrb_hal_process_gid(mrb_state *mrb);
    Returns -1 with errno set on failure. */
 mrb_int mrb_hal_process_egid(mrb_state *mrb);
 
+/* The fork(2) system call.
+   Returns -1 with errno set on failure. */
+mrb_int mrb_hal_process_fork(mrb_state *mrb);
+
 #ifdef MRB_HAL_PROCESS_HAS_WAIT
 /*
  * Wait for a child process to change state.
