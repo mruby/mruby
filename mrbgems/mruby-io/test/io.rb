@@ -503,6 +503,26 @@ assert('IO#ungetc after grow and partial read') do
   end
 end
 
+assert('IO#ungetbyte') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  assert_equal 'm', io.getc
+  assert_nil io.ungetbyte(0x4d)
+  assert_equal 'M', io.getc
+  assert_nil io.ungetbyte(-0xbf)
+  assert_equal 'A', io.getc
+  assert_nil io.ungetbyte("B")
+  assert_equal 'B', io.getc
+
+  # nil pushes nothing back, and an object that is neither an Integer nor
+  # a String is refused rather than read as an Integer
+  assert_nil io.ungetbyte(nil)
+  assert_raise(TypeError) { io.ungetbyte([0x41]) }
+  assert_raise(TypeError) { io.ungetbyte(:A) }
+  assert_raise(TypeError) { io.ungetbyte(Object.new) }
+  assert_equal 'r', io.getc
+  io.close
+end
+
 assert('IO#isatty') do
   unless MRubyIOTestUtil.win?
     begin
@@ -577,6 +597,8 @@ assert('IO#gets') do
   # gets with limit
   io.pos = 0
   assert_equal $mrbtest_io_msg[0, 5], io.gets(5), "gets with limit"
+  io.pos = 0
+  assert_equal $mrbtest_io_msg[0, 5], io.gets(5.0), "gets with a Float limit"
 
   # gets with rs
   io.pos = 0
