@@ -37,6 +37,7 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process::CLOCK_PROCESS_CPUTIME_ID | o             | mruby's own value, not the platform's    |
 | Process::CLOCK_THREAD_CPUTIME_ID  | o             | mruby's own value, not the platform's    |
 | Process.fork, Kernel#fork         | o             | NotImplementedError on Windows           |
+| Process.uid, .euid, .gid, .egid   | o             | 0 on Windows, as in CRuby                |
 | Process::Status#pid               | o             |                                          |
 | Process::Status#to_i              | o             | no `#to_int`; mruby converts nothing     |
 | Process::Status#exited?           | o             |                                          |
@@ -53,7 +54,6 @@ from, the second the `Struct` `Process::Tms` is one of.
 | Process.spawn                     |               | separate change                          |
 | Process.exec                      |               | separate change                          |
 | Process.exit, .exit!              |               | see mruby-exit                           |
-| Process.uid, .gid, ...            |               | separate change                          |
 | Process.getpgrp, ...              |               | separate change                          |
 
 ## What the port declares
