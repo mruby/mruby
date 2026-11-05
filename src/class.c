@@ -2439,6 +2439,17 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
  *     end
  *     Klass.new.hello   #=> "Hello from Mod.\n"
  */
+/* Module#prepend_features(base): the prepending itself, which a module
+ * overrides to take part in its own prepending */
+static mrb_value
+mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value base = mrb_get_arg1(mrb);
+  mrb_check_type(mrb, base, MRB_TT_CLASS);
+  mrb_prepend_module(mrb, mrb_class_ptr(base), mrb_class_ptr(mod));
+  return mod;
+}
+
 static mrb_value
 mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
 {
@@ -2446,12 +2457,18 @@ mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
   mrb_int argc;
   mrb_value *argv;
   mrb_sym prepended = MRB_SYM(prepended);
+  mrb_sym prepend_features = MRB_SYM(prepend_features);
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
     mrb_value m = argv[argc];
     mrb_check_type(mrb, m, MRB_TT_MODULE);
-    mrb_prepend_module(mrb, c, mrb_class_ptr(m));
+    if (mrb_func_basic_p(mrb, m, prepend_features, mrb_mod_prepend_features)) {
+      mrb_prepend_module(mrb, c, mrb_class_ptr(m));
+    }
+    else {
+      mrb_funcall_argv(mrb, m, prepend_features, 1, &mod);
+    }
     if (!mrb_func_basic_p(mrb, m, prepended, mrb_do_nothing)) {
       mrb_funcall_argv(mrb, m, prepended, 1, &mod);
     }
@@ -2476,6 +2493,19 @@ mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
  *     end
  *     Klass.new.hello   #=> "Hello from Mod.\n"
  */
+/* Module#append_features(base): the inclusion itself, which a module
+ * overrides to take part in its own inclusion (ActiveSupport::Concern) */
+static mrb_value
+mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value base = mrb_get_arg1(mrb);
+  if (!mrb_class_p(base) && !mrb_module_p(base)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected Module)", mrb_obj_class(mrb, base));
+  }
+  mrb_include_module(mrb, mrb_class_ptr(base), mrb_class_ptr(mod));
+  return mod;
+}
+
 static mrb_value
 mrb_mod_include(mrb_state *mrb, mrb_value mod)
 {
@@ -2483,12 +2513,18 @@ mrb_mod_include(mrb_state *mrb, mrb_value mod)
   mrb_int argc;
   mrb_value *argv;
   mrb_sym included = MRB_SYM(included);
+  mrb_sym append_features = MRB_SYM(append_features);
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
     mrb_value m = argv[argc];
     mrb_check_type(mrb, m, MRB_TT_MODULE);
-    mrb_include_module(mrb, c, mrb_class_ptr(m));
+    if (mrb_func_basic_p(mrb, m, append_features, mrb_mod_append_features)) {
+      mrb_include_module(mrb, c, mrb_class_ptr(m));
+    }
+    else {
+      mrb_funcall_argv(mrb, m, append_features, 1, &mod);
+    }
     if (!mrb_func_basic_p(mrb, m, included, mrb_do_nothing)) {
       mrb_funcall_argv(mrb, m, included, 1, &mod);
     }
@@ -2535,12 +2571,24 @@ mrb_mod_include(mrb_state *mrb, mrb_value mod)
  *             If any of the included modules define an `extended` hook, it is called
  *             with `obj` as an argument.
  */
+/* Module#extend_object(obj): the extension itself, which a module
+ * overrides to take part in extending an object */
+static mrb_value
+mrb_mod_extend_object(mrb_state *mrb, mrb_value mod)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_value cc = mrb_singleton_class(mrb, obj);
+  mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
+  return obj;
+}
+
 mrb_value
 mrb_obj_extend(mrb_state *mrb, mrb_value obj)
 {
   mrb_int argc;
   mrb_value *argv;
   mrb_sym extended = MRB_SYM(extended);
+  mrb_sym extend_object = MRB_SYM(extend_object);
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
@@ -2548,7 +2596,12 @@ mrb_obj_extend(mrb_state *mrb, mrb_value obj)
   while (argc--) {
     mrb_value mod = argv[argc];
     mrb_check_type(mrb, mod, MRB_TT_MODULE);
-    mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
+    if (mrb_func_basic_p(mrb, mod, extend_object, mrb_mod_extend_object)) {
+      mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
+    }
+    else {
+      mrb_funcall_argv(mrb, mod, extend_object, 1, &obj);
+    }
     if (!mrb_func_basic_p(mrb, mod, extended, mrb_do_nothing)) {
       mrb_funcall_argv(mrb, mod, extended, 1, &obj);
     }
@@ -5236,6 +5289,9 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mod_define_method,       MRB_SYM(define_method),    MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(mrb_mod_dup,             MRB_SYM(dup),              MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(extended),         MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.26 */
+  MRB_MT_ENTRY(mrb_mod_extend_object,   MRB_SYM(extend_object),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_append_features, MRB_SYM(append_features),  MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_mod_prepend_features, MRB_SYM(prepend_features), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_include,         MRB_SYM(include),          MRB_ARGS_ANY()),                    /* 15.2.2.4.27 */
   MRB_MT_ENTRY(mrb_mod_include_p,       MRB_SYM_Q(include),        MRB_ARGS_REQ(1)),                   /* 15.2.2.4.28 */
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(included),         MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.29 */
