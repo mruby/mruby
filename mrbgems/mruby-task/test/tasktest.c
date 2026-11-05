@@ -26,6 +26,21 @@ tasktest_block_then_raise(mrb_state *mrb, mrb_value self)
   return mrb_nil_value(); /* not reached */
 }
 
+/* Burn CPU for `ms` milliseconds, as block_then_raise does, and return.
+   Called from Ruby, the ticks it spans expire the running task's timeslice,
+   so a switch is pending when it returns. */
+static mrb_value
+tasktest_block(mrb_state *mrb, mrb_value self)
+{
+  mrb_int ms;
+  mrb_get_args(mrb, "i", &ms);
+  clock_t end = clock() + (clock_t)(((double)ms / 1000.0) * (double)CLOCKS_PER_SEC);
+  while (clock() < end) {
+    /* busy-wait; ticks keep firing */
+  }
+  return mrb_nil_value();
+}
+
 /* Scheduler-hook probes. Two counters so the replace semantics can be
    observed: which counter grows tells which hook is installed. */
 static uint32_t probe_count_a;
@@ -381,6 +396,7 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
 {
   struct RClass *tasktest = mrb_define_module(mrb, "TaskTest");
   mrb_define_module_function(mrb, tasktest, "block_then_raise", tasktest_block_then_raise, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, tasktest, "block", tasktest_block, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "install_probe_hook", tasktest_install_probe_hook, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "probe_count", tasktest_probe_count, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, tasktest, "install_wake_hook", tasktest_install_wake_hook, MRB_ARGS_REQ(1));

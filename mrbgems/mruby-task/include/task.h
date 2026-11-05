@@ -202,8 +202,11 @@ MRB_API void mrb_task_proc_set(mrb_state *mrb, mrb_value task, struct RProc *pro
 #define wakeup_tick_ (mrb->task.wakeup_tick)
 #define switching_   (mrb->task.switching)
 
-/* Recover the mrb_task that owns the current mruby context */
-#define MRB2TASK(mrb) ((mrb_task *)((uint8_t *)(mrb)->c - offsetof(mrb_task, c)))
+/* Recover the mrb_task that owns a context. The context must be a task's
+   own, not a fiber's: mrb->c is a fiber's while a task runs a fiber, so the
+   running task is read through mrb_task_running() rather than this. */
+#define MRB2TASK_C(ctx) ((mrb_task *)((uint8_t *)(ctx) - offsetof(mrb_task, c)))
+#define MRB2TASK(mrb) MRB2TASK_C((mrb)->c)
 
 /* Raise if the scheduler is locked (synchronous execution in progress) */
 static inline void
@@ -215,6 +218,9 @@ task_check_scheduler_lock(mrb_state *mrb)
 }
 
 /* Priority-queue insert/delete - defined in task.c */
+/* The task whose slice is running: mrb->c's own task, or the task running
+   the fiber mrb->c is; NULL on the root context (task.c). */
+mrb_task *mrb_task_running(mrb_state *mrb);
 void mrb_task_q_insert(mrb_state *mrb, mrb_task *t);
 void mrb_task_q_delete(mrb_state *mrb, mrb_task *t);
 

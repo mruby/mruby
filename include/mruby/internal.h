@@ -1060,6 +1060,8 @@ mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
 #ifdef MRB_USE_TASK_SCHEDULER
 /* GC marking for task scheduler */
 void mrb_task_mark_all(mrb_state *mrb);
+/* vm.c: whether the running task can be switched away from here */
+mrb_bool mrb_task_across_c_boundary(mrb_state *mrb);
 #endif
 
 /* Internal object allocation without type validation (gc.c) */

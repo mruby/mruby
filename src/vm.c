@@ -2523,20 +2523,33 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #define CALL_CODE_HOOKS() do { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); } while (0)
 
 #ifdef MRB_USE_TASK_SCHEDULER
-/* TRUE when the current context is executing across a C call boundary, i.e.
-   a C function on the stack re-entered the VM (mrb_funcall / mrb_yield /
-   mrb_vm_run). A task cannot be suspended at such a point: the C stack
-   frame between the scheduler's mrb_vm_exec and the current frame cannot
-   be saved or restored, and returning early from the inner mrb_vm_exec
-   would leave the call-info stack drifted, tripping the assertion in
-   mrb_vm_run (issues #6864, #6868). The scheduler defers the switch until
-   execution unwinds back to a frame with no C boundary. This mirrors the
-   cooperative guard in Task.pass, which raises rather than defers.
-   cibase is excluded: it is the entry frame of this mrb_vm_exec. */
-static mrb_bool
-task_across_c_boundary(mrb_state *mrb)
+/* TRUE when the current context cannot be switched away from, i.e. a
+   C stack frame stands between the scheduler's mrb_vm_exec and the current
+   Ruby frame: a C function on the stack re-entered the VM (mrb_funcall /
+   mrb_yield / mrb_vm_run), or a fiber is running. A task cannot be
+   suspended at such a point: the C frame cannot be saved or restored, and
+   returning early from the inner mrb_vm_exec would leave the call-info
+   stack drifted, tripping the assertion in mrb_vm_run (issues #6864,
+   #6868). The scheduler defers the switch until execution unwinds back to
+   a frame with no C boundary. This mirrors the cooperative guard in
+   Task.pass, which raises rather than defers.
+
+   A fiber is such a point for two reasons. Fiber#resume runs the fiber
+   under an mrb_vm_exec of its own, nested in fiber_switch's C frame, so an
+   early return from it hands the resumer nil as the fiber's value instead
+   of parking the task; and the scheduler resumes a task at the task's own
+   context, so a slice that ended inside a fiber would lose the fiber. The
+   deferral lasts until the fiber yields or ends, and so does a timeslice
+   that expired meanwhile. mruby-task's cooperative calls (sleep, pass,
+   join) use the same test. cibase is excluded: it is the entry frame of
+   this mrb_vm_exec. */
+mrb_bool
+mrb_task_across_c_boundary(mrb_state *mrb)
 {
-  for (mrb_callinfo *ci = mrb->c->ci; ci > mrb->c->cibase; ci--) {
+  const struct mrb_context *c = mrb->c;
+
+  if (c->fib) return TRUE;
+  for (const mrb_callinfo *ci = c->ci; ci > c->cibase; ci--) {
     if (ci->cci > 0) return TRUE;
   }
   return FALSE;
@@ -2548,7 +2561,7 @@ task_across_c_boundary(mrb_state *mrb)
    iteration is still active drifts the call-info stack and eventually
    crashes (issue #6862). Switches resume at the next OP boundary after
    the walk releases gc.iterating. A pending switch is also deferred while
-   executing across a C call boundary (see task_across_c_boundary). A
+   executing across a C call boundary (see mrb_task_across_c_boundary). A
    pending MRB_TASK_STOPPED is not deferred, since the task is going away.
 
    A pending switch is likewise deferred while an exception is in flight
@@ -2585,7 +2598,7 @@ task_across_c_boundary(mrb_state *mrb)
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
   if (((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
        !(mrb)->exc && \
-       !(mrb)->gc.iterating && !task_across_c_boundary(mrb)) || \
+       !(mrb)->gc.iterating && !mrb_task_across_c_boundary(mrb)) || \
       (mrb)->c->status == MRB_TASK_STOPPED) { \
     (mrb)->jmp = prev_jmp; \
     return mrb_nil_value(); \
