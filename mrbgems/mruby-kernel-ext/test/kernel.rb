@@ -209,3 +209,19 @@ assert('Kernel.<conversion> module functions') do
   assert_raise(NoMethodError) { obj.Integer("3") }
   assert_raise(NoMethodError) { obj.fail "boom" }
 end
+
+assert('Kernel#Integer with exception: false') do
+  assert_equal 12, Integer("12", exception: false)
+  assert_nil Integer("x", exception: false)
+  assert_nil Integer(nil, exception: false)
+  assert_nil Integer("12", 1, exception: false)
+  assert_equal 12, Integer("12", exception: true)
+  assert_raise(ArgumentError) { Integer("x", exception: true) }
+end
+
+assert('Kernel#Float with exception: false') do
+  assert_equal 1.5, Float("1.5", exception: false)
+  assert_nil Float("x", exception: false)
+  assert_nil Float(nil, exception: false)
+  assert_raise(ArgumentError) { Float("x") }
+end
