@@ -588,6 +588,35 @@ KHASH_DECLARE(giv, struct RBasic*, iv_tbl*, TRUE)
 KHASH_DEFINE(giv, struct RBasic*, iv_tbl*, TRUE, giv_hash_func, giv_hash_equal)
 
 static iv_tbl*
+giv_new_tbl(mrb_state *mrb, iv_tbl *unused)
+{
+  (void)unused;
+  return iv_new(mrb);
+}
+
+/* Gives `key` an entry holding the table `make(mrb, src)` builds.
+
+   Any allocation may run the GC (every one does under MRB_GC_STRESS), and
+   the GC reads this hash: the mark looks up each slotless object's entry,
+   and the sweep deletes the entries of the objects it frees. So the entry
+   is published holding NULL, which every reader takes for "no ivars",
+   before the table is built; and the slot is looked up again afterwards,
+   because a sweep's deletion can move the entries of a small table. An
+   allocation failure leaves the NULL entry, which goes with its object. */
+static iv_tbl*
+giv_store(mrb_state *mrb, struct RBasic *key, iv_tbl *(*make)(mrb_state*, iv_tbl*), iv_tbl *src)
+{
+  kh_giv_t *h = mrb->giv;
+  khiter_t k = kh_put(giv, mrb, h, key);
+  kh_value(giv, h, k) = NULL;
+  iv_tbl *t = make(mrb, src);
+  k = kh_get(giv, mrb, h, key);
+  mrb_assert(k != kh_end(h));
+  kh_value(giv, h, k) = t;
+  return t;
+}
+
+static iv_tbl*
 giv_tbl(mrb_state *mrb, mrb_value obj, mrb_bool create)
 {
   kh_giv_t *h = mrb->giv;
@@ -600,13 +629,7 @@ giv_tbl(mrb_state *mrb, mrb_value obj, mrb_bool create)
   khiter_t k = kh_get(giv, mrb, h, key);
   if (k != kh_end(h)) return kh_value(giv, h, k);
   if (!create) return NULL;
-  /* the entry first, so that an allocation failure in iv_new leaves an
-     empty entry rather than a table nobody frees */
-  k = kh_put(giv, mrb, h, key);
-  kh_value(giv, h, k) = NULL;
-  iv_tbl *t = iv_new(mrb);
-  kh_value(giv, h, k) = t;
-  return t;
+  return giv_store(mrb, key, giv_new_tbl, NULL);
 }
 
 /* An object that can hold instance variables in the side table: neither
@@ -981,10 +1004,10 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
     if (!mrb->giv || !giv_obj_p(src)) return;
     mrb_gc_free_giv(mrb, mrb_basic_ptr(dest));
     iv_tbl *t = giv_tbl(mrb, src, FALSE);
-    if (t) {
-      kh_giv_t *h = mrb->giv;
-      khiter_t k = kh_put(giv, mrb, h, mrb_basic_ptr(dest));
-      kh_value(giv, h, k) = iv_copy(mrb, t);
+    if (t && t->size > 0) {
+      /* src stays reachable from the caller, so the values the copy
+         holds stay alive while it is being made */
+      giv_store(mrb, mrb_basic_ptr(dest), iv_copy, t);
       mrb_write_barrier(mrb, mrb_basic_ptr(dest));
     }
     return;
