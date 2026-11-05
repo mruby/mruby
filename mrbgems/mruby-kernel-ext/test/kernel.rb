@@ -214,9 +214,21 @@ assert('Kernel#Integer with exception: false') do
   assert_equal 12, Integer("12", exception: false)
   assert_nil Integer("x", exception: false)
   assert_nil Integer(nil, exception: false)
-  assert_nil Integer("12", 1, exception: false)
+  assert_nil Integer("12", 2, exception: false)
+  assert_equal 7, Integer("111", -2, exception: false)
+  assert_equal 12, Integer("12", 0, exception: false)
+  assert_equal 12, Integer("12", -1, exception: false)
   assert_equal 12, Integer("12", exception: true)
   assert_raise(ArgumentError) { Integer("x", exception: true) }
+end
+
+assert('Kernel#Integer with exception: false still raises on an illegal radix') do
+  assert_raise(ArgumentError) { Integer("12", 1, exception: false) }
+  assert_raise(ArgumentError) { Integer("12", 37, exception: false) }
+  assert_raise(ArgumentError) { Integer("12", -37, exception: false) }
+  # a radix given for a non-String is a conversion that fails
+  assert_nil Integer(12, 1, exception: false)
+  assert_nil Integer(12, 10, exception: false)
 end
 
 assert('Kernel#Float with exception: false') do
