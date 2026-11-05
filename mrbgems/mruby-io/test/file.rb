@@ -26,6 +26,27 @@ assert('File#initialize', '15.2.21.4.1') do
   assert_nil io.close
 end
 
+assert('File.new with keyword options') do
+  io = File.new($mrbtest_io_rfname, mode: "r")
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+
+  # a descriptor with autoclose: false stays open behind the File
+  io = File.open($mrbtest_io_rfname, "r")
+  dup = File.new(io.fileno, autoclose: false, path: "given")
+  assert_equal "given", dup.path
+  assert_false dup.autoclose?
+  dup.close
+  assert_true dup.closed?
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+
+  # an unknown keyword is accepted
+  io = File.new($mrbtest_io_rfname, "r", binmode: true)
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+end
+
 assert('File#path', '15.2.21.4.2') do
   io = File.open($mrbtest_io_rfname, "r")
   assert_equal $mrbtest_io_msg, io.read

@@ -54,6 +54,16 @@ assert('IO.open', '15.2.20.4.1') do
   assert_io_open(:open)
 end
 
+assert('IO.new with autoclose: false') do
+  io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
+  dup = IO.new(io.fileno, "r", autoclose: false)
+  assert_false dup.autoclose?
+  dup.close
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+  assert_true IO.new(IO.sysopen($mrbtest_io_rfname), "r", {}).autoclose?
+end
+
 assert('IO#close', '15.2.20.5.1') do
   io = IO.new(IO.sysopen($mrbtest_io_rfname))
   assert_nil io.close

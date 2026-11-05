@@ -7,22 +7,30 @@ class File < IO
   #   File.new(filename, mode="r")            -> file
   #   File.new(filename [, mode [, perm]])    -> file
   #   File.new(fd [, mode])                   -> file
+  #   File.new(path_or_fd, **options)         -> file
   #
   # Opens the file named by filename according to the given mode and returns
   # a new File object. If a file descriptor is given instead of a filename,
   # the new File object will be associated with that descriptor.
   #
+  # The keyword options are those of IO.new: +mode:+ in place of the
+  # positional mode, +autoclose:+ for a descriptor, and +path:+ for the path
+  # that File#path reports for a descriptor. Other keywords are ignored.
+  #
   #   f = File.new("testfile", "r")
   #   f = File.new("newfile",  "w+")
   #   f = File.new("tmpfile",  "a")
+  #   f = File.new(fd, autoclose: false, path: "/dev/stdout")
   #
-  def initialize(fd_or_path, mode = "r", perm = 0666)
+  def initialize(fd_or_path, mode = "r", perm = 0666, **opts)
+    mode = opts[:mode] if opts[:mode]
     if Integer === fd_or_path
-      super(fd_or_path, mode)
+      @path = opts[:path]
+      super(fd_or_path, mode, opts)
     else
       @path = fd_or_path
       fd = IO.sysopen(@path, mode, perm)
-      super(fd, mode)
+      super(fd, mode, opts)
     end
   end
 
