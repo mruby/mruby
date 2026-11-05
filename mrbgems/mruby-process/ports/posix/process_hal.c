@@ -18,6 +18,9 @@
 #include <limits.h>
 #include <signal.h>
 #include <unistd.h>
+#if defined(__APPLE__)
+# include <TargetConditionals.h>
+#endif
 
 /*
  * Feature Capabilities
@@ -83,12 +86,20 @@ mrb_hal_process_egid(mrb_state *mrb)
   return (mrb_int)getegid();
 }
 
+/* iOS lets no process run another; fork(2) is refused there as on Windows,
+   which Process.fork reports as NotImplementedError. */
 mrb_int
 mrb_hal_process_fork(mrb_state *mrb)
 {
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+  (void)mrb;
+  errno = ENOSYS;
+  return -1;
+#else
   pid_t pid;
   pid = fork();
   return pid < 0 ? -1 : (mrb_int)pid;
+#endif
 }
 
 /*
