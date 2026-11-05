@@ -439,6 +439,12 @@ assert('Integer#to_s', '15.2.8.3.25') do
   assert_raise(ArgumentError) { 10.to_s(37) }
 end
 
+assert('Integer#to_s with a radix that is not an Integer') do
+  assert_raise(TypeError) { 1.to_s("F") }
+  assert_raise(TypeError) { 1.to_s(nil) }
+  assert_equal "1", 1.to_s(2.0)
+end
+
 assert('Integer#to_s(2) with the smallest Integer') do
   # The magnitude of the smallest Integer spends every bit an mrb_int has, so
   # base 2 is the one conversion that writes MRB_INT_BIT digits and still
