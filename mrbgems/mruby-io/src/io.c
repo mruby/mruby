@@ -603,6 +603,14 @@ io_init(mrb_state *mrb, mrb_value io)
       break;
   }
   int flags = io_mode_to_flags(mrb, mode);
+  /* the keyword options: autoclose: false keeps the descriptor open
+   * after close; the others (binmode:, path:, ...) are accepted and
+   * left to the caller */
+  mrb_bool autoclose = TRUE;
+  if (!mrb_nil_p(opt)) {
+    mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(autoclose)));
+    if (!mrb_nil_p(v)) autoclose = mrb_test(v);
+  }
 
   struct mrb_io *fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
@@ -617,6 +625,8 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->fd = (int)fd;
   fptr->readable = OPEN_READABLE_P(flags);
   fptr->writable = OPEN_WRITABLE_P(flags);
+  fptr->close_fd = autoclose;
+  fptr->close_fd2 = autoclose;
   io_init_buf(mrb, fptr);
   return io;
 }
