@@ -2712,8 +2712,8 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
       argv = RARRAY_PTR(argv[0]);
     }
     for (int i=0; i<argc; i++) {
-      mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
-      mrb_sym mid = mrb_symbol(argv[i]);
+      /* a Symbol or a String, as in CRuby */
+      mrb_sym mid = mrb_obj_to_sym(mrb, argv[i]);
       mrb_method_t m = mrb_method_search(mrb, c, mid);
       MRB_METHOD_SET_VISIBILITY(m, vis);
       union mrb_mt_ptr ptr;
@@ -4804,9 +4804,8 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   struct RClass *rclass = mrb_class_ptr(mod);
   int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
-
-    mrb_sym mid = mrb_symbol(argv[i]);
+    /* a Symbol or a String, as in CRuby */
+    mrb_sym mid = mrb_obj_to_sym(mrb, argv[i]);
     mrb_method_t m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
