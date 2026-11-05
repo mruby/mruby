@@ -101,6 +101,9 @@ mrb_mruby_encoding_gem_init(mrb_state* mrb)
   mrb_define_const_id(mrb, e, MRB_SYM(ASCII_8BIT), b);
   mrb_define_const_id(mrb, e, MRB_SYM(BINARY), b);
   mrb_define_const_id(mrb, e, MRB_SYM(UTF_8), mrb_str_new_lit_frozen(mrb, ENC_UTF8));
+  /* every string of ASCII bytes is also US-ASCII; the constant lets code
+     name the encoding (Active Support lists it) */
+  mrb_define_const_id(mrb, e, MRB_SYM(US_ASCII), mrb_str_new_lit_frozen(mrb, "US-ASCII"));
 }
 
 void

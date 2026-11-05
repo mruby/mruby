@@ -934,3 +934,7 @@ assert('minrepro') do
     end
   end
 end
+
+assert('Encoding::US_ASCII') do
+  assert_equal "US-ASCII", Encoding::US_ASCII
+end
