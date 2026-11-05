@@ -62,6 +62,17 @@ assert('IO.new with autoclose: false') do
   assert_equal $mrbtest_io_msg, io.read
   io.close
   assert_true IO.new(IO.sysopen($mrbtest_io_rfname), "r", {}).autoclose?
+
+  # the keywords without a positional mode
+  io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
+  dup = IO.new(io.fileno, autoclose: false)
+  assert_false dup.autoclose?
+  dup.close
+  io.close
+  io = IO.new(IO.sysopen($mrbtest_io_wfname, "w"), mode: "w")
+  assert_equal 2, io.write("ok")
+  io.close
+  File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
 end
 
 assert('IO#close', '15.2.20.5.1') do

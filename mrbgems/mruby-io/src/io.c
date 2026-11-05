@@ -593,6 +593,14 @@ io_init(mrb_state *mrb, mrb_value io)
     mrb_warn(mrb, "File.new() does not take block; use File.open() instead");
   }
   mrb_get_args(mrb, "i|oH", &fd, &mode, &opt);
+  if (mrb_hash_p(mode) && mrb_nil_p(opt)) {
+    /* IO.new(fd, autoclose: false): the keywords without a mode */
+    opt = mode;
+    mode = mrb_nil_value();
+  }
+  if (mrb_nil_p(mode) && !mrb_nil_p(opt)) {
+    mode = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(mode)));
+  }
   switch (fd) {
     case 0: /* STDIN_FILENO */
     case 1: /* STDOUT_FILENO */
