@@ -195,3 +195,21 @@ assert('a `def` in a method written in a block given to class_exec or module_exe
   assert_true Class.new { include m }.new.respond_to?(:from_direct)
   assert_false Object.new.respond_to?(:from_direct, true)
 end
+
+assert('Module#< and friends with singleton classes') do
+  m = Module.new
+  o = Object.new
+  sc = class << o; self; end
+  assert_nil sc < m
+  o.extend m
+  assert_true sc < m
+  assert_true sc <= m
+  assert_false m < sc
+  assert_true m > sc
+  assert_equal(-1, sc <=> m)
+  string_sc = class << String; self; end
+  object_sc = class << Object; self; end
+  assert_true string_sc < Class
+  assert_true string_sc < object_sc
+  assert_nil Comparable <=> string_sc
+end
