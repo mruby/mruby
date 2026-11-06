@@ -69,6 +69,7 @@ typedef struct mrb_task {
   mrb_value result;                /* Task return value */
 
   struct mrb_context c;            /* Execution context (stack, callinfo, etc) */
+  struct mrb_context *parked;      /* Fiber the last slice stopped in, else NULL */
 } mrb_task;
 
 /* Normalize a freshly computed wakeup deadline so it can never equal the

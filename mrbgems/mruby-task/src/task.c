@@ -73,6 +73,28 @@ task_release_fiber(struct mrb_context *c)
   }
 }
 
+/* The fibers a stopped task leaves unfinished never run again, and their prev
+ * links would outlive the task's context. Envs are detached first and with
+ * the chain intact, as that can run the GC, which reaches them all through
+ * t->parked. Only called while the VM is alive, like task_unshare_envs(). */
+static void
+task_abandon_fibers(mrb_state *mrb, mrb_task *t)
+{
+  struct mrb_context *c;
+
+  for (c = t->parked; c != &t->c; c = c->prev) {
+    if (!c) return;
+    mrb_env_detach_all(mrb, c, TRUE);
+  }
+  for (c = t->parked; c != &t->c; ) {
+    struct mrb_context *prev = c->prev;
+    c->status = MRB_FIBER_TERMINATED;
+    c->prev = NULL;
+    c = prev;
+  }
+  t->parked = NULL;
+}
+
 /*
  * Task data type for GC
  */
@@ -204,6 +226,8 @@ mrb_task_mark_all(mrb_state *mrb)
 
       /* Mark fiber */
       mrb_gc_mark(mrb, (struct RBasic*)c->fib);
+      /* The fiber a slice stopped in, and through its resumers the rest */
+      if (t->parked) mrb_gc_mark(mrb, (struct RBasic*)t->parked->fib);
 
       /* Mark task-specific values */
       mrb_gc_mark_value(mrb, t->self);
@@ -293,6 +317,7 @@ static inline mrb_bool
 task_cleanup_if_stopped(mrb_state *mrb, mrb_task *t)
 {
   if (t->status == MRB_TASK_STATUS_DORMANT || t->c.status == MRB_TASK_STOPPED) {
+    task_abandon_fibers(mrb, t);
     /* Task is terminated but still in queue - remove it */
     mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
@@ -491,7 +516,9 @@ execute_task(mrb_state *mrb, mrb_task *t)
    * (ci == NULL). Retire such a task instead of dereferencing the hole
    * — checked BEFORE the context switch so the scheduler's own context
    * stays usable. */
-  if (t->c.ci == NULL || t->c.ci->proc == NULL) {
+  struct mrb_context *c = t->parked ? t->parked : &t->c;
+  if (c->ci == NULL || c->ci->proc == NULL) {
+    task_abandon_fibers(mrb, t);
     mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
     t->status = MRB_TASK_STATUS_DORMANT;
@@ -512,14 +539,16 @@ execute_task(mrb_state *mrb, mrb_task *t)
   prev_ci = prev_c->ci;
   prev_cci = prev_c->ci->cci;
   t->c.prev = mrb->c;
-  mrb->c = &t->c;
+  /* Pick up where the last slice stopped, which may be inside a fiber */
+  mrb->c = c;
+  t->parked = NULL;
 
   /* Clear switching flag */
   switching_ = FALSE;
 
   /* Save proc and PC to locals before calling mrb_vm_exec */
-  const struct RProc *proc = t->c.ci->proc;
-  const mrb_code *pc = t->c.ci->pc;
+  const struct RProc *proc = mrb->c->ci->proc;
+  const mrb_code *pc = mrb->c->ci->pc;
 
   /* Set vmexec flag to prevent fiber_terminate from being called */
   t->c.vmexec = TRUE;
@@ -545,6 +574,19 @@ execute_task(mrb_state *mrb, mrb_task *t)
   /* Clear switching flag */
   switching_ = FALSE;
 
+  /* A slice can end inside a fiber resumed from this task. Nothing wrote a
+     barrier for that fiber's stack while it ran as the current context, and
+     it is no longer one. */
+  for (c = mrb->c; c; c = c->prev) {
+    if (c == &t->c) {
+      if (mrb->c != &t->c) {
+        t->parked = mrb->c;
+        mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
+      }
+      break;
+    }
+  }
+
   /* Restore context */
   mrb->c = prev_c;
   t->c.prev = NULL;
@@ -566,6 +608,7 @@ execute_task(mrb_state *mrb, mrb_task *t)
   /* Handle task termination */
   if (t->c.status == MRB_TASK_STOPPED) {
     switching_ = FALSE;
+    task_abandon_fibers(mrb, t);
     mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
     t->status = MRB_TASK_STATUS_DORMANT;
@@ -841,8 +884,8 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
     return;
   }
 
-  /* Across a C function or inside a fiber the task cannot be parked:
-     fall back to a blocking sleep without a context switch. */
+  /* Across a C function the task cannot be parked: fall back to a blocking
+     sleep without a context switch. */
   if (mrb_task_across_c_boundary(mrb)) {
     mrb_hal_task_sleep_us(mrb, usec);
     switching_ = FALSE;
@@ -1151,8 +1194,8 @@ mrb_task_s_pass(mrb_state *mrb, mrb_value self)
     task_run_one_iteration(mrb);
   }
   else {
-    /* Across a C function or inside a fiber there is no frame to come
-       back to from the scheduler. */
+    /* Across a C function there is no frame to come back to from the
+       scheduler. */
     if (mrb_task_across_c_boundary(mrb)) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "can't pass across C function boundary");
     }
@@ -1785,6 +1828,8 @@ terminate_task_internal(mrb_state *mrb, mrb_task *t)
 
   mrb_bool was_running = (t->status == MRB_TASK_STATUS_RUNNING);
 
+  task_abandon_fibers(mrb, t);
+
   mrb_task_excl_enter(mrb);
   mrb_task_q_delete(mrb, t);
   t->status = MRB_TASK_STATUS_DORMANT;
@@ -1882,6 +1927,7 @@ mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
   struct mrb_context *c = &t->c;
 
   /* Cleanup existing context if any */
+  task_abandon_fibers(mrb, t);
   task_release_fiber(c);
   task_unshare_envs(mrb, c);
   if (c->stbase) {
@@ -1911,6 +1957,7 @@ mrb_task_reset_context(mrb_state *mrb, mrb_value task)
   if (!t) return;
 
   struct mrb_context *c = &t->c;
+  task_abandon_fibers(mrb, t);
   c->ci = c->cibase;
   c->status = MRB_TASK_CREATED;
   if (c->ci) {

@@ -385,14 +385,15 @@ assert("a switch pending inside a fiber is honored once the fiber returns") do
   assert_equal [:second_task, :first_task], order
 end
 
-assert("sleep inside a fiber blocks instead of parking the task") do
+assert("sleep inside a fiber parks the task and lets the others run") do
   skip unless Object.const_defined?(:Fiber)
-  result = nil
+  order = []
   Task.new do
-    result = Fiber.new { sleep(0.001); :slept }.resume
+    order << Fiber.new { usleep(20_000); order << :woke; :slept }.resume
   end
+  Task.new { order << :other }
   Task.run
-  assert_equal :slept, result
+  assert_equal [:other, :woke, :slept], order
 end
 
 assert("Task.current inside a fiber resumed outside any task is the main task") do
@@ -403,21 +404,19 @@ end
 assert("Task.current and Task.pass inside a fiber") do
   skip unless Object.const_defined?(:Fiber)
   current = nil
-  passed = nil
+  order = []
   task = Task.new do
-    Fiber.new do
+    order << Fiber.new do
       current = Task.current
-      passed = begin
-        Task.pass
-        :passed
-      rescue RuntimeError => e
-        e.message
-      end
+      Task.pass
+      order << :passed
+      :returned
     end.resume
   end
+  Task.new { order << :other }
   Task.run
   assert_equal task, current
-  assert_equal "can't pass across C function boundary", passed
+  assert_equal [:other, :passed, :returned], order
 end
 
 assert("exception raised from C after blocking is not leaked into Task#value") do
@@ -866,4 +865,146 @@ assert("Task.current after Fiber.current on the root context") do
   main = Task.current
   Fiber.current
   assert_equal main, Task.current
+end
+
+assert("Task#join and Queue#pop inside a fiber") do
+  skip unless Object.const_defined?(:Fiber)
+  order = []
+  q = Task::Queue.new
+  worker = Task.new { usleep(10_000); order << :worker; q.push(:item) }
+  Task.new do
+    order << Fiber.new do
+      worker.join
+      q.pop
+    end.resume
+  end
+  Task.run
+  assert_equal [:worker, :item], order
+end
+
+assert("a task parked in nested fibers comes back through them") do
+  skip unless Object.const_defined?(:Fiber)
+  order = []
+  Task.new do
+    outer = Fiber.new do
+      inner = Fiber.new do
+        usleep(10_000)
+        Fiber.yield :yielded
+        :inner_done
+      end
+      order << inner.resume
+      Task.pass
+      order << inner.resume
+      :outer_done
+    end
+    order << outer.resume
+  end
+  Task.new { order << :other }
+  Task.run
+  assert_equal [:other, :yielded, :inner_done, :outer_done], order
+end
+
+assert("an exception raised after a fiber was parked reaches its resumer") do
+  skip unless Object.const_defined?(:Fiber)
+  err = nil
+  Task.new do
+    begin
+      Fiber.new { Task.pass; raise "after park" }.resume
+    rescue => e
+      err = e.message
+    end
+  end
+  Task.new {}
+  Task.run
+  assert_equal "after park", err
+end
+
+assert("what a parked fiber holds survives a GC") do
+  skip unless Object.const_defined?(:Fiber)
+  got = nil
+  Task.new do
+    got = Fiber.new do
+      s = "kept" * 10
+      usleep(10_000)
+      s
+    end.resume
+  end
+  Task.new do
+    100.times { "garbage" * 10 }
+    GC.start
+  end
+  Task.run
+  assert_equal "kept" * 10, got
+end
+
+assert("a fiber left parked by a closed task is over") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = nil
+  pr = nil
+  task = Task.new do
+    fib = Fiber.new do
+      v = 42
+      pr = lambda { v }
+      Task.pass while true
+    end
+    fib.resume
+  end
+  Task.new do
+    Task.pass until pr
+    task.terminate
+  end
+  Task.run
+  task.close
+  GC.start
+  assert_false fib.alive?
+  assert_raise(FiberError) { fib.resume }
+  assert_equal 42, pr.call
+end
+
+assert("a task that terminates itself inside a fiber stops") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = nil
+  after = false
+  task = Task.new do
+    fib = Fiber.new { Task.current.terminate; Task.pass; after = true }
+    fib.resume
+    after = true
+  end
+  Task.run
+  task.close
+  GC.start
+  assert_false after
+  assert_false fib.alive?
+end
+
+assert("a fiber under a C frame or entered by transfer stays unswitchable") do
+  skip unless Object.const_defined?(:Fiber)
+  order = []
+  raised = []
+  Task.new do
+    TaskTest.yield_from_c do
+      Fiber.new do
+        usleep(10_000)
+        order << :c_frame_slept
+        begin
+          Task.pass
+        rescue RuntimeError => e
+          raised << e.class
+        end
+      end.resume
+    end
+    back = Fiber.current
+    Fiber.new do
+      begin
+        Task.pass
+      rescue RuntimeError => e
+        raised << e.class
+      end
+      back.transfer
+    end.transfer
+  end
+  Task.new { order << :other }
+  Task.run
+  assert_equal [:c_frame_slept, :other], order
+  assert_equal [RuntimeError, RuntimeError], raised
 end

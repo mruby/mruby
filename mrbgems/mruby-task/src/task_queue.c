@@ -228,7 +228,7 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   /* Blocking pop requires the scheduler to be running */
   task_check_scheduler_lock(mrb);
 
-  /* Guard against yielding from inside a C function boundary or a fiber */
+  /* Guard against yielding from inside a C function boundary */
   if (mrb_task_across_c_boundary(mrb)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "blocking pop cannot be called from within a C function boundary");
   }

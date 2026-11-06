@@ -869,13 +869,15 @@ leaves the scheduler unable to tell which it is looking at.
   `#resume`. Each owns its context for as long as it lives.
 - Do not hand a task's context to a fiber or the other way round.
 
-A task is not preempted while one of its fibers is running. `Fiber#resume`
-runs the fiber under a nested `mrb_vm_exec`, which the scheduler cannot
-return from early, so a timeslice that expires inside a fiber body is
-honored once the fiber yields or ends. The same rule as for a C function
-that re-entered the VM applies to the cooperative calls made inside a
-fiber: `sleep` blocks instead of parking the task, and `Task.pass` and
-`Task#join` raise `RuntimeError`.
+A task can be switched away from inside a fiber it resumed: a timeslice may
+expire there, and `sleep`, `Task.pass`, `Task#join` and `Queue#pop` park the
+task as they do outside one, which resumes in that fiber. The exceptions
+follow the rule for a C function that re-entered the VM, where `sleep` blocks
+the whole VM and `Task.pass`, `Task#join` and a blocking `Queue#pop` raise
+`RuntimeError`: a fiber resumed under such a C function or with
+`mrb_fiber_resume()`, and a fiber entered with `Fiber#transfer`, which has no
+resumer to lead back to the task. A fiber left unfinished when its task stops
+is over: it answers `alive?` with `false`.
 
 ### Relationship with mruby-sleep
 

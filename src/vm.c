@@ -2526,34 +2526,36 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 /* TRUE when the current context cannot be switched away from, i.e. a
    C stack frame stands between the scheduler's mrb_vm_exec and the current
    Ruby frame: a C function on the stack re-entered the VM (mrb_funcall /
-   mrb_yield / mrb_vm_run), or a fiber is running. A task cannot be
-   suspended at such a point: the C frame cannot be saved or restored, and
-   returning early from the inner mrb_vm_exec would leave the call-info
-   stack drifted, tripping the assertion in mrb_vm_run (issues #6864,
-   #6868). The scheduler defers the switch until execution unwinds back to
-   a frame with no C boundary. This mirrors the cooperative guard in
-   Task.pass, which raises rather than defers.
+   mrb_yield / mrb_vm_run). A task cannot be suspended at such a point: the
+   C frame cannot be saved or restored, and returning early from the inner
+   mrb_vm_exec would leave the call-info stack drifted, tripping the
+   assertion in mrb_vm_run (issues #6864, #6868). The scheduler defers the
+   switch until execution unwinds back to a frame with no C boundary. This
+   mirrors the cooperative guard in Task.pass, which raises rather than
+   defers. mruby-task's cooperative calls (sleep, pass, join) use the same
+   test.
 
-   A fiber is such a point for two reasons. Fiber#resume runs the fiber
-   under an mrb_vm_exec of its own, nested in fiber_switch's C frame, so an
-   early return from it hands the resumer nil as the fiber's value instead
-   of parking the task; and the scheduler resumes a task at the task's own
-   context, so a slice that ended inside a fiber would lose the fiber. The
-   deferral lasts until the fiber yields or ends, and so does a timeslice
-   that expired meanwhile. mruby-task's cooperative calls (sleep, pass,
-   join) use the same test. cibase is excluded: it is the entry frame of
-   this mrb_vm_exec. */
+   Fiber#resume from Ruby stays in the same mrb_vm_exec, so the frames of a
+   fiber and of its resumers, back to the task's own context, are all on one
+   footing, and the scheduler resumes the task in the fiber it stopped in.
+   The walk answers TRUE for what it cannot vouch for: a fiber running under
+   an mrb_vm_exec of its own (c->vmexec, from mrb_fiber_resume()), a fiber
+   with no resumer to follow (Fiber#transfer), and a fiber resumed outside
+   any task, whose chain ends on the root context. cibase is excluded: it is
+   the entry frame of an mrb_vm_exec or of a fiber. */
 mrb_bool
 mrb_task_across_c_boundary(mrb_state *mrb)
 {
-  const struct mrb_context *c = mrb->c;
-
-  /* A borrowed context is the task's own (Fiber.current), not a fiber's */
-  if (c->fib && !MRB_FLAG_TEST(c->fib, MRB_FL_FIBER_BORROWED)) return TRUE;
-  for (const mrb_callinfo *ci = c->ci; ci > c->cibase; ci--) {
-    if (ci->cci > 0) return TRUE;
+  for (const struct mrb_context *c = mrb->c;; c = c->prev) {
+    for (const mrb_callinfo *ci = c->ci; ci > c->cibase; ci--) {
+      if (ci->cci > 0) return TRUE;
+    }
+    /* A borrowed context is the root's or a task's own (Fiber.current) */
+    if (!c->fib || MRB_FLAG_TEST(c->fib, MRB_FL_FIBER_BORROWED)) {
+      return c == mrb->root_c && c != mrb->c;
+    }
+    if (c->vmexec || !c->prev) return TRUE;
   }
-  return FALSE;
 }
 
 /* Defer task switches while a C-level ObjectSpace walk holds gc.iterating
