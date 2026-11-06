@@ -4602,12 +4602,12 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
     mrb_int end = mrb_str_index_lit(mrb, path, "::", off);
     if (end == -1) end = len;
     mrb_sym id = mrb_intern(mrb, ptr+off, end-off);
+    if (end != len && end + 2 == len) { /* trailing "::" */
+      mrb_name_error(mrb, id, "wrong constant name '%v'", path);
+    }
     if (!const_defined_sym(mrb, mod, id, inherit)) return mrb_false_value();
     if (end == len) return mrb_true_value();
     off = end + 2;
-    if (off == len) {           /* trailing "::" */
-      mrb_name_error(mrb, id, "wrong constant name '%v'", path);
-    }
     mod = mrb_const_get(mrb, mod, id);
     if (!mrb_class_p(mod) && !mrb_module_p(mod)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%v does not refer to class/module", path);

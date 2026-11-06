@@ -306,6 +306,7 @@ assert('Module#const_defined?', '15.2.2.4.20') do
   assert_raise(TypeError){ Object.const_defined?(1) }
   assert_wrong_const_name{ Object.const_defined?("") }
   assert_wrong_const_name{ Object.const_defined?("Test4ConstDefined::") }
+  assert_wrong_const_name{ Object.const_defined?("NotExisting::") }
   assert_wrong_const_name{ Object.const_defined?("Test4ConstDefined::wrong_name") }
 
   # shared empty iv_tbl (include)
