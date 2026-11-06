@@ -53,7 +53,9 @@ str_encoding(mrb_state *mrb, mrb_value self)
  *
  * Changes the encoding of the string to the specified encoding.
  * This method modifies the string in place and returns self.
- * In mruby, only "UTF-8", "ASCII-8BIT", and "BINARY" are supported.
+ * In mruby, only "UTF-8", "ASCII-8BIT", and "BINARY" are supported, and
+ * "US-ASCII" (or "ASCII"), which is read a byte at a time as CRuby reads
+ * it and so is taken as ASCII-8BIT.
  *
  *   str = "hello"
  *   str.force_encoding("ASCII-8BIT")  #=> "hello"
@@ -68,7 +70,9 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
 
   struct RString *s = mrb_str_ptr(self);
   if (MRB_STR_CASECMP_P(enc, ENC_ASCII_8BIT) ||
-      MRB_STR_CASECMP_P(enc, ENC_BINARY)) {
+      MRB_STR_CASECMP_P(enc, ENC_BINARY) ||
+      MRB_STR_CASECMP_P(enc, "US-ASCII") ||
+      MRB_STR_CASECMP_P(enc, "ASCII")) {
     RSTR_ENCODING_SET(s, MRB_STR_ENCODING_BINARY);
   }
   else if (MRB_STR_CASECMP_P(enc, ENC_UTF8)) {
