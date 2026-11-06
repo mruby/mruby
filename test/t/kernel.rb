@@ -536,12 +536,19 @@ assert('a long chain of Strings through instance variables survives GC') do
   str_class = Class.new(String) { attr_accessor :nxt }
   head = nil
   i = 0
-  while i < 500000
-    s = str_class.new("x")
-    s.nxt = head
-    head = s
-    i += 1
+  # one collection is the test; MRB_GC_STRESS would run one per allocation
+  GC.disable
+  begin
+    while i < 500000
+      s = str_class.new("x")
+      s.nxt = head
+      head = s
+      i += 1
+    end
+  ensure
+    GC.enable
   end
+  s = nil
   GC.start
   n = 0
   while head
