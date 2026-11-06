@@ -1379,3 +1379,75 @@ assert('Hash#== and #eql? with recursive values') do
     assert_false a.__send__(op, c), op.to_s
   end
 end
+
+assert('Hash#compare_by_identity') do
+  a = "k"
+  h = {}
+  assert_same h, h.compare_by_identity
+  assert_true h.compare_by_identity?
+  assert_false({}.compare_by_identity?)
+  h[a] = 1
+  h["k".dup] = 2
+  assert_equal 2, h.size
+  assert_equal 1, h[a]
+  assert_nil h["k".dup]
+  # a String key is the object itself, not a frozen copy
+  assert_same a, h.keys[0]
+  assert_false h.keys[0].frozen?
+  assert_equal [a, 1], h.assoc(a)
+  assert_nil h.assoc("k".dup)
+  assert_equal 1, h.delete(a)
+  assert_equal 1, h.size
+  # Symbols and Integers are the same objects when equal
+  s = {}.compare_by_identity
+  s[:x] = 1
+  s[1] = 2
+  assert_equal 1, s[:x]
+  assert_equal 2, s[1]
+  assert_nil s[1.0]
+end
+
+assert('Hash#compare_by_identity rehashes what the hash holds') do
+  h = {1 => :a, "x" => :b}
+  h.compare_by_identity
+  assert_equal :a, h[1]
+  assert_nil h["x"]
+  big = {}
+  keys = (0...40).map { |i| "k#{i}" }
+  keys.each_with_index { |k, i| big[k] = i }
+  # the copies the hash made of the unfrozen keys are what it holds
+  held = big.keys
+  big.compare_by_identity
+  assert_equal 40, big.size
+  assert_equal 7, big[held[7]]
+  assert_nil big[keys[7]]
+end
+
+assert('Hash#compare_by_identity is kept by dup, clone and replace') do
+  h = {}.compare_by_identity
+  h["a"] = 1
+  assert_true h.dup.compare_by_identity?
+  assert_true h.clone.compare_by_identity?
+  assert_true h.merge({}).compare_by_identity?
+  x = {}
+  x.replace(h)
+  assert_true x.compare_by_identity?
+  y = {}.compare_by_identity
+  y.replace({})
+  assert_false y.compare_by_identity?
+end
+
+assert('Hash#== and #eql? with a hash that compares by identity') do
+  assert_true({}.compare_by_identity == {})
+  assert_false({"a" => 1}.compare_by_identity == {"a" => 1})
+  assert_false({"a" => 1} == {"a" => 1}.compare_by_identity)
+  assert_false({"a" => 1}.compare_by_identity.eql?({"a" => 1}))
+  a = "a".freeze
+  assert_true({a => 1}.compare_by_identity == {a => 1}.compare_by_identity)
+end
+
+assert('Hash#compare_by_identity on a frozen Hash') do
+  assert_raise(FrozenError) { {}.freeze.compare_by_identity }
+  f = {}.compare_by_identity.freeze
+  assert_same f, f.compare_by_identity
+end

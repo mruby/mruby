@@ -222,6 +222,7 @@ MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
 #define MRB_HASH_DEFAULT            (1 << (MRB_HASH_SIZE_FLAGS_SHIFT + 0))
 #define MRB_HASH_PROC_DEFAULT       (1 << (MRB_HASH_SIZE_FLAGS_SHIFT + 1))
 #define MRB_HASH_HT                 (1 << (MRB_HASH_SIZE_FLAGS_SHIFT + 2))
+#define MRB_HASH_COMPARE_BY_IDENTITY (1 << (MRB_HASH_SIZE_FLAGS_SHIFT + 3))
 #define MRB_RHASH_DEFAULT_P(hash) (RHASH(hash)->flags & MRB_HASH_DEFAULT)
 #define MRB_RHASH_PROCDEFAULT_P(hash) (RHASH(hash)->flags & MRB_HASH_PROC_DEFAULT)
 
