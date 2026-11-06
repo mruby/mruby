@@ -353,15 +353,18 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mod_define_singleton_method(mrb_state *mrb, mrb_value self)
 {
-  const mrb_value *argv;
-  mrb_int argc;
-  mrb_value blk;
-
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
   mrb_value sclass = mrb_singleton_class(mrb, self);
-  /* through the method, not mrb_mod_define_method_m(), so that a gem that
-     widens Module#define_method (mruby-method) widens this one too */
-  return mrb_funcall_with_block(mrb, sclass, MRB_SYM(define_method), argc, argv, blk);
+  struct RClass *c = mrb->module_class;
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, MRB_SYM(define_method));
+
+  /* The one Module holds, so that a gem that widens it (mruby-method) widens
+     this one too.  Not a call on the singleton class: a class method of the
+     object's class named define_method answers there.  It reads its arguments
+     from this frame. */
+  if (MRB_METHOD_CFUNC_P(m)) {
+    return MRB_METHOD_CFUNC(m)(mrb, sclass);
+  }
+  return mrb_mod_define_method_m(mrb, mrb_class_ptr(sclass));
 }
 
 static mrb_bool

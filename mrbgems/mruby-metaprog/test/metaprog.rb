@@ -170,6 +170,12 @@ assert('Kernel#define_singleton_method') do
   assert_equal :proc_ok, o.by_proc
   assert_raise(TypeError) { o.define_singleton_method(:f, 1) }
   assert_raise(ArgumentError) { o.define_singleton_method(:f) }
+
+  # a class method named define_method is not what defines it
+  k = Class.new { def self.define_method(*) :taken end }
+  o = k.new
+  assert_equal :by_block, o.define_singleton_method(:by_block) { :block_ok }
+  assert_equal :block_ok, o.by_block
 end
 
 assert('Kernel#singleton_class') do

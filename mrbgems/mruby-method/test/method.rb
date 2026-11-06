@@ -727,6 +727,15 @@ assert('Kernel#define_singleton_method with a Method or UnboundMethod') do
   k = Class.new { def hi; :hi; end }
   k.new.define_singleton_method(:hello, k.instance_method(:hi))
   assert_raise(TypeError) { Object.new.define_singleton_method(:hello, k.instance_method(:hi)) }
+
+  # a class method named define_method is not what defines it
+  k = Class.new do
+    def self.define_method(*) :taken end
+    def hi; :hi; end
+  end
+  o = k.new
+  assert_equal :hello, o.define_singleton_method(:hello, k.instance_method(:hi))
+  assert_equal :hi, o.hello
 end
 
 assert('Module#define_method with a Method takes the scope visibility') do
