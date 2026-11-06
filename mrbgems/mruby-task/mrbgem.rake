@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
   spec.authors = 'mruby developers'
   spec.summary = 'Cooperative multitasking with preemptive scheduling'
 
-  # The tests ask for Fiber.current inside tasks.
+  # The tests resume fibers and ask for Fiber.current inside tasks.
   spec.add_test_dependency 'mruby-fiber', core: 'mruby-fiber'
 
   # Enable task scheduler globally (required for vm.c integration)

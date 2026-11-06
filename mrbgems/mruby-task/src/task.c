@@ -393,6 +393,30 @@ task_init_context(mrb_state *mrb, mrb_task *t, const struct RProc *proc)
  * Scheduler core
  */
 
+/* The task whose slice this is, or NULL on the root context. mrb->c is the
+   task's own context, or a fiber the task is running: a fiber's context
+   lies in no mrb_task, so it is followed back through its resumers to the
+   task's, or to the root context when the fiber was resumed outside any
+   task. A transferred fiber has no resumer to follow, so the running task
+   is read off the ready queue, the way mrb_tick does. */
+mrb_task*
+mrb_task_running(mrb_state *mrb)
+{
+  struct mrb_context *c = mrb->c;
+
+  while (c->fib) {
+    if (!c->prev) {
+      for (mrb_task *t = q_ready_; t; t = t->next) {
+        if (t->status == MRB_TASK_STATUS_RUNNING) return t;
+      }
+      return NULL;
+    }
+    c = c->prev;
+  }
+  if (c == mrb->root_c) return NULL;
+  return MRB2TASK_C(c);
+}
+
 /* Wake up tasks waiting on join for a completed task */
 static void
 wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
@@ -411,8 +435,8 @@ wake_up_join_waiters(mrb_state *mrb, mrb_task *completed_task)
       /* If a higher-priority waiter is resumed from task context,
        * request a context switch after leaving the critical section. */
       if (mrb->c != mrb->root_c && !switching_) {
-        mrb_task *running = MRB2TASK(mrb);
-        if (curr->priority < running->priority) {
+        mrb_task *running = mrb_task_running(mrb);
+        if (running && curr->priority < running->priority) {
           switching_ = TRUE;
         }
       }
@@ -817,15 +841,12 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
     return;
   }
 
-  /* Check for C function boundary - cannot do cooperative context switch */
-  mrb_callinfo *ci;
-  for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
-    if (ci->cci > 0) {
-      /* Inside C function - fall back to blocking sleep without context switch */
-      mrb_hal_task_sleep_us(mrb, usec);
-      switching_ = FALSE;
-      return;
-    }
+  /* Across a C function or inside a fiber the task cannot be parked:
+     fall back to a blocking sleep without a context switch. */
+  if (mrb_task_across_c_boundary(mrb)) {
+    mrb_hal_task_sleep_us(mrb, usec);
+    switching_ = FALSE;
+    return;
   }
 
   /* A synchronous execution (mrb_execute_proc_synchronously) runs its
@@ -835,7 +856,7 @@ sleep_us_impl(mrb_state *mrb, uint32_t usec)
   task_check_scheduler_lock(mrb);
 
   /* In task context - get current running task */
-  t = MRB2TASK(mrb);
+  t = mrb_task_running(mrb);
 
   mrb_task_excl_enter(mrb);
 
@@ -892,16 +913,13 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
       /* Root context has no task to suspend */
       return mrb_nil_value();
     }
-    mrb_callinfo *ci;
-    for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
-      if (ci->cci > 0) {
-        mrb_raise(mrb, E_RUNTIME_ERROR, "can't sleep across C function boundary");
-      }
+    if (mrb_task_across_c_boundary(mrb)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't sleep across C function boundary");
     }
     /* See sleep_us_impl: never park the temporary task of a synchronous
        execution. */
     task_check_scheduler_lock(mrb);
-    mrb_task *t = MRB2TASK(mrb);
+    mrb_task *t = mrb_task_running(mrb);
     mrb_task_excl_enter(mrb);
     mrb_task_q_delete(mrb, t);
     t->status = MRB_TASK_STATUS_SUSPENDED;
@@ -1050,8 +1068,9 @@ mrb_task_s_new(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_task_s_current(mrb_state *mrb, mrb_value self)
 {
-  /* Check if we're in root context */
-  if (mrb->c == mrb->root_c) {
+  /* The root context, or a fiber resumed from it, is the main task's */
+  mrb_task *running = mrb_task_running(mrb);
+  if (!running) {
     /* Return main task wrapper (lazy-allocate if needed) */
     if (!mrb->task.main_task) {
       struct RClass *task_class = mrb_class_ptr(self);
@@ -1075,9 +1094,7 @@ mrb_task_s_current(mrb_state *mrb, mrb_value self)
     return mrb->task.main_task->self;
   }
 
-  /* Use pointer arithmetic to get task from context - O(1) */
-  mrb_task *t = MRB2TASK(mrb);
-  return t->self;
+  return running->self;
 }
 
 static mrb_value
@@ -1134,12 +1151,10 @@ mrb_task_s_pass(mrb_state *mrb, mrb_value self)
     task_run_one_iteration(mrb);
   }
   else {
-    /* Check for C function boundary - cannot yield from C function */
-    mrb_callinfo *ci;
-    for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
-      if (ci->cci > 0) {
-        mrb_raise(mrb, E_RUNTIME_ERROR, "can't pass across C function boundary");
-      }
+    /* Across a C function or inside a fiber there is no frame to come
+       back to from the scheduler. */
+    if (mrb_task_across_c_boundary(mrb)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't pass across C function boundary");
     }
 
     /* In task context - trigger context switch */
@@ -1422,7 +1437,7 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
   if (mrb->c == mrb->root_c) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "join can only be called from running task");
   }
-  current = MRB2TASK(mrb);
+  current = mrb_task_running(mrb);
 
   /* Can't join self */
   if (t == current) {
@@ -1438,11 +1453,8 @@ mrb_task_join(mrb_state *mrb, mrb_value self)
      Without this, join parks the task and sets the switch flag, but the
      C caller runs on; the switch happens only when control returns to
      the VM, so the statement after join runs before the target ends. */
-  mrb_callinfo *ci;
-  for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
-    if (ci->cci > 0) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "can't join across C function boundary");
-    }
+  if (mrb_task_across_c_boundary(mrb)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't join across C function boundary");
   }
 
   /* See sleep_us_impl: never park the temporary task of a synchronous
@@ -1812,7 +1824,7 @@ mrb_close_task(mrb_state *mrb, mrb_value task)
   if (!t) return;
 
   if (t == mrb->task.main_task ||
-      (mrb->c != mrb->root_c && t == MRB2TASK(mrb))) {
+      (mrb->c != mrb->root_c && t == mrb_task_running(mrb))) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't close current task");
   }
 

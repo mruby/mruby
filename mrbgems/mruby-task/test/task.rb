@@ -321,6 +321,105 @@ assert("exception raised from C after blocking past the timeslice is rescuable")
   assert_equal "caught raised after blocking", result
 end
 
+# A fiber is a point a task cannot be switched away from: Fiber#resume runs
+# it under a nested mrb_vm_exec, and the scheduler resumes a task at the
+# task's own context. A switch honored inside the fiber returned early from
+# that exec, so resume answered nil and the task died without a trace.
+# TaskTest.block(50) outlasts the timeslice, so a switch is pending after it.
+
+assert("a fiber body that outlives the timeslice runs to its end") do
+  skip unless Object.const_defined?(:Fiber)
+  result = nil
+  Task.new do
+    result = Fiber.new { TaskTest.block(50); :done }.resume
+  end
+  Task.run
+  assert_equal :done, result
+end
+
+assert("a fiber resumed with a switch pending runs to its end") do
+  skip unless Object.const_defined?(:Fiber)
+  result = nil
+  Task.new do
+    TaskTest.block(50)
+    result = Fiber.new { :done }.resume
+  end
+  Task.run
+  assert_equal :done, result
+end
+
+assert("a fiber resumed under a C frame with a switch pending runs to its end") do
+  skip unless Object.const_defined?(:Fiber)
+  result = nil
+  Task.new do
+    TaskTest.block(50)
+    result = TaskTest.yield_from_c { Fiber.new { :done }.resume }
+  end
+  Task.run
+  assert_equal :done, result
+end
+
+assert("Fiber.yield and a second resume across pending switches") do
+  skip unless Object.const_defined?(:Fiber)
+  seen = []
+  Task.new do
+    f = Fiber.new { Fiber.yield :first; TaskTest.block(50); :second }
+    seen << f.resume
+    TaskTest.block(50)
+    seen << f.resume
+    seen << f.alive?
+  end
+  Task.run
+  assert_equal [:first, :second, false], seen
+end
+
+assert("a switch pending inside a fiber is honored once the fiber returns") do
+  skip unless Object.const_defined?(:Fiber)
+  order = []
+  Task.new do
+    Fiber.new { TaskTest.block(50) }.resume
+    order << :first_task
+  end
+  Task.new { order << :second_task }
+  Task.run
+  assert_equal [:second_task, :first_task], order
+end
+
+assert("sleep inside a fiber blocks instead of parking the task") do
+  skip unless Object.const_defined?(:Fiber)
+  result = nil
+  Task.new do
+    result = Fiber.new { sleep(0.001); :slept }.resume
+  end
+  Task.run
+  assert_equal :slept, result
+end
+
+assert("Task.current inside a fiber resumed outside any task is the main task") do
+  skip unless Object.const_defined?(:Fiber)
+  assert_equal Task.current, Fiber.new { Task.current }.resume
+end
+
+assert("Task.current and Task.pass inside a fiber") do
+  skip unless Object.const_defined?(:Fiber)
+  current = nil
+  passed = nil
+  task = Task.new do
+    Fiber.new do
+      current = Task.current
+      passed = begin
+        Task.pass
+        :passed
+      rescue RuntimeError => e
+        e.message
+      end
+    end.resume
+  end
+  Task.run
+  assert_equal task, current
+  assert_equal "can't pass across C function boundary", passed
+end
+
 assert("exception raised from C after blocking is not leaked into Task#value") do
   child = nil
 

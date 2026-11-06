@@ -8,6 +8,7 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/variable.h>
+#include <mruby/internal.h>
 #include "task.h"
 
 typedef struct mrb_task_queue {
@@ -227,16 +228,13 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   /* Blocking pop requires the scheduler to be running */
   task_check_scheduler_lock(mrb);
 
-  /* Guard against yielding from inside a C function boundary */
-  mrb_callinfo *ci;
-  for (ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
-    if (ci->cci > 0) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "blocking pop cannot be called from within a C function boundary");
-    }
+  /* Guard against yielding from inside a C function boundary or a fiber */
+  if (mrb_task_across_c_boundary(mrb)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "blocking pop cannot be called from within a C function boundary");
   }
 
   /* Move current task to WAITING */
-  mrb_task *current = MRB2TASK(mrb);
+  mrb_task *current = mrb_task_running(mrb);
   mrb_task_excl_enter(mrb);
   mrb_task_q_delete(mrb, current);
   current->status = MRB_TASK_STATUS_WAITING;
