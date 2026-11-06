@@ -722,3 +722,12 @@ assert("a task cannot resume Fiber.current of the root context") do
   Task.run
   assert_kind_of FiberError, err
 end
+
+# The svars array goes with the context; LeakSanitizer catches one left behind.
+assert("a task frees its special variables") do
+  closed = Task.new { TaskTest.set_svar }
+  Task.new { TaskTest.set_svar }  # freed with the heap
+  Task.run
+  closed.close
+  assert_nil TaskTest.run_sync { TaskTest.set_svar }
+end

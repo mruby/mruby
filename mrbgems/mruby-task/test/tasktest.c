@@ -5,6 +5,7 @@
 #include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/error.h>
+#include <mruby/internal.h>
 #include "task.h"
 
 /* Burn CPU until `ms` milliseconds of CPU time have elapsed, then raise.
@@ -129,6 +130,15 @@ tasktest_yield_from_c(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "block required");
   }
   return mrb_yield_argv(mrb, blk, 0, NULL);
+}
+
+/* Give the current frame a special variable, as a regexp match does: the
+   context allocates its svars array for it. */
+static mrb_value
+tasktest_set_svar(mrb_state *mrb, mrb_value self)
+{
+  mrb_vm_svar_set(mrb, MRB_SVAR_LASTLINE, mrb_true_value());
+  return mrb_nil_value();
 }
 
 /* Drive the synchronous-execution teardown path. */
@@ -389,6 +399,7 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "reinit_context", tasktest_reinit_context, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "yield_from_c", tasktest_yield_from_c, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
+  mrb_define_module_function(mrb, tasktest, "set_svar", tasktest_set_svar, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "proc_set_stack", tasktest_proc_set_stack, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
   mrb_define_module_function(mrb, tasktest, "proc_set_deep", tasktest_proc_set_deep, MRB_ARGS_REQ(2));

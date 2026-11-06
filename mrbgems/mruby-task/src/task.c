@@ -98,6 +98,7 @@ mrb_task_free(mrb_state *mrb, void *ptr)
     if (t->c.cibase) {
       mrb_free(mrb, t->c.cibase);
     }
+    mrb_free(mrb, t->c.svars);
 
     /* Free the task structure itself */
     mrb_free(mrb, t);
@@ -1601,6 +1602,8 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
     mrb_free(mrb, t->c.cibase);
     t->c.cibase = NULL;
   }
+  mrb_free(mrb, t->c.svars);
+  t->c.svars = NULL;
   mrb_free(mrb, t);
 
   /* 7. Restore context and unlock */
@@ -1877,6 +1880,8 @@ mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
     mrb_free(mrb, c->cibase);
     c->cibase = NULL;
   }
+  mrb_free(mrb, c->svars);
+  c->svars = NULL;
 
   /* Re-initialize context */
   task_init_context(mrb, t, proc);
