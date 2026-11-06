@@ -13,6 +13,10 @@ class InlineStructTest
   def test_ivar_get
     @vat
   end
+
+  def test_ivar_get_var
+    @var
+  end
 end
 
 assert('InlineStructTest#dup') do
@@ -90,9 +94,9 @@ end
 
 assert('InlineStructTest instance variable') do
   obj = InlineStructTest.new(1)
-  assert_raise(ArgumentError) do
-    obj.test_ivar_set
-  end
+  assert_equal :ivar, obj.test_ivar_set
+  assert_equal :ivar, obj.test_ivar_get_var
+  assert_equal :ivar, obj.dup.test_ivar_get_var
   assert_equal obj.test_ivar_get, nil
 end
 

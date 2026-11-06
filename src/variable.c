@@ -11,6 +11,7 @@
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/khash.h>
 #include <mruby/internal.h>
 
 /* Instance variable table structure */
@@ -569,18 +570,122 @@ mrb_vm_special_set(mrb_state *mrb, mrb_sym i, mrb_value v)
 static mrb_bool
 obj_iv_p(mrb_value obj)
 {
-  switch (mrb_unboxed_type(obj)) {
-    case MRB_TT_OBJECT:
-    case MRB_TT_CLASS:
-    case MRB_TT_MODULE:
-    case MRB_TT_SCLASS:
-    case MRB_TT_HASH:
-    case MRB_TT_CDATA:
-    case MRB_TT_EXCEPTION:
-      return TRUE;
-    default:
-      return FALSE;
+  return mrb_obj_iv_slot_p(mrb_unboxed_type(obj));
+}
+
+/* Instance variables of objects whose struct has no iv slot: a String,
+   Array, Range, Proc, Fiber, ... can hold instance variables in Ruby, and
+   a String or Array subclass with an attribute is common. Rather than an
+   iv slot in every such struct, a side table keyed by the object holds an
+   iv_tbl per object that was given one. The table comes into being with
+   the first such ivar; while it exists, every mark and free of an object
+   of a slotless type costs a probe (gc.c), and nothing before. An entry
+   goes with its object (mrb_gc_free_giv). Keys are object pointers the
+   hash never dereferences. */
+#define giv_hash_func(mrb,key) mrb_int_hash_func(mrb, (intptr_t)(key) >> 4)
+#define giv_hash_equal(mrb,a,b) ((a) == (b))
+KHASH_DECLARE(giv, struct RBasic*, iv_tbl*, TRUE)
+KHASH_DEFINE(giv, struct RBasic*, iv_tbl*, TRUE, giv_hash_func, giv_hash_equal)
+
+static iv_tbl*
+giv_new_tbl(mrb_state *mrb, iv_tbl *unused)
+{
+  (void)unused;
+  return iv_new(mrb);
+}
+
+/* Gives `key` an entry holding the table `make(mrb, src)` builds.
+
+   Any allocation may run the GC (every one does under MRB_GC_STRESS), and
+   the GC reads this hash: the mark looks up each slotless object's entry,
+   and the sweep deletes the entries of the objects it frees. So the entry
+   is published holding NULL, which every reader takes for "no ivars",
+   before the table is built; and the slot is looked up again afterwards,
+   because a sweep's deletion can move the entries of a small table. An
+   allocation failure leaves the NULL entry, which goes with its object. */
+static iv_tbl*
+giv_store(mrb_state *mrb, struct RBasic *key, iv_tbl *(*make)(mrb_state*, iv_tbl*), iv_tbl *src)
+{
+  kh_giv_t *h = mrb->giv;
+  khiter_t k = kh_put(giv, mrb, h, key);
+  kh_value(giv, h, k) = NULL;
+  iv_tbl *t = make(mrb, src);
+  k = kh_get(giv, mrb, h, key);
+  mrb_assert(k != kh_end(h));
+  kh_value(giv, h, k) = t;
+  return t;
+}
+
+static iv_tbl*
+giv_tbl(mrb_state *mrb, mrb_value obj, mrb_bool create)
+{
+  kh_giv_t *h = mrb->giv;
+  struct RBasic *key = mrb_basic_ptr(obj);
+
+  if (!h) {
+    if (!create) return NULL;
+    h = mrb->giv = kh_init(giv, mrb);
   }
+  khiter_t k = kh_get(giv, mrb, h, key);
+  if (k != kh_end(h)) return kh_value(giv, h, k);
+  if (!create) return NULL;
+  return giv_store(mrb, key, giv_new_tbl, NULL);
+}
+
+/* An object that can hold instance variables in the side table: neither
+   immediate, nor of a type with an iv slot, nor a number, which Ruby keeps
+   frozen. */
+static mrb_bool
+giv_obj_p(mrb_value obj)
+{
+  if (mrb_immediate_p(obj)) return FALSE;
+  switch (mrb_unboxed_type(obj)) {
+    case MRB_TT_FLOAT:
+    case MRB_TT_INTEGER:
+#ifdef MRB_USE_BIGINT
+    case MRB_TT_BIGINT:
+#endif
+#ifdef MRB_USE_RATIONAL
+    case MRB_TT_RATIONAL:
+#endif
+#ifdef MRB_USE_COMPLEX
+    case MRB_TT_COMPLEX:
+#endif
+      return FALSE;
+    default:
+      return !obj_iv_p(obj);
+  }
+}
+
+size_t
+mrb_gc_mark_giv(mrb_state *mrb, struct RBasic *obj)
+{
+  iv_tbl *t = giv_tbl(mrb, mrb_obj_value(obj), FALSE);
+  if (!t) return 0;
+  mark_tbl(mrb, t);
+  return iv_size(mrb, t);
+}
+
+void
+mrb_gc_free_giv(mrb_state *mrb, struct RBasic *obj)
+{
+  kh_giv_t *h = mrb->giv;
+  khiter_t k = kh_get(giv, mrb, h, obj);
+  if (k == kh_end(h)) return;
+  if (kh_value(giv, h, k)) iv_free(mrb, kh_value(giv, h, k));
+  kh_del(giv, mrb, h, k);
+}
+
+void
+mrb_gc_free_giv_all(mrb_state *mrb)
+{
+  kh_giv_t *h = mrb->giv;
+  if (!h) return;
+  mrb->giv = NULL;
+  for (khiter_t k = kh_begin(h); k != kh_end(h); k++) {
+    if (kh_exist(giv, h, k) && kh_value(giv, h, k)) iv_free(mrb, kh_value(giv, h, k));
+  }
+  kh_destroy(giv, mrb, h);
 }
 
 static iv_tbl*
@@ -636,6 +741,11 @@ mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (obj_iv_p(obj)) {
     return mrb_obj_iv_get(mrb, mrb_obj_ptr(obj), sym);
+  }
+  if (mrb->giv && giv_obj_p(obj)) {
+    iv_tbl *t = giv_tbl(mrb, obj, FALSE);
+    mrb_value v;
+    if (t && iv_get(mrb, t, sym, &v)) return v;
   }
   return mrb_nil_value();
 }
@@ -728,7 +838,13 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 MRB_API void
 mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p)
 {
-  if (!obj_iv_p(obj)) return;
+  if (!obj_iv_p(obj)) {
+    if (mrb->giv && giv_obj_p(obj)) {
+      iv_tbl *t = giv_tbl(mrb, obj, FALSE);
+      if (t) iv_foreach(mrb, t, func, p);
+    }
+    return;
+  }
   if (MRB_OBJ_SHAPED_P(mrb_obj_ptr(obj))) {
     shaped_iv_foreach(mrb, mrb_obj_ptr(obj), func, p);
     return;
@@ -758,6 +874,11 @@ mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
 {
   if (obj_iv_p(obj)) {
     mrb_obj_iv_set(mrb, mrb_obj_ptr(obj), sym, v);
+  }
+  else if (giv_obj_p(obj)) {
+    mrb_check_frozen(mrb, mrb_basic_ptr(obj));
+    iv_put(mrb, giv_tbl(mrb, obj, TRUE), sym, v);
+    mrb_field_write_barrier_value(mrb, mrb_basic_ptr(obj), v);
   }
   else {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cannot set instance variable");
@@ -806,7 +927,13 @@ mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 MRB_API mrb_bool
 mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
-  if (!obj_iv_p(obj)) return FALSE;
+  if (!obj_iv_p(obj)) {
+    if (mrb->giv && giv_obj_p(obj)) {
+      iv_tbl *t = giv_tbl(mrb, obj, FALSE);
+      return t && iv_get(mrb, t, sym, NULL);
+    }
+    return FALSE;
+  }
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
@@ -871,6 +998,21 @@ mrb_iv_name_sym_check(mrb_state *mrb, mrb_sym iv_name)
 MRB_API void
 mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 {
+  if (!obj_iv_p(src)) {
+    /* a slotless type: dest, of the same type, takes a copy of src's side
+       table entry in place of its own, if either has one */
+    if (!mrb->giv || !giv_obj_p(src)) return;
+    mrb_gc_free_giv(mrb, mrb_basic_ptr(dest));
+    iv_tbl *t = giv_tbl(mrb, src, FALSE);
+    if (t && t->size > 0) {
+      /* src stays reachable from the caller, so the values the copy
+         holds stay alive while it is being made */
+      giv_store(mrb, mrb_basic_ptr(dest), iv_copy, t);
+      mrb_write_barrier(mrb, mrb_basic_ptr(dest));
+    }
+    return;
+  }
+
   struct RObject *d = mrb_obj_ptr(dest);
   struct RObject *s = mrb_obj_ptr(src);
 
@@ -942,6 +1084,15 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 MRB_API mrb_value
 mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
+  if (!obj_iv_p(obj)) {
+    if (mrb->giv && giv_obj_p(obj)) {
+      mrb_check_frozen(mrb, mrb_basic_ptr(obj));
+      iv_tbl *t = giv_tbl(mrb, obj, FALSE);
+      mrb_value val;
+      if (t && iv_del(mrb, t, sym, &val)) return val;
+    }
+    return mrb_undef_value();
+  }
   if (obj_iv_p(obj)) {
     struct RObject *o = mrb_obj_ptr(obj);
     mrb_check_frozen(mrb, o);
@@ -1013,6 +1164,10 @@ mrb_obj_instance_variables(mrb_state *mrb, mrb_value self)
     else {
       iv_foreach(mrb, obj->iv, iv_i, &ary);
     }
+  }
+  else if (mrb->giv && giv_obj_p(self)) {
+    iv_tbl *t = giv_tbl(mrb, self, FALSE);
+    if (t) iv_foreach(mrb, t, iv_i, &ary);
   }
   return ary;
 }

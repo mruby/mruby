@@ -38,28 +38,6 @@ mruby's `Fiber` is implemented similarly to Lua's co-routine. This
 results in the consequence that you can't switch context within C functions.
 Only exception is `mrb_fiber_yield` at return.
 
-## `Array` does not support instance variables
-
-To reduce memory consumption `Array` does not support instance variables.
-
-```ruby
-class Liste < Array
-  def initialize(str = nil)
-    @field = str
-  end
-end
-
-p Liste.new "foobar"
-```
-
-#### CRuby
-
-`[]`
-
-#### mruby
-
-`ArgumentError` is raised.
-
 ## `defined?`
 
 The answer is not the same object each time, and a constant path of

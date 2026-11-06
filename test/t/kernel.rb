@@ -448,6 +448,89 @@ assert('Kernel#raise', '15.3.1.3.40') do
   end
 end
 
+assert('instance variables on objects of a type without an iv slot') do
+  # A String, Array, Range, Proc, ... holds instance variables in a side
+  # table; nothing of that exists until one is set.
+  str_class = Class.new(String) do
+    attr_accessor :tag
+    def initialize(s, tag = nil)
+      super(s)
+      @tag = tag
+    end
+  end
+  s = str_class.new("abc", :t)
+  assert_equal "abc", s
+  assert_equal :t, s.tag
+  s.tag = :u
+  assert_equal :u, s.tag
+  assert_equal :u, s.dup.tag                 # dup and clone copy the entry
+  assert_equal :u, s.clone.tag
+  assert_nil str_class.new("plain").tag
+
+  ary_class = Class.new(Array) { attr_accessor :tag }
+  a = ary_class.new
+  a.tag = 1
+  a << :x
+  assert_equal [:x], a
+  assert_equal 1, a.tag
+  assert_equal 1, a.dup.tag
+
+  pr = Proc.new { }
+  def pr.tag=(v) @tag = v end
+  def pr.tag; @tag; end
+  pr.tag = 2
+  assert_equal 2, pr.tag
+
+  # a Range is frozen, so it refuses one as any frozen object does
+  range_class = Class.new(Range) { attr_accessor :tag }
+  assert_raise(FrozenError) { range_class.new(1, 2).tag = 3 }
+end
+
+assert('instance variables on a frozen String are refused') do
+  str_class = Class.new(String) { attr_accessor :tag }
+  s = str_class.new("abc")
+  s.tag = 1
+  s.freeze
+  assert_raise(FrozenError) { s.tag = 2 }
+  assert_equal 1, s.tag
+  assert_raise(FrozenError) { s.remove_instance_variable(:@tag) }
+end
+
+assert('remove_instance_variable on a String') do
+  str_class = Class.new(String) do
+    attr_accessor :tag
+    def drop; remove_instance_variable(:@tag); end
+  end
+  s = str_class.new("abc")
+  s.tag = :t
+  assert_equal :t, s.drop
+  assert_nil s.tag
+  assert_raise(NameError) { s.drop }
+end
+
+assert('instance variables of a String survive GC and leave with it') do
+  str_class = Class.new(String) { attr_accessor :tag }
+  kept = []
+  i = 0
+  while i < 500
+    s = str_class.new("s#{i}")
+    s.tag = "tag#{i}"
+    kept << s if i % 50 == 0
+    i += 1
+  end
+  GC.start
+  assert_equal "tag0", kept[0].tag
+  assert_equal "tag450", kept[9].tag
+  i = 0
+  while i < 500
+    s = str_class.new("t#{i}")
+    s.tag = [i]
+    i += 1
+  end
+  GC.start
+  assert_equal "tag450", kept[9].tag
+end
+
 assert('Kernel#remove_instance_variable', '15.3.1.3.41') do
   class Test4RemoveInstanceVar
     attr_reader :var
