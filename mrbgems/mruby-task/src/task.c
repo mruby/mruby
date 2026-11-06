@@ -404,7 +404,7 @@ mrb_task_running(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
 
-  while (c->fib) {
+  while (c->fib && !MRB_FLAG_TEST(c->fib, MRB_FL_FIBER_BORROWED)) {
     if (!c->prev) {
       for (mrb_task *t = q_ready_; t; t = t->next) {
         if (t->status == MRB_TASK_STATUS_RUNNING) return t;

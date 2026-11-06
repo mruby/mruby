@@ -830,3 +830,40 @@ assert("a task frees its special variables") do
   closed.close
   assert_nil TaskTest.run_sync { TaskTest.set_svar }
 end
+
+# Fiber.current gives a task's own context a Fiber object without making the
+# task a fiber: it stays preemptible, and its cooperative calls still park it.
+assert("a task that asked for Fiber.current is still preempted") do
+  skip unless Object.const_defined?(:Fiber)
+  order = []
+  Task.new do
+    Fiber.current
+    TaskTest.block(50)
+    order << :first_task
+  end
+  Task.new { order << :second_task }
+  Task.run
+  assert_equal [:second_task, :first_task], order
+end
+
+assert("Task.current and Task.pass after Fiber.current in a task") do
+  skip unless Object.const_defined?(:Fiber)
+  current = nil
+  passed = false
+  task = Task.new do
+    Fiber.current
+    current = Task.current
+    Task.pass
+    passed = true
+  end
+  Task.run
+  assert_equal task, current
+  assert_true passed
+end
+
+assert("Task.current after Fiber.current on the root context") do
+  skip unless Object.const_defined?(:Fiber)
+  main = Task.current
+  Fiber.current
+  assert_equal main, Task.current
+end

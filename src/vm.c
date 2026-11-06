@@ -2548,7 +2548,8 @@ mrb_task_across_c_boundary(mrb_state *mrb)
 {
   const struct mrb_context *c = mrb->c;
 
-  if (c->fib) return TRUE;
+  /* A borrowed context is the task's own (Fiber.current), not a fiber's */
+  if (c->fib && !MRB_FLAG_TEST(c->fib, MRB_FL_FIBER_BORROWED)) return TRUE;
   for (const mrb_callinfo *ci = c->ci; ci > c->cibase; ci--) {
     if (ci->cci > 0) return TRUE;
   }
