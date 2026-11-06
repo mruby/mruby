@@ -898,3 +898,13 @@ assert("Set#inspect and Set#join keep the string they build out of reach") do
   assert_equal "w", s
   assert_false seen.any? { |o| o.equal?(s) }
 end
+
+assert("Set: instance variables") do
+  c = Class.new(Set) { attr_accessor :tag }
+  s = c.new([1])
+  s.tag = "tag"
+  d = s.dup
+  GC.start
+  assert_equal "tag", s.tag
+  assert_equal "tag", d.tag
+end

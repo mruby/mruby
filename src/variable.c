@@ -573,15 +573,14 @@ obj_iv_p(mrb_value obj)
   return mrb_obj_iv_slot_p(mrb_unboxed_type(obj));
 }
 
-/* Instance variables of objects whose struct has no iv slot: a String,
-   Array, Range, Proc, Fiber, ... can hold instance variables in Ruby, and
-   a String or Array subclass with an attribute is common. Rather than an
-   iv slot in every such struct, a side table keyed by the object holds an
-   iv_tbl per object that was given one. The table comes into being with
-   the first such ivar; while it exists, every mark and free of an object
-   of a slotless type costs a probe (gc.c), and nothing before. An entry
-   goes with its object (mrb_gc_free_giv). Keys are object pointers the
-   hash never dereferences. */
+/* Instance variables of objects whose struct has no iv slot: a String or
+   Array subclass with an attribute is common. Rather than an iv slot in every
+   such struct, a side table keyed by the object holds an iv_tbl per object
+   that was given one. The table comes into being with the first such ivar.
+   An object with an entry has MRB_FL_HAS_GIV set, so the GC looks up only
+   those; a Proc has no bit to spare, so every Proc is looked up while the
+   table exists. An entry goes with its object (mrb_gc_free_giv). Keys are
+   object pointers the hash never dereferences. */
 #define giv_hash_func(mrb,key) mrb_int_hash_func(mrb, (intptr_t)(key) >> 4)
 #define giv_hash_equal(mrb,a,b) ((a) == (b))
 KHASH_DECLARE(giv, struct RBasic*, iv_tbl*, TRUE)
@@ -609,6 +608,7 @@ giv_store(mrb_state *mrb, struct RBasic *key, iv_tbl *(*make)(mrb_state*, iv_tbl
   kh_giv_t *h = mrb->giv;
   khiter_t k = kh_put(giv, mrb, h, key);
   kh_value(giv, h, k) = NULL;
+  if (key->tt != MRB_TT_PROC) key->flags |= MRB_FL_HAS_GIV;
   iv_tbl *t = make(mrb, src);
   k = kh_get(giv, mrb, h, key);
   mrb_assert(k != kh_end(h));
@@ -622,6 +622,7 @@ giv_tbl(mrb_state *mrb, mrb_value obj, mrb_bool create)
   kh_giv_t *h = mrb->giv;
   struct RBasic *key = mrb_basic_ptr(obj);
 
+  if (!create && !mrb_gc_giv_p(mrb, key)) return NULL;
   if (!h) {
     if (!create) return NULL;
     h = mrb->giv = kh_init(giv, mrb);
@@ -632,28 +633,24 @@ giv_tbl(mrb_state *mrb, mrb_value obj, mrb_bool create)
   return giv_store(mrb, key, giv_new_tbl, NULL);
 }
 
-/* An object that can hold instance variables in the side table: neither
-   immediate, nor of a type with an iv slot, nor a number, which Ruby keeps
-   frozen. */
+/* An object that can hold instance variables in the side table. A Range or a
+   number is frozen and an internal type is out of reach, so none of them need
+   one. */
 static mrb_bool
 giv_obj_p(mrb_value obj)
 {
   if (mrb_immediate_p(obj)) return FALSE;
   switch (mrb_unboxed_type(obj)) {
-    case MRB_TT_FLOAT:
-    case MRB_TT_INTEGER:
-#ifdef MRB_USE_BIGINT
-    case MRB_TT_BIGINT:
-#endif
-#ifdef MRB_USE_RATIONAL
-    case MRB_TT_RATIONAL:
-#endif
-#ifdef MRB_USE_COMPLEX
-    case MRB_TT_COMPLEX:
-#endif
-      return FALSE;
+    case MRB_TT_STRING:
+    case MRB_TT_ARRAY:
+    case MRB_TT_STRUCT:
+    case MRB_TT_SET:
+    case MRB_TT_FIBER:
+    case MRB_TT_ISTRUCT:
+    case MRB_TT_PROC:
+      return TRUE;
     default:
-      return !obj_iv_p(obj);
+      return FALSE;
   }
 }
 
@@ -674,6 +671,7 @@ mrb_gc_free_giv(mrb_state *mrb, struct RBasic *obj)
   if (k == kh_end(h)) return;
   if (kh_value(giv, h, k)) iv_free(mrb, kh_value(giv, h, k));
   kh_del(giv, mrb, h, k);
+  if (obj->tt != MRB_TT_PROC) obj->flags &= ~MRB_FL_HAS_GIV;
 }
 
 void
@@ -1002,7 +1000,9 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
     /* a slotless type: dest, of the same type, takes a copy of src's side
        table entry in place of its own, if either has one */
     if (!mrb->giv || !giv_obj_p(src)) return;
-    mrb_gc_free_giv(mrb, mrb_basic_ptr(dest));
+    if (mrb_gc_giv_p(mrb, mrb_basic_ptr(dest))) {
+      mrb_gc_free_giv(mrb, mrb_basic_ptr(dest));
+    }
     iv_tbl *t = giv_tbl(mrb, src, FALSE);
     if (t && t->size > 0) {
       /* src stays reachable from the caller, so the values the copy

@@ -886,10 +886,10 @@ mrb_value mrb_exc_const_get(mrb_state *mrb, mrb_sym sym);
 
 /* GC functions */
 void mrb_gc_mark_gv(mrb_state*);
-/* Instance variables of objects whose struct has no iv slot (String, Array,
-   Range, Proc, ...) live in a side table keyed by the object (variable.c).
-   gc.c marks and frees an object's entry through these; the table exists
-   only once such an object has been given an ivar. */
+/* A String, Array, Struct, Set, Fiber, Proc or inline struct has no iv slot in
+   its struct, so its instance variables live in a side table keyed by the
+   object (variable.c). The table exists only once such an object has been
+   given an ivar. */
 static inline mrb_bool
 mrb_obj_iv_slot_p(enum mrb_vtype tt)
 {
@@ -901,6 +901,28 @@ mrb_obj_iv_slot_p(enum mrb_vtype tt)
     case MRB_TT_HASH:
     case MRB_TT_CDATA:
     case MRB_TT_EXCEPTION:
+      return TRUE;
+    default:
+      return FALSE;
+  }
+}
+/* Set on an object with an entry in the side table, so that nothing else has
+   to look it up. A Proc uses every flag bit, this one included (see
+   MRB_PROC_CASPEC_MASK), so a Proc has to be looked up. */
+#define MRB_FL_HAS_GIV (1 << 19)
+static inline mrb_bool
+mrb_gc_giv_p(mrb_state *mrb, struct RBasic *obj)
+{
+  if (!mrb->giv) return FALSE;
+  switch (obj->tt) {
+    case MRB_TT_STRING:
+    case MRB_TT_ARRAY:
+    case MRB_TT_STRUCT:
+    case MRB_TT_SET:
+    case MRB_TT_FIBER:
+    case MRB_TT_ISTRUCT:
+      return MRB_FLAG_TEST(obj, MRB_FL_HAS_GIV) != 0;
+    case MRB_TT_PROC:
       return TRUE;
     default:
       return FALSE;

@@ -228,3 +228,14 @@ assert('symbol GC keeps the symbols a suspended fiber holds') do
   GC.start
   assert_true f.resume
 end
+
+assert('Fiber instance variables') do
+  c = Class.new(Fiber) { attr_accessor :tag }
+  f = c.new { Fiber.yield 1; 2 }
+  f.tag = "tag"
+  assert_equal 1, f.resume
+  GC.start
+  assert_equal "tag", f.tag
+  assert_equal 2, f.resume
+  assert_equal "tag", f.tag
+end

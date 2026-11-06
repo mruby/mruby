@@ -481,9 +481,9 @@ assert('instance variables on objects of a type without an iv slot') do
   pr.tag = 2
   assert_equal 2, pr.tag
 
-  # a Range is frozen, so it refuses one as any frozen object does
+  # a Range is frozen, and has no side table entry to fall back on
   range_class = Class.new(Range) { attr_accessor :tag }
-  assert_raise(FrozenError) { range_class.new(1, 2).tag = 3 }
+  assert_raise(ArgumentError) { range_class.new(1, 2).tag = 3 }
 end
 
 assert('instance variables on a frozen String are refused') do

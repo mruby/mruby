@@ -671,3 +671,14 @@ assert('Struct#deconstruct_keys reads the keys afresh') do
   end
   assert_equal({m0: 0, 1r => 1}, h)
 end
+
+assert("Struct: instance variables") do
+  c = Struct.new(:a) { attr_accessor :tag }
+  s = c.new(1)
+  s.tag = "tag"
+  d = s.dup
+  GC.start
+  assert_equal 1, s.a
+  assert_equal "tag", s.tag
+  assert_equal "tag", d.tag
+end
