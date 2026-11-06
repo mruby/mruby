@@ -4563,18 +4563,56 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
   }
 }
 
+static mrb_bool
+const_defined_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
+{
+  check_const_name_sym(mrb, id);
+  if (inherit) {
+    return mrb_const_defined(mrb, mod, id);
+  }
+  return mrb_const_defined_at(mrb, mod, id);
+}
+
 static mrb_value
 mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 {
-  mrb_sym id;
+  mrb_value path;
   mrb_bool inherit = TRUE;
 
-  mrb_get_args(mrb, "n|b", &id, &inherit);
-  check_const_name_sym(mrb, id);
-  if (inherit) {
-    return mrb_bool_value(mrb_const_defined(mrb, mod, id));
+  mrb_get_args(mrb, "o|b", &path, &inherit);
+  if (mrb_symbol_p(path)) {
+    return mrb_bool_value(const_defined_sym(mrb, mod, mrb_symbol(path), inherit));
   }
-  return mrb_bool_value(mrb_const_defined_at(mrb, mod, id));
+
+  /* class path string: "A::B::C", or "::A::B" from Object */
+  mrb_ensure_string_type(mrb, path);
+
+  char *ptr = RSTRING_PTR(path);
+  mrb_int len = RSTRING_LEN(path);
+  mrb_int off = 0;
+
+  if (len >= 2 && ptr[0] == ':' && ptr[1] == ':') {
+    mod = mrb_obj_value(mrb->object_class);
+    off = 2;
+  }
+  if (off == len) {
+    mrb_name_error(mrb, mrb_intern_str(mrb, path), "wrong constant name '%v'", path);
+  }
+  for (;;) {
+    mrb_int end = mrb_str_index_lit(mrb, path, "::", off);
+    if (end == -1) end = len;
+    mrb_sym id = mrb_intern(mrb, ptr+off, end-off);
+    if (!const_defined_sym(mrb, mod, id, inherit)) return mrb_false_value();
+    if (end == len) return mrb_true_value();
+    off = end + 2;
+    if (off == len) {           /* trailing "::" */
+      mrb_name_error(mrb, id, "wrong constant name '%v'", path);
+    }
+    mod = mrb_const_get(mrb, mod, id);
+    if (!mrb_class_p(mod) && !mrb_module_p(mod)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "%v does not refer to class/module", path);
+    }
+  }
 }
 
 static mrb_value
