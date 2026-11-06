@@ -322,4 +322,34 @@ class Set
 
     Set.new(classify(&func).values)
   end
+
+  #
+  # call-seq:
+  #   set.to_set -> set
+  #   set.to_set { |obj| block } -> new_set
+  #
+  # Returns self when it is a Set and no block is given; otherwise a new
+  # Set built from its elements, as Enumerable#to_set builds one.
+  #
+  def to_set(&block)
+    return self if block.nil? && instance_of?(Set)
+    Set.new(self, &block)
+  end
+end
+
+module Enumerable
+  #
+  # call-seq:
+  #   enum.to_set -> set
+  #   enum.to_set { |obj| block } -> set
+  #
+  # Returns a new Set of the elements of enum, each preprocessed by the
+  # block when one is given.
+  #
+  #   [3, 1, 3].to_set              #=> Set[3, 1]
+  #   (1..3).to_set { |x| x * 2 }   #=> Set[2, 4, 6]
+  #
+  def to_set(&block)
+    Set.new(self, &block)
+  end
 end

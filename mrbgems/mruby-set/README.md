@@ -244,13 +244,13 @@ Here's a list of commonly used methods available in `mruby-set`:
 - `join(separator = nil)`
 - `inspect`, `to_s`
 - `flatten`, `flatten!`
+- `to_set`, and `Enumerable#to_set`
 
 ## Limitations
 
 These methods are not implemented yet:
 
 - freeze
-- to_set
 - divide(Set#divide with 2 arity block is not implemented.)
 
 ## License
