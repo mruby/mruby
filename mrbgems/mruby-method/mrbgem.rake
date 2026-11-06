@@ -10,4 +10,8 @@ MRuby::Gem::Specification.new('mruby-method') do |spec|
   if build.gems.any? {|g| g.name == 'mruby-objectspace'}
     spec.add_test_dependency('mruby-objectspace', :core => 'mruby-objectspace')
   end
+  # Kernel#define_singleton_method takes the bodies define_method does
+  if build.gems.any? {|g| g.name == 'mruby-metaprog'}
+    spec.add_test_dependency('mruby-metaprog', :core => 'mruby-metaprog')
+  end
 end
