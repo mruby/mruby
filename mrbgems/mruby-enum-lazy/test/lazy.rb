@@ -54,6 +54,11 @@ assert("Enumerator::Lazy#flat_map with non-enumerable from block") do
   assert_equal [1, 2, 3], [1, 2, 3].lazy.flat_map {|x| x}.force
 end
 
+assert("Enumerator::Lazy#flat_map flattens only arrays and lazy enumerators") do
+  assert_equal [1..2, 3..4], [1, 3].lazy.flat_map {|x| x..x+1}.force
+  assert_equal [1, 2, 3, 4], [1, 3].lazy.flat_map {|x| (x..x+1).lazy}.force
+end
+
 assert("Enumerator::Lazy#flat_map with nested array from block") do
   assert_equal [[1, 2], [3, 4]], [1, 3].lazy.flat_map {|x| [[x, x+1]]}.force
 end
