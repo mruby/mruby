@@ -578,9 +578,9 @@ obj_iv_p(mrb_value obj)
    such struct, a side table keyed by the object holds an iv_tbl per object
    that was given one. The table comes into being with the first such ivar.
    An object with an entry has MRB_FL_HAS_GIV set, so the GC looks up only
-   those; a Proc has no bit to spare, so every Proc is looked up while the
-   table exists. An entry goes with its object (mrb_gc_free_giv). Keys are
-   object pointers the hash never dereferences. */
+   those; a Proc has no bit to spare, so every Proc is looked up once a Proc
+   has been given one. An entry goes with its object (mrb_gc_free_giv). Keys
+   are object pointers the hash never dereferences. */
 #define giv_hash_func(mrb,key) mrb_int_hash_func(mrb, (intptr_t)(key) >> 4)
 #define giv_hash_equal(mrb,a,b) ((a) == (b))
 KHASH_DECLARE(giv, struct RBasic*, iv_tbl*, TRUE)
@@ -608,7 +608,8 @@ giv_store(mrb_state *mrb, struct RBasic *key, iv_tbl *(*make)(mrb_state*, iv_tbl
   kh_giv_t *h = mrb->giv;
   khiter_t k = kh_put(giv, mrb, h, key);
   kh_value(giv, h, k) = NULL;
-  if (key->tt != MRB_TT_PROC) key->flags |= MRB_FL_HAS_GIV;
+  if (key->tt == MRB_TT_PROC) mrb->gc.giv_proc = TRUE;
+  else key->flags |= MRB_FL_HAS_GIV;
   iv_tbl *t = make(mrb, src);
   k = kh_get(giv, mrb, h, key);
   mrb_assert(k != kh_end(h));

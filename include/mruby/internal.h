@@ -908,7 +908,8 @@ mrb_obj_iv_slot_p(enum mrb_vtype tt)
 }
 /* Set on an object with an entry in the side table, so that nothing else has
    to look it up. A Proc uses every flag bit, this one included (see
-   MRB_PROC_CASPEC_MASK), so a Proc has to be looked up. */
+   MRB_PROC_CASPEC_MASK), so Procs are looked up, but only once a Proc has been
+   given an ivar (mrb_gc.giv_proc). */
 #define MRB_FL_HAS_GIV (1 << 19)
 static inline mrb_bool
 mrb_gc_giv_p(mrb_state *mrb, struct RBasic *obj)
@@ -923,7 +924,7 @@ mrb_gc_giv_p(mrb_state *mrb, struct RBasic *obj)
     case MRB_TT_ISTRUCT:
       return MRB_FLAG_TEST(obj, MRB_FL_HAS_GIV) != 0;
     case MRB_TT_PROC:
-      return TRUE;
+      return mrb->gc.giv_proc;
     default:
       return FALSE;
   }

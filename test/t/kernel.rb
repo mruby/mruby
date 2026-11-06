@@ -478,8 +478,9 @@ assert('instance variables on objects of a type without an iv slot') do
   pr = Proc.new { }
   def pr.tag=(v) @tag = v end
   def pr.tag; @tag; end
-  pr.tag = 2
-  assert_equal 2, pr.tag
+  pr.tag = "t" + "ag"
+  GC.start
+  assert_equal "tag", pr.tag
 
   # a Range is frozen, and has no side table entry to fall back on
   range_class = Class.new(Range) { attr_accessor :tag }
