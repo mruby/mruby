@@ -21,7 +21,8 @@ assert('IPSocket.ntop') do
   assert_raise(ArgumentError) { IPSocket.ntop(Socket::AF_INET6, "\x01\x02\x03\x04") }
   assert_raise(ArgumentError) { IPSocket.ntop(Socket::AF_UNSPEC, "\x01\x02\x03\x04") }
 
-  # A family past C int is not the family it would be cut down to. Computed, not
+  # A family past C int is not the family it would be cut down to; on 32-bit
+  # mrb_int it is a Bigint, refused before the family check. Computed, not
   # written out, so the file still compiles where mrb_int is 32 bits.
   shift = 32
   big = begin
@@ -29,7 +30,7 @@ assert('IPSocket.ntop') do
   rescue RangeError
     nil
   end
-  assert_raise(ArgumentError) { IPSocket.ntop(big + Socket::AF_INET6, "\x01") } if big
+  assert_raise(ArgumentError, RangeError) { IPSocket.ntop(big + Socket::AF_INET6, "\x01") } if big
 end
 
 assert('IPSocket.addr') do
