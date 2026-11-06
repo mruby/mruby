@@ -178,6 +178,92 @@ exc_set_backtrace(mrb_state *mrb, mrb_value exc)
   return backtrace;
 }
 
+/*
+ * call-seq:
+ *   exception.cause   ->  an_exception or nil
+ *
+ * Returns the exception that was being handled (`$!`) when this one was
+ * raised, or the one given to `raise` as `cause:`; nil if there was none.
+ *
+ *   begin
+ *     begin
+ *       raise "a"
+ *     rescue
+ *       raise "b"
+ *     end
+ *   rescue => e
+ *     e.cause   #=> #<RuntimeError: a>
+ *   end
+ */
+static mrb_value
+exc_cause(mrb_state *mrb, mrb_value exc)
+{
+  return mrb_iv_get(mrb, exc, MRB_SYM(cause));
+}
+
+/* Set on an exception that `raise` was given `cause:` for, so that raising it
+   takes no cause from `$!`; cleared as it is raised. */
+#define EXC_CAUSE_GIVEN (1 << 17)
+
+/* Whether exc is cause or one of the causes behind it. */
+static mrb_bool
+exc_cause_chain_p(mrb_state *mrb, mrb_value cause, mrb_value exc)
+{
+  while (mrb_exception_p(cause)) {
+    if (mrb_obj_eq(mrb, cause, exc)) return TRUE;
+    cause = mrb_iv_get(mrb, cause, MRB_SYM(cause));
+  }
+  return FALSE;
+}
+
+/*
+ * The exception `$!` names, the one a rescue or an ensure clause is running
+ * for, becomes the cause of an exception raised there, as in CRuby. One that
+ * already has a cause keeps it, and none is taken that would make the chain
+ * of causes a cycle.
+ */
+static void
+exc_set_implicit_cause(mrb_state *mrb, mrb_value exc)
+{
+  struct RException *e = mrb_exc_ptr(exc);
+
+  if (e->flags & EXC_CAUSE_GIVEN) {
+    e->flags &= ~EXC_CAUSE_GIVEN;
+    return;
+  }
+  /* `!` is not a word, so MRB_GVSYM() cannot spell the name */
+  mrb_value cause = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$!"));
+  if (!mrb_exception_p(cause)) return;
+  if (!mrb_nil_p(mrb_iv_get(mrb, exc, MRB_SYM(cause)))) return;
+  if (exc_cause_chain_p(mrb, cause, exc)) return;
+  mrb_iv_set(mrb, exc, MRB_SYM(cause), cause);
+}
+
+/*
+ * Raises exc with the cause `raise` was given: an exception, which becomes
+ * the cause, or nil, which takes none from `$!` for this raise. A cause that
+ * is exc itself is ignored, and one that has exc behind it is refused.
+ */
+mrb_noreturn void
+mrb_exc_raise_with_cause(mrb_state *mrb, mrb_value exc, mrb_value cause)
+{
+  if (mrb_exception_p(exc)) {
+    if (!mrb_nil_p(cause)) {
+      if (!mrb_exception_p(cause)) {
+        mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
+      }
+      if (!mrb_obj_eq(mrb, cause, exc)) {
+        if (exc_cause_chain_p(mrb, cause, exc)) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "circular causes");
+        }
+        mrb_iv_set(mrb, exc, MRB_SYM(cause), cause);
+      }
+    }
+    mrb_exc_ptr(exc)->flags |= EXC_CAUSE_GIVEN;
+  }
+  mrb_exc_raise(mrb, exc);
+}
+
 void
 mrb_exc_set(mrb_state *mrb, mrb_value exc)
 {
@@ -192,6 +278,7 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
     }
     if (mrb->exc != mrb->nomem_err && !mrb_frozen_p(mrb->exc)) {
       mrb_keep_backtrace(mrb, exc);
+      if (mrb_exception_p(exc)) exc_set_implicit_cause(mrb, exc);
     }
   }
 }
@@ -932,6 +1019,7 @@ static const mrb_mt_entry exception_rom_entries[] = {
   MRB_MT_ENTRY(mrb_exc_inspect,   MRB_SYM(inspect),     MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_exc_backtrace, MRB_SYM(backtrace),   MRB_ARGS_NONE()),
   MRB_MT_ENTRY(exc_set_backtrace, MRB_SYM(set_backtrace), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(exc_cause,         MRB_SYM(cause),       MRB_ARGS_NONE()),
 };
 
 void
