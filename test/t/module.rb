@@ -295,6 +295,19 @@ assert('Module#const_defined?', '15.2.2.4.20') do
   assert_false Test4ConstDefined.const_defined?(:NotExisting)
   assert_wrong_const_name{ Test4ConstDefined.const_defined?(:wrong_name) }
 
+  # class path string
+  assert_true Test4ConstDefined.const_defined?("Const4Test4ConstDefined")
+  assert_true Object.const_defined?("Test4ConstDefined::Const4Test4ConstDefined")
+  assert_true Object.const_defined?("::Test4ConstDefined::Const4Test4ConstDefined")
+  assert_true Object.const_defined?("Test4ConstDefined::Const4Test4ConstDefined", false)
+  assert_false Object.const_defined?("Test4ConstDefined::NotExisting")
+  assert_false Object.const_defined?("NotExisting::NotExisting")
+  assert_raise(TypeError){ Object.const_defined?("Test4ConstDefined::Const4Test4ConstDefined::X") }
+  assert_raise(TypeError){ Object.const_defined?(1) }
+  assert_wrong_const_name{ Object.const_defined?("") }
+  assert_wrong_const_name{ Object.const_defined?("Test4ConstDefined::") }
+  assert_wrong_const_name{ Object.const_defined?("Test4ConstDefined::wrong_name") }
+
   # shared empty iv_tbl (include)
   m = Module.new
   c = Class.new{include m}
