@@ -163,6 +163,13 @@ assert('Kernel#define_singleton_method') do
   assert_equal :singleton_method_ok, o.test_method
   assert_raise(TypeError) { 2.define_singleton_method(:f){} }
   assert_raise(FrozenError) { [].freeze.define_singleton_method(:f){} }
+
+  # a Proc body
+  o = Object.new
+  assert_equal :by_proc, o.define_singleton_method(:by_proc, Proc.new { :proc_ok })
+  assert_equal :proc_ok, o.by_proc
+  assert_raise(TypeError) { o.define_singleton_method(:f, 1) }
+  assert_raise(ArgumentError) { o.define_singleton_method(:f) }
 end
 
 assert('Kernel#singleton_class') do

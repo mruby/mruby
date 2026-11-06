@@ -341,12 +341,27 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_singleton_methods(mrb, recur, self);
 }
 
-mrb_value mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c);
-
+/*
+ *  call-seq:
+ *     obj.define_singleton_method(symbol, method) -> symbol
+ *     obj.define_singleton_method(symbol) { block } -> symbol
+ *
+ *  Defines a singleton method on obj, as the singleton class's
+ *  define_method would: the body is a Proc, the block, or with
+ *  mruby-method a Method or an UnboundMethod.
+ */
 static mrb_value
 mod_define_singleton_method(mrb_state *mrb, mrb_value self)
 {
-  return mrb_mod_define_method_m(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)));
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value blk;
+
+  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+  mrb_value sclass = mrb_singleton_class(mrb, self);
+  /* through the method, not mrb_mod_define_method_m(), so that a gem that
+     widens Module#define_method (mruby-method) widens this one too */
+  return mrb_funcall_with_block(mrb, sclass, MRB_SYM(define_method), argc, argv, blk);
 }
 
 static mrb_bool
@@ -740,7 +755,7 @@ static const mrb_mt_entry metaprog_krn_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_protected_methods, MRB_SYM(protected_methods), MRB_ARGS_OPT(1)),  /* 15.3.1.3.37 */
   MRB_MT_ENTRY(mrb_obj_public_methods,    MRB_SYM(public_methods), MRB_ARGS_OPT(1)),  /* 15.3.1.3.38 */
   MRB_MT_ENTRY(mrb_obj_singleton_methods_m, MRB_SYM(singleton_methods), MRB_ARGS_OPT(1)),  /* 15.3.1.3.45 */
-  MRB_MT_ENTRY(mod_define_singleton_method, MRB_SYM(define_singleton_method), MRB_ARGS_REQ(1)|MRB_ARGS_BLOCK()),
+  MRB_MT_ENTRY(mod_define_singleton_method, MRB_SYM(define_singleton_method), MRB_ARGS_ARG(1,1)|MRB_ARGS_BLOCK()),
   MRB_MT_ENTRY(mrb_f_send,               MRB_SYM(send), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),  /* 15.3.1.3.44 */
   MRB_MT_ENTRY(mrb_f_public_send,        MRB_SYM(public_send), MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()),
 };

@@ -708,6 +708,27 @@ assert('Module#define_method with a Method or UnboundMethod') do
   assert_raise(TypeError) { Class.new { define_method(:x, 1) } }
 end
 
+assert('Kernel#define_singleton_method with a Method or UnboundMethod') do
+  skip "no Kernel#define_singleton_method" unless Object.new.respond_to?(:define_singleton_method)
+  a = Class.new do
+    def self.new(*) :custom end
+  end
+  b = Class.new(a)
+  assert_equal :custom, b.new
+  assert_equal :new, b.define_singleton_method(:new, Class.instance_method(:new))
+  assert_kind_of b, b.new
+  assert_equal :custom, a.new
+
+  o = Object.new
+  def o.single; :single; end
+  o.define_singleton_method(:single2, o.method(:single))
+  assert_equal :single, o.single2
+
+  k = Class.new { def hi; :hi; end }
+  k.new.define_singleton_method(:hello, k.instance_method(:hi))
+  assert_raise(TypeError) { Object.new.define_singleton_method(:hello, k.instance_method(:hi)) }
+end
+
 assert('Module#define_method with a Method takes the scope visibility') do
   a = Class.new do
     def orig; :orig; end
