@@ -1229,6 +1229,9 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
   mrb_assert((obj)->tt != MRB_TT_FREE);
   switch (obj->tt) {
   case MRB_TT_STRING:
+    /* an instance variable can be a string with its own: not a depth to
+       recurse to, so this one goes by the gray list */
+    if (MRB_FLAG_TEST(obj, MRB_FL_HAS_GIV)) break;
     /* most strings have no children; handle fshared inline */
     paint_black(obj);
     mrb_gc_mark(mrb, (struct RBasic*)obj->c);
@@ -1236,7 +1239,6 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
       struct RString *s = (struct RString*)obj;
       mrb_gc_mark(mrb, (struct RBasic*)s->as.heap.aux.fshared);
     }
-    if (mrb_gc_giv_p(mrb, obj)) mrb_gc_mark_giv(mrb, obj);
     return;
   case MRB_TT_INTEGER:
   case MRB_TT_CPTR:

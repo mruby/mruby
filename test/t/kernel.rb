@@ -531,6 +531,25 @@ assert('instance variables of a String survive GC and leave with it') do
   assert_equal "tag450", kept[9].tag
 end
 
+assert('a long chain of Strings through instance variables survives GC') do
+  str_class = Class.new(String) { attr_accessor :nxt }
+  head = nil
+  i = 0
+  while i < 500000
+    s = str_class.new("x")
+    s.nxt = head
+    head = s
+    i += 1
+  end
+  GC.start
+  n = 0
+  while head
+    head = head.nxt
+    n += 1
+  end
+  assert_equal 500000, n
+end
+
 assert('Kernel#remove_instance_variable', '15.3.1.3.41') do
   class Test4RemoveInstanceVar
     attr_reader :var
