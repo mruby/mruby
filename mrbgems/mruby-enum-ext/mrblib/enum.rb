@@ -266,20 +266,26 @@ module Enumerable
   #    enum.collect_concat                 -> an_enumerator
   #
   # Returns a new array with the concatenated results of running
-  # <em>block</em> once for every element in *enum*.
+  # <em>block</em> once for every element in *enum*. A result that is
+  # an array, or converts to one with +to_ary+, has its elements
+  # concatenated; any other result is added as it is.
   #
   # If no block is given, an enumerator is returned instead.
   #
   #    [1, 2, 3, 4].flat_map { |e| [e, -e] } #=> [1, -1, 2, -2, 3, -3, 4, -4]
   #    [[1, 2], [3, 4]].flat_map { |e| e + [100] } #=> [1, 2, 100, 3, 4, 100]
+  #    [1..2, 3..4].flat_map { |e| e } #=> [1..2, 3..4]
   def flat_map(&block)
     return to_enum(:flat_map) unless block
 
     ary = []
     self.each do |*e|
       e2 = block.call(*e)
-      if e2.respond_to?(:each)
-        e2.each {|e3| ary.push(e3) }
+      if !e2.is_a?(Array) && e2.respond_to?(:to_ary)
+        e2 = e2.to_ary
+      end
+      if e2.is_a?(Array)
+        ary.concat(e2)
       else
         ary.push(e2)
       end
