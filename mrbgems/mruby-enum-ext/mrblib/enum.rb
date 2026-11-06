@@ -267,8 +267,8 @@ module Enumerable
   #
   # Returns a new array with the concatenated results of running
   # <em>block</em> once for every element in *enum*. A result that is
-  # an array, or converts to one with +to_ary+, has its elements
-  # concatenated; any other result is added as it is.
+  # an array has its elements concatenated; any other result is added
+  # as it is.
   #
   # If no block is given, an enumerator is returned instead.
   #
@@ -281,10 +281,7 @@ module Enumerable
     ary = []
     self.each do |*e|
       e2 = block.call(*e)
-      if !e2.is_a?(Array) && e2.respond_to?(:to_ary)
-        e2 = e2.to_ary
-      end
-      if e2.is_a?(Array)
+      if Array === e2
         ary.concat(e2)
       else
         ary.push(e2)

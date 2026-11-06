@@ -77,12 +77,12 @@ assert("Enumerable#flat_map") do
   assert_equal [1, 2, 3, 4], [1, 2, 3, 4].flat_map { |e| e }
   assert_equal [1, -1, 2, -2, 3, -3, 4, -4], [1, 2, 3, 4].flat_map { |e| [e, -e] }
   assert_equal [1, 2, 100, 3, 4, 100], [[1, 2], [3, 4]].flat_map { |e| e + [100] }
-  # only an array, or what converts to one, is flattened
+  # only an array is flattened: to_ary is not consulted
   assert_equal [1..2, 3..4], [1..2, 3..4].flat_map { |e| e }
   assert_equal [{a: 1}], [{a: 1}].flat_map { |e| e }
   o = Object.new
   def o.to_ary; [:x, :y]; end
-  assert_equal [:x, :y, 1], [o, 1].flat_map { |e| e }
+  assert_equal [o, 1], [o, 1].flat_map { |e| e }
 end
 
 assert("Enumerable#max_by") do

@@ -57,6 +57,9 @@ end
 assert("Enumerator::Lazy#flat_map flattens only arrays and lazy enumerators") do
   assert_equal [1..2, 3..4], [1, 3].lazy.flat_map {|x| x..x+1}.force
   assert_equal [1, 2, 3, 4], [1, 3].lazy.flat_map {|x| (x..x+1).lazy}.force
+  o = Object.new
+  def o.to_ary; [:x, :y]; end
+  assert_equal [o], [1].lazy.flat_map {|x| o}.force
 end
 
 assert("Enumerator::Lazy#flat_map with nested array from block") do
