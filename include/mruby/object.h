@@ -44,6 +44,10 @@ struct RFiber {
   struct mrb_context *cxt;
 };
 
+/* Fiber.current made this object for a context it does not own, the root's or
+   a task's: the context goes with its owner, not with this object. */
+#define MRB_FL_FIBER_BORROWED (1 << 0)
+
 #define mrb_static_assert_object_size(st) \
   mrb_static_assert(sizeof(st) <= sizeof(void*) * 5, \
                     #st " size must be within 5 words")

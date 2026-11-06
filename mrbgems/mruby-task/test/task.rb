@@ -627,3 +627,56 @@ assert("def in instance_eval on an immediate still raises in a task") do
   assert_kind_of TypeError, err
   assert_false Integer.method_defined?(:u2_never_defined)
 end
+
+# Fiber.current gives a task's own context a Fiber object. That context is part
+# of the mrb_task, so the object must neither free it nor outlive it unawares.
+assert("Fiber.current in a task") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = nil
+  same = nil
+  alive = nil
+  Task.new do
+    fib = Fiber.current
+    same = fib == Fiber.current
+    alive = fib.alive?
+  end
+  Task.run
+  assert_kind_of Fiber, fib
+  assert_true same
+  assert_true alive
+  assert_false fib.alive?
+  assert_raise(FiberError) { fib.resume }
+end
+
+assert("a Fiber from Fiber.current outlives its closed task") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = nil
+  task = Task.new { fib = Fiber.current }
+  Task.run
+  task.close
+  GC.start
+  assert_false fib.alive?
+  assert_raise(FiberError) { fib.resume }
+  assert_raise(FiberError) { fib.transfer }
+  assert_kind_of String, fib.inspect
+  assert_raise(RuntimeError) { fib.__send__(:initialize) {} }
+end
+
+assert("a Fiber from Fiber.current outlives a synchronous execution") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = TaskTest.run_sync { Fiber.current }
+  GC.start
+  assert_kind_of Fiber, fib
+  assert_false fib.alive?
+end
+
+assert("a fiber transfers back to Fiber.current of its own task") do
+  skip unless Object.const_defined?(:Fiber)
+  got = nil
+  Task.new do
+    task_fiber = Fiber.current
+    got = Fiber.new { task_fiber.transfer(:back) }.transfer
+  end
+  Task.run
+  assert_equal :back, got
+end

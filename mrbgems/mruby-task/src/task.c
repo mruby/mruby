@@ -55,6 +55,24 @@ task_unshare_envs(mrb_state *mrb, struct mrb_context *c)
   mrb_env_detach_all(mrb, c, TRUE);
 }
 
+/* What a Fiber object from Fiber.current holds once its task is freed: a
+ * context that is over, so the object answers as a finished fiber does. */
+static const struct mrb_context task_gone_context = {
+  NULL, NULL, NULL, NULL, NULL, NULL, NULL, MRB_TASK_STOPPED
+};
+
+/* A task's context is part of its mrb_task, so a Fiber object from
+ * Fiber.current can outlive it. Called before the context goes away or is
+ * rebuilt. */
+static void
+task_release_fiber(struct mrb_context *c)
+{
+  if (c->fib) {
+    c->fib->cxt = (struct mrb_context*)&task_gone_context;
+    c->fib = NULL;
+  }
+}
+
 /*
  * Task data type for GC
  */
@@ -69,6 +87,8 @@ mrb_task_free(mrb_state *mrb, void *ptr)
     if (t != mrb->task.main_task) {
       mrb_gc_unregister(mrb, t->self);
     }
+
+    task_release_fiber(&t->c);
 
     /* Free context resources - always free if allocated */
     /* Main task never has allocated context (stbase/cibase are NULL) */
@@ -1571,6 +1591,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   DATA_TYPE(task_obj) = NULL;
 
   /* Free context resources directly (bypass GC since we own this task) */
+  task_release_fiber(&t->c);
   task_unshare_envs(mrb, &t->c);
   if (t->c.stbase) {
     mrb_free(mrb, t->c.stbase);
@@ -1846,6 +1867,7 @@ mrb_task_init_context(mrb_state *mrb, mrb_value task, struct RProc *proc)
   struct mrb_context *c = &t->c;
 
   /* Cleanup existing context if any */
+  task_release_fiber(c);
   task_unshare_envs(mrb, c);
   if (c->stbase) {
     mrb_free(mrb, c->stbase);

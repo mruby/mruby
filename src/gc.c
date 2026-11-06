@@ -1296,9 +1296,15 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 
   case MRB_TT_FIBER:
     {
-      struct mrb_context *c = ((struct RFiber*)obj)->cxt;
+      struct RFiber *f = (struct RFiber*)obj;
+      struct mrb_context *c = f->cxt;
 
-      if (c && c != mrb->root_c) {
+      if (MRB_FLAG_TEST(f, MRB_FL_FIBER_BORROWED)) {
+        /* Tearing the heap down frees this object and a task's object in no
+           set order, so whichever goes first unlinks itself from the other. */
+        if (c->fib == f) c->fib = NULL;
+      }
+      else if (c) {
         if (!end && c->status != MRB_FIBER_TERMINATED) {
           /* Every surviving env escapes with its frame's container (see
              mrb_env_detach_all() in vm.c for the carrying policy); FALSE
