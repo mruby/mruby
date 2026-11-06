@@ -222,6 +222,14 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
 
   enum mrb_fiber_state status = c->status;
   switch (status) {
+  case MRB_FIBER_CREATED:
+    /* A borrowed context is CREATED while it runs, until it first switches
+       fibers, so this is a call from another task and not a fiber to start:
+       starting it would overwrite the frames that context is running. */
+    if (MRB_FLAG_TEST(fiber_ptr(self), MRB_FL_FIBER_BORROWED)) {
+      return fiber_error(mrb, "attempt to switch to a fiber of another task");
+    }
+    break;
   case MRB_FIBER_TRANSFERRED:
     if (resume) {
       return fiber_error(mrb, "resuming transferred fiber");

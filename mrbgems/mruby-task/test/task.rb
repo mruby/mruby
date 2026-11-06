@@ -680,3 +680,45 @@ assert("a fiber transfers back to Fiber.current of its own task") do
   Task.run
   assert_equal :back, got
 end
+
+assert("a task cannot switch to Fiber.current of another task") do
+  skip unless Object.const_defined?(:Fiber)
+  fib = nil
+  done = false
+  errs = []
+  Task.new do
+    fib = Fiber.current
+    Task.pass until done
+  end
+  Task.new do
+    Task.pass until fib
+    begin
+      fib.resume
+    rescue FiberError => e
+      errs << e
+    end
+    begin
+      fib.transfer
+    rescue FiberError => e
+      errs << e
+    end
+    done = true
+  end
+  Task.run
+  assert_equal 2, errs.size
+end
+
+assert("a task cannot resume Fiber.current of the root context") do
+  skip unless Object.const_defined?(:Fiber)
+  root = Fiber.current
+  err = nil
+  Task.new do
+    begin
+      root.resume
+    rescue FiberError => e
+      err = e
+    end
+  end
+  Task.run
+  assert_kind_of FiberError, err
+end
