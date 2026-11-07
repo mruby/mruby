@@ -4210,7 +4210,8 @@ mrb_obj_class(mrb_state *mrb, mrb_value obj)
  *         (representing `b`) is directly used for the new alias `a`.
  *      b. If `b` is a Ruby-defined method (a non-CFUNC, non-alias `RProc`), a new `RProc`
  *         of type `MRB_PROC_ALIAS` is created. This new proc stores the original
- *         method's symbol `b` and its `RProc` as its `upper`. This ensures that
+ *         method's symbol `b`, its `RProc` as its `upper`, and the class `b` was
+ *         found in as its target class, where a `super` in it continues. This ensures that
  *         the alias `a` continues to point to the definition of `b` at the time of
  *         aliasing, even if `b` is later redefined. The visibility of `b` is copied
  *         to this new alias proc.
@@ -4223,7 +4224,11 @@ MRB_API void
 mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 {
   if (a == b) return;
-  mrb_method_t m = mrb_method_search(mrb, c, b);
+  struct RClass *owner = c;
+  mrb_method_t m = mrb_method_search_vm(mrb, &owner, b);
+  if (MRB_METHOD_UNDEF_P(m)) {
+    mrb_name_error(mrb, b, "undefined method '%n' for class %C", b, c);
+  }
 
   if (!MRB_METHOD_CFUNC_P(m)) {
     const struct RProc *p = MRB_METHOD_PROC(m);
@@ -4233,7 +4238,9 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 
       pnew->body.mid = b;
       pnew->upper = p;
-      pnew->e.env = NULL;
+      /* the class the original method was found in: a `super` in it goes
+         on from there, not from the class that holds the alias */
+      pnew->e.target_class = owner;
       pnew->flags |= MRB_PROC_ALIAS;
       MRB_METHOD_FROM_PROC(m, pnew);
       MRB_METHOD_SET_VISIBILITY(m, vis);

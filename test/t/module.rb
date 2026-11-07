@@ -44,6 +44,33 @@ assert('Module#alias_method', '15.2.2.4.8') do
   assert_equal("FOO", cls.new.bar)
 end
 
+assert('Module#alias_method super in an alias a subclass holds') do
+  a = Class.new { def m; "A"; end }
+  b = Class.new(a) { def m; "B" + super; end }
+  c = Class.new(b) { alias_method :m2, :m }
+  assert_equal("BA", c.new.m2)
+
+  # the alias reaches the original from a subclass that overrides it
+  d = Class.new(b) { alias_method :m2, :m; def m; "D" + super; end }
+  assert_equal("BA", d.new.m2)
+  e = Class.new(d)
+  assert_equal("BA", e.new.m2)
+
+  # super in a block, and with arguments
+  f = Class.new(a) { def m(x = 0); [1].map { "F#{x}" + super() }.first; end }
+  g = Class.new(f) { alias_method :m2, :m }
+  assert_equal("F1A", g.new.m2(1))
+end
+
+assert('Module#alias_method super in an alias of a module method') do
+  base = Class.new { def m; "A"; end }
+  m = Module.new { def m; "M" + super; end; alias_method :m2, :m }
+  assert_equal("MA", Class.new(base) { include m }.new.m2)
+  assert_equal("MA", Class.new(base) { include m; alias_method :m3, :m }.new.m3)
+  n = Module.new { include m; alias_method :m4, :m }
+  assert_equal("MA", Class.new(base) { include n }.new.m4)
+end
+
 # TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
@@ -1057,33 +1084,32 @@ end
   #   assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
   # end
 
-  # assert 'Module#prepend super in alias' do
-  #   skip "super does not currently work in aliased methods"
-  #   bug7842 = '[Bug #7842]'
+  assert 'Module#prepend super in alias' do
+    bug7842 = '[Bug #7842]'
 
-  #   p = labeled_module("P") do
-  #     def m; "P"+super; end
-  #   end
+    p = labeled_module("P") do
+      def m; "P"+super; end
+    end
 
-  #   a = labeled_class("A") do
-  #     def m; "A"; end
-  #   end
+    a = labeled_class("A") do
+      def m; "A"; end
+    end
 
-  #   b = labeled_class("B", a) do
-  #     def m; "B"+super; end
-  #     alias m2 m
-  #     prepend p
-  #     alias m3 m
-  #   end
+    b = labeled_class("B", a) do
+      def m; "B"+super; end
+      alias m2 m
+      prepend p
+      alias m3 m
+    end
 
-  #   assert_nothing_raised do
-  #     assert_equal("BA", b.new.m2, bug7842)
-  #   end
+    assert_nothing_raised do
+      assert_equal("BA", b.new.m2, bug7842)
+    end
 
-  #   assert_nothing_raised do
-  #     assert_equal("PBA", b.new.m3, bug7842)
-  #   end
-  # end
+    assert_nothing_raised do
+      assert_equal("PBA", b.new.m3, bug7842)
+    end
+  end
 
   assert 'Module#prepend each class' do
     m = labeled_module("M")

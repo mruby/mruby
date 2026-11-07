@@ -310,9 +310,12 @@ mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p)
   CI_PROC_SET(ci, p);
 }
 
+static void ci_set_alias_owner(mrb_callinfo *ci, const struct RProc *alias);
+
 #define MRB_PROC_RESOLVE_ALIAS(ci, p) do {\
   if (MRB_PROC_ALIAS_P(p)) {\
     (ci)->mid = (p)->body.mid;\
+    ci_set_alias_owner(ci, p);\
     (p) = (p)->upper;\
   }\
 } while (0)
@@ -338,6 +341,31 @@ mrb_vm_ci_target_class_set(mrb_callinfo *ci, struct RClass *tc)
 }
 
 #define CI_ENV(ci) (((ci)->u.env && (ci)->u.env->tt == MRB_TT_ENV)? (ci)->u.env : NULL)
+
+/* A method called through an alias runs under the class its original was
+   found in, so that a `super` in it goes on from there. When that is a
+   module, it is the module's place in the receiver's ancestry, which the
+   class the alias was found in starts. */
+static void
+ci_set_alias_owner(mrb_callinfo *ci, const struct RProc *alias)
+{
+  struct RClass *owner = alias->e.target_class;
+
+  if (!owner) return;
+  /* a class prepended to since the alias was made keeps its methods in
+     its origin */
+  MRB_CLASS_ORIGIN(owner);
+  if (owner->tt == MRB_TT_MODULE || owner->tt == MRB_TT_ICLASS) {
+    struct RClass *mod = owner->tt == MRB_TT_MODULE ? owner : owner->c;
+    struct RClass *k = CI_TARGET_CLASS(ci);
+    while (k && !(k->tt == MRB_TT_ICLASS && k->c == mod)) {
+      k = k->super;
+    }
+    if (k) owner = k;
+    else if (owner->tt == MRB_TT_MODULE) return;
+  }
+  mrb_vm_ci_target_class_set(ci, owner);
+}
 
 struct REnv*
 mrb_vm_ci_env(const mrb_callinfo *ci)
