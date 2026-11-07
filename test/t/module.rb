@@ -1916,3 +1916,34 @@ assert('Module#const_get and const_defined? with const_missing changing the path
   c.path = path = "String::" + ("B"*60)
   assert_false c.const_defined?(path)
 end
+
+assert('Module#public, #private, #protected and #module_function return their names') do
+  r = {}
+  c = Class.new do
+    def a; end
+    def b; end
+    r[:one] = public :a
+    r[:str] = private "a"
+    r[:two] = protected :a, :b
+    r[:ary] = private [:a, :b]
+    r[:none] = public
+    r[:def] = private def d; end
+    r[:attr] = private attr_accessor :x
+  end
+  assert_equal :a, r[:one]
+  assert_equal "a", r[:str]
+  assert_equal [:a, :b], r[:two]
+  assert_equal [:a, :b], r[:ary]
+  assert_nil r[:none]
+  assert_equal :d, r[:def]
+  assert_equal [:x, :x=], r[:attr]
+  assert_raise(NoMethodError) { c.new.d }
+  Module.new do
+    def f; end
+    def g; end
+    r[:mf] = module_function :f, :g
+    r[:mf0] = module_function
+  end
+  assert_equal [:f, :g], r[:mf]
+  assert_nil r[:mf0]
+end

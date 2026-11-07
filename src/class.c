@@ -2726,7 +2726,17 @@ vis_scope_persist(mrb_state *mrb, mrb_callinfo **cp, struct REnv **ep, uint32_t 
   *cp = NULL;
 }
 
-static void
+/* Answers what public, private and protected answer in CRuby: nil for no
+   name, the name for one, and an Array of them for more. */
+static mrb_value
+visibility_result(mrb_state *mrb, const mrb_value *argv, mrb_int argc)
+{
+  if (argc == 0) return mrb_nil_value();
+  if (argc == 1) return argv[0];
+  return mrb_ary_new_from_values(mrb, argc, argv);
+}
+
+static mrb_value
 mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 {
   mrb_assert((vis&MT_VMASK)==vis);
@@ -2735,6 +2745,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*!", &argv, &argc);
+  mrb_value result = visibility_result(mrb, argv, argc);
   if (argc == 0) {
     mrb_callinfo *ci;
     struct REnv *e;
@@ -2796,51 +2807,43 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
       mrb_builtin_op_update(mrb, mid);
     }
   }
+  return result;
 }
 
 static mrb_value
 mrb_mod_public(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MRB_METHOD_PUBLIC_FL);
-  return mod;
+  return mrb_mod_visibility(mrb, mod, MRB_METHOD_PUBLIC_FL);
 }
 
 static mrb_value
 mrb_mod_private(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
-  return mod;
+  return mrb_mod_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
 mrb_mod_protected(mrb_state *mrb, mrb_value mod)
 {
-  mrb_mod_visibility(mrb, mod, MT_PROTECTED);
-  return mod;
+  return mrb_mod_visibility(mrb, mod, MT_PROTECTED);
 }
 
 static mrb_value
 top_public(mrb_state *mrb, mrb_value self)
 {
-  self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MRB_METHOD_PUBLIC_FL);
-  return self;
+  return mrb_mod_visibility(mrb, mrb_obj_value(mrb->object_class), MRB_METHOD_PUBLIC_FL);
 }
 
 static mrb_value
 top_private(mrb_state *mrb, mrb_value self)
 {
-  self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MRB_METHOD_PRIVATE_FL);
-  return self;
+  return mrb_mod_visibility(mrb, mrb_obj_value(mrb->object_class), MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
 top_protected(mrb_state *mrb, mrb_value self)
 {
-  self = mrb_obj_value(mrb->object_class);
-  mrb_mod_visibility(mrb, self, MT_PROTECTED);
-  return self;
+  return mrb_mod_visibility(mrb, mrb_obj_value(mrb->object_class), MT_PROTECTED);
 }
 
 /*
@@ -4963,7 +4966,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
       MRB_CI_SET_VISIBILITY(ci, MRB_METHOD_PRIVATE_FL >> 25);
       MRB_CI_SET_MODFUNC(ci);
     }
-    return mod;
+    return mrb_nil_value();
   }
 
   struct RClass *rclass = mrb_class_ptr(mod);
@@ -4982,7 +4985,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_gc_arena_restore(mrb, ai);
   }
 
-  return mod;
+  return visibility_result(mrb, argv, argc);
 }
 
 static struct RClass*
