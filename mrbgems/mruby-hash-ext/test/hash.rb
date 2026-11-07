@@ -549,3 +549,22 @@ assert('Hash methods keep what they build out of reach of ObjectSpace') do
   assert_false reached.(r)
   look = nil
 end
+
+assert('Hash derived from one comparing by identity') do
+  a, b = "a".dup, "a".dup
+  h = {}.compare_by_identity
+  h[a] = 1
+  h[b] = 2
+  [h.slice(a, b), h.except, h.transform_values { |v| v }, Hash[h]].each do |r|
+    assert_true r.compare_by_identity?
+    assert_equal 2, r.size
+  end
+  assert_false h.transform_keys { |k| k }.compare_by_identity?
+  g = {}.compare_by_identity
+  g[1] = 1
+  g[2] = 2
+  g.transform_keys! { "x".dup }
+  assert_true g.compare_by_identity?
+  assert_equal 2, g.size
+  assert_false Hash[{"a" => 1}].compare_by_identity?
+end

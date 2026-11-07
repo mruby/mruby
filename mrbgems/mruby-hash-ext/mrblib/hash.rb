@@ -362,7 +362,13 @@ class Hash
   #
   def transform_keys!(&block)
     return to_enum(:transform_keys!) unless block
-    hash = self.transform_keys(&block)
+    # replace takes the comparison of its argument, and the receiver keeps its
+    # own, so the new keys are gathered as the receiver compares them
+    hash = {}
+    hash.compare_by_identity if compare_by_identity?
+    self.keys.each do |k|
+      hash[block.call(k)] = self[k]
+    end
     self.replace(hash)
     self
   end
@@ -380,6 +386,7 @@ class Hash
   def transform_values(&b)
     return to_enum(:transform_values) unless block_given?
     hash = {}
+    hash.compare_by_identity if compare_by_identity?
     self.keys.each do |k|
       hash[k] = yield(self[k])
     end

@@ -42,6 +42,13 @@ hash_values_at(mrb_state *mrb, mrb_value hash)
   return result;
 }
 
+/* the new Hash dst compares its keys as src does; dst is still empty */
+static void
+copy_identity(mrb_value dst, mrb_value src)
+{
+  mrb_hash_ptr(dst)->flags |= mrb_hash_ptr(src)->flags & MRB_HASH_COMPARE_BY_IDENTITY;
+}
+
 /*
  *  call-seq:
  *     hsh.slice(*keys) -> a_hash
@@ -60,6 +67,7 @@ hash_slice(mrb_state *mrb, mrb_value hash)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mrb_value result = mrb_hash_new_capa(mrb, argc);
+  copy_identity(result, hash);
   if (argc == 0) return result; /* empty hash */
   /* a key's #hash and #eql? must not reach the result being filled */
   mrb_hash_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
@@ -188,6 +196,7 @@ hash_except(mrb_state *mrb, mrb_value hash)
   /* build a plain Hash instead of a dup: as in CRuby, the receiver's class
      and default value do not carry over to the result */
   mrb_value result = mrb_hash_new_capa(mrb, mrb_hash_size(mrb, hash));
+  copy_identity(result, hash);
   /* a key's #hash and #eql? must not reach the result being filled */
   mrb_hash_ptr(result)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_hash_merge(mrb, result, hash);
@@ -232,6 +241,7 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
     /* Case 1: Hash argument - copy constructor */
     if (mrb_hash_p(obj)) {
       hash = mrb_hash_new(mrb);
+      copy_identity(hash, obj);
       mrb_hash_ptr(hash)->c = NULL; /* hide from ObjectSpace.each_object */
       mrb_hash_merge(mrb, hash, obj);
       /* the class is set here, a subclass's included */
