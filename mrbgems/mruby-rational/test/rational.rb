@@ -733,3 +733,45 @@ assert 'Rational keeps a bigint half it boxes after itself across minor GCs' do
     GC.generational_mode, GC.interval_ratio = origin
   end
 end
+
+assert 'Rational#floor, #ceil, #truncate and #round' do
+  rs = [Rational(7, 2), Rational(-7, 2), Rational(5, 2), Rational(-5, 2),
+        Rational(1, 3), Rational(-1, 3), Rational(3)]
+  assert_equal [3, -4, 2, -3, 0, -1, 3], rs.map(&:floor)
+  assert_equal [4, -3, 3, -2, 1, 0, 3], rs.map(&:ceil)
+  assert_equal [3, -3, 2, -2, 0, 0, 3], rs.map(&:truncate)
+  assert_equal [4, -4, 3, -3, 0, 0, 3], rs.map(&:round)
+  assert_kind_of Integer, Rational(7, 2).floor
+end
+
+assert 'Rational#round with half:' do
+  assert_equal 2, Rational(5, 2).round(half: :even)
+  assert_equal 4, Rational(7, 2).round(half: :even)
+  assert_equal(-2, Rational(-5, 2).round(half: :even))
+  assert_equal 2, Rational(5, 2).round(half: :down)
+  assert_equal(-2, Rational(-5, 2).round(half: :down))
+  assert_equal 3, Rational(5, 2).round(half: nil)
+  assert_equal 2, Rational(5, 2).round(half: "even")
+  assert_raise(ArgumentError) { Rational(1, 3).round(half: :foo) }
+end
+
+assert 'Rational rounding to ndigits' do
+  r = Rational(12345, 100)
+  assert_rational Rational(617, 5), r.floor(1)
+  assert_rational Rational(247, 2), r.ceil(1)
+  assert_rational Rational(617, 5), r.truncate(1)
+  assert_rational Rational(247, 2), r.round(1)
+  assert_rational Rational(-247, 2), (-r).floor(1)
+  assert_rational Rational(-247, 2), (-r).round(1)
+  assert_rational Rational(2469, 20), r.round(5)
+  assert_rational Rational(1, 5), Rational(25, 100).round(1, half: :even)
+  assert_rational Rational(2, 5), Rational(35, 100).round(1, half: :even)
+  assert_equal 120, r.round(-1)
+  assert_equal 120, r.floor(-1)
+  assert_equal 130, r.ceil(-1)
+  assert_equal(-120, (-r).truncate(-1))
+  assert_equal 20, Rational(15).round(-1, half: :even)
+  assert_equal 20, Rational(25).round(-1, half: :down)
+  assert_kind_of Integer, r.round(0)
+  assert_raise(TypeError) { r.floor(nil) }
+end
