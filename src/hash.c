@@ -170,6 +170,13 @@ DEFINE_GETTER(h, size, uint32_t, size)                          /* h_size       
 DEFINE_ACCESSOR(h, ht, hash_table*, hsh.ht)                     /* h_ht         h_set_ht         */
 DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht_off  h_ht_p     */
 
+MRB_INLINE void h_identity_on(struct RHash *h) {
+  h->flags |= MRB_HASH_COMPARE_BY_IDENTITY;
+}
+MRB_INLINE mrb_bool h_identity_p(const struct RHash *h) {
+  return (h->flags & MRB_HASH_COMPARE_BY_IDENTITY) != 0;
+}
+
 #define EA_EACH_USED(ea, n_used, entry_var)                                   \
   for (hash_entry *entry_var = (ea), *ea_end__ = (entry_var) + (n_used);      \
        entry_var < ea_end__;                                                  \
@@ -358,6 +365,15 @@ float_hash_code(mrb_float f)
 }
 #endif
 
+static uint32_t
+hash_code_mix(uint32_t hash_code)
+{
+  hash_code ^= hash_code >> 16;
+  hash_code *= 0x45d9f3b;
+  hash_code ^= hash_code >> 16;
+  return hash_code;
+}
+
 uint32_t
 mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 {
@@ -403,10 +419,7 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
-  hash_code ^= hash_code >> 16;
-  hash_code *= 0x45d9f3b;
-  hash_code ^= hash_code >> 16;
-  return hash_code;
+  return hash_code_mix(hash_code);
 }
 
 static uint32_t
@@ -414,6 +427,11 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 {
   uint32_t hash_code = 0;
 
+  if (h_identity_p(h)) {
+    /* the object, as mrb_obj_eq() tells objects apart; nothing is called */
+    uint64_t id = (uint64_t)mrb_obj_id(key);
+    return hash_code_mix(U32(id ^ (id >> 32)));
+  }
   H_CHECK_MODIFIED(mrb, h) {
     hash_code = mrb_obj_hash_code(mrb, key);
   }
@@ -479,11 +497,20 @@ entry_check_vacated(mrb_state *mrb, const hash_entry *entry, mrb_value stored)
   }
 }
 
+/* Whether two keys are the same key of h: the same object once h compares by
+   identity, and eql? otherwise. A value is compared by obj_eql() alone. */
+static mrb_bool
+key_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
+{
+  if (h_identity_p(h)) return mrb_obj_eq(mrb, a, b);
+  return obj_eql(mrb, a, b, h);
+}
+
 static mrb_bool
 entry_key_eql(mrb_state *mrb, struct RHash *h, hash_entry *entry, mrb_value key)
 {
   mrb_value stored = entry->key;
-  if (!obj_eql(mrb, key, stored, h)) return FALSE;
+  if (!key_eql(mrb, key, stored, h)) return FALSE;
   entry_check_vacated(mrb, entry, stored);
   return TRUE;
 }
@@ -1156,7 +1183,7 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
 static mrb_value
 h_key_for(mrb_state *mrb, struct RHash *h, mrb_value key)
 {
-  if (mrb_string_p(key) && !mrb_frozen_p(mrb_str_ptr(key))) {
+  if (mrb_string_p(key) && !mrb_frozen_p(mrb_str_ptr(key)) && !h_identity_p(h)) {
     key = mrb_str_dup(mrb, key);
     mrb_str_ptr(key)->frozen = 1;
     mrb_field_write_barrier_value(mrb, (struct RBasic*)h, key);
@@ -1419,7 +1446,7 @@ static void
 hash_replace(mrb_state *mrb, mrb_value self, mrb_value orig)
 {
   struct RHash *h = mrb_hash_ptr(self), *orig_h = mrb_hash_ptr(orig);
-  uint32_t mask = MRB_HASH_DEFAULT | MRB_HASH_PROC_DEFAULT;
+  uint32_t mask = MRB_HASH_DEFAULT | MRB_HASH_PROC_DEFAULT | MRB_HASH_COMPARE_BY_IDENTITY;
   mrb_sym name;
   h_replace(mrb, h, orig_h);
   name = MRB_SYM(ifnone);
@@ -2163,6 +2190,43 @@ mrb_hash_rehash(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     hsh.compare_by_identity    -> hsh
+ *
+ *  Makes hsh compare its keys by their identity, so that two keys are the
+ *  same key only when they are the same object, and returns hsh. A String
+ *  key is then stored as it is, not as a frozen copy.
+ *
+ *     h = {}.compare_by_identity
+ *     h["a"] = 1
+ *     h["a"] = 2
+ *     h.size   #=> 2
+ */
+static mrb_value
+mrb_hash_compare_by_identity(mrb_state *mrb, mrb_value self)
+{
+  struct RHash *h = mrb_hash_ptr(self);
+
+  if (h_identity_p(h)) return self;
+  hash_modify(mrb, self);
+  h_identity_on(h);
+  h_rehash(mrb, h);
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     hsh.compare_by_identity?    -> true or false
+ *
+ *  Returns true if hsh compares its keys by their identity.
+ */
+static mrb_value
+mrb_hash_compare_by_identity_p(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value(h_identity_p(mrb_hash_ptr(self)));
+}
+
 static mrb_value
 mrb_hash_compact(mrb_state *mrb, mrb_value hash)
 {
@@ -2356,7 +2420,7 @@ mrb_hash_assoc(mrb_state *mrb, mrb_value hash)
   H_EACH(h, entry) {
     /* the stored key answers eql? here, and can vacate its own slot */
     mrb_value stored = entry->key;
-    if (obj_eql(mrb, stored, key, h)) {
+    if (key_eql(mrb, stored, key, h)) {
       entry_check_vacated(mrb, entry, stored);
       return mrb_assoc_new(mrb, stored, entry->val);
     }
@@ -2402,6 +2466,12 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
   if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+  /* as in CRuby, hashes that tell their keys apart differently are equal
+     only when both are empty */
+  if (mrb_hash_size(mrb, hash) > 0 &&
+      h_identity_p(mrb_hash_ptr(hash)) != h_identity_p(mrb_hash_ptr(hash2))) {
     return mrb_false_value();
   }
 
@@ -2454,6 +2524,12 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
   if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+  /* as in CRuby, hashes that tell their keys apart differently are equal
+     only when both are empty */
+  if (mrb_hash_size(mrb, hash) > 0 &&
+      h_identity_p(mrb_hash_ptr(hash)) != h_identity_p(mrb_hash_ptr(hash2))) {
     return mrb_false_value();
   }
 
@@ -2520,6 +2596,8 @@ static const mrb_mt_entry hash_rom_entries[] = {
   MRB_MT_ENTRY(mrb_hash_to_s,             MRB_SYM(to_s),            MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_hash_to_s,             MRB_SYM(inspect),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_hash_rehash,           MRB_SYM(rehash),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_hash_compare_by_identity, MRB_SYM(compare_by_identity), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mrb_hash_compare_by_identity_p, MRB_SYM_Q(compare_by_identity), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_hash_to_hash,          MRB_SYM(to_hash),         MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_hash_assoc,            MRB_SYM(assoc),           MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_hash_rassoc,           MRB_SYM(rassoc),          MRB_ARGS_REQ(1)),
