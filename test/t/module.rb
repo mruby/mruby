@@ -40,7 +40,7 @@ assert('Module#alias_method', '15.2.2.4.8') do
     end
   end
 
-  assert_same(cls, cls.alias_method(:bar, :foo))
+  assert_equal(:bar, cls.alias_method(:bar, :foo))
   assert_equal("FOO", cls.new.bar)
 end
 
