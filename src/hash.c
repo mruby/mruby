@@ -365,22 +365,22 @@ float_hash_code(mrb_float f)
 }
 #endif
 
+/* What key hashes to in h, or by eql? when h is NULL.  Identity is decided here,
+   in a function too big to inline, so that obj_hash_code() stays small enough
+   for every lookup to inline it. */
 static uint32_t
-hash_code_mix(uint32_t hash_code)
-{
-  hash_code ^= hash_code >> 16;
-  hash_code *= 0x45d9f3b;
-  hash_code ^= hash_code >> 16;
-  return hash_code;
-}
-
-uint32_t
-mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
+key_hash_code(mrb_state *mrb, mrb_value key, const struct RHash *h)
 {
   enum mrb_vtype tt = mrb_type(key);
   uint32_t hash_code;
   mrb_value hash_code_obj;
-  switch (tt) {
+
+  if (h && h_identity_p(h)) {
+    /* the object, as mrb_obj_eq() tells objects apart; nothing is called */
+    uint64_t id = (uint64_t)mrb_obj_id(key);
+    hash_code = U32(id ^ (id >> 32));
+  }
+  else switch (tt) {
   case MRB_TT_STRING:
     hash_code = mrb_str_hash(mrb, key);
     break;
@@ -419,7 +419,16 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
-  return hash_code_mix(hash_code);
+  hash_code ^= hash_code >> 16;
+  hash_code *= 0x45d9f3b;
+  hash_code ^= hash_code >> 16;
+  return hash_code;
+}
+
+uint32_t
+mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
+{
+  return key_hash_code(mrb, key, NULL);
 }
 
 static uint32_t
@@ -427,13 +436,8 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 {
   uint32_t hash_code = 0;
 
-  if (h_identity_p(h)) {
-    /* the object, as mrb_obj_eq() tells objects apart; nothing is called */
-    uint64_t id = (uint64_t)mrb_obj_id(key);
-    return hash_code_mix(U32(id ^ (id >> 32)));
-  }
   H_CHECK_MODIFIED(mrb, h) {
-    hash_code = mrb_obj_hash_code(mrb, key);
+    hash_code = key_hash_code(mrb, key, h);
   }
   return hash_code;
 }
@@ -497,22 +501,22 @@ entry_check_vacated(mrb_state *mrb, const hash_entry *entry, mrb_value stored)
   }
 }
 
-/* Whether two keys are the same key of h: the same object once h compares by
-   identity, and eql? otherwise. A value is compared by obj_eql() alone. */
-static mrb_bool
-key_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
-{
-  if (h_identity_p(h)) return mrb_obj_eq(mrb, a, b);
-  return obj_eql(mrb, a, b, h);
-}
-
 static mrb_bool
 entry_key_eql(mrb_state *mrb, struct RHash *h, hash_entry *entry, mrb_value key)
 {
   mrb_value stored = entry->key;
-  if (!key_eql(mrb, key, stored, h)) return FALSE;
+  if (!obj_eql(mrb, key, stored, h)) return FALSE;
   entry_check_vacated(mrb, entry, stored);
   return TRUE;
+}
+
+/* Whether entry holds the key of h: the same object once h compares by
+   identity, which calls nothing, and eql? otherwise. */
+static mrb_bool
+entry_holds_key_p(mrb_state *mrb, struct RHash *h, hash_entry *entry, mrb_value key)
+{
+  if (h_identity_p(h)) return mrb_obj_eq(mrb, key, entry->key);
+  return entry_key_eql(mrb, h, entry, key);
 }
 
 static inline mrb_bool
@@ -616,6 +620,14 @@ static hash_entry*
 ea_get_by_key(mrb_state *mrb, hash_entry *ea, uint32_t ea_capa, uint32_t size,
               mrb_value key, struct RHash *h)
 {
+  /* asked once for the search and not of each entry it walks, which is what a
+     Hash that never compares by identity would otherwise pay for */
+  if (h_identity_p(h)) {
+    EA_EACH(ea, ea_capa, size, entry) {
+      if (mrb_obj_eq(mrb, key, entry->key)) return entry;
+    }
+    return NULL;
+  }
   EA_EACH(ea, ea_capa, size, entry) {
     if (entry_key_eql(mrb, h, entry, key)) return entry;
   }
@@ -673,12 +685,10 @@ ar_compress(mrb_state *mrb, struct RHash *h)
 static mrb_bool
 ar_get(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value *valp)
 {
-  EA_EACH(ar_ea(h), ar_ea_capa(h), ar_size(h), entry) {
-    if (!entry_key_eql(mrb, h, entry, key)) continue;
-    *valp = entry->val;
-    return TRUE;
-  }
-  return FALSE;
+  hash_entry *entry = ea_get_by_key(mrb, ar_ea(h), ar_ea_capa(h), ar_size(h), key, h);
+  if (!entry) return FALSE;
+  *valp = entry->val;
+  return TRUE;
 }
 
 static void
@@ -874,7 +884,7 @@ ib_it_find_by_key(mrb_state *mrb, index_buckets_iter *it, mrb_value key)
     ib_it_next(it);
     if (ib_it_empty_p(it)) return FALSE;
     if (!ib_it_deleted_p(it) &&
-        entry_key_eql(mrb, it->h, ib_it_entry(it), key)) {
+        entry_holds_key_p(mrb, it->h, ib_it_entry(it), key)) {
       return TRUE;
     }
   }
@@ -1070,7 +1080,7 @@ ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
   mrb_assert(ht_size(h) < ib_bit_to_capa(ib_bit(h)));
   IB_CYCLE_BY_KEY(mrb, h, key, it) {
     if (ib_it_active_p(it)) {
-      if (!entry_key_eql(mrb, h, ib_it_entry(it), key)) continue;
+      if (!entry_holds_key_p(mrb, h, ib_it_entry(it), key)) continue;
       ib_it_entry(it)->val = val;
     }
     else if (ib_it_deleted_p(it)) {
@@ -1149,7 +1159,7 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
     mrb_value key = r_entry->key;
     IB_CYCLE_BY_KEY(mrb, h, key, it) {
       if (ib_it_active_p(it)) {
-        if (!entry_key_eql(mrb, h, ib_it_entry(it), key)) continue;
+        if (!entry_holds_key_p(mrb, h, ib_it_entry(it), key)) continue;
         entry_check_vacated(mrb, r_entry, key);
         ib_it_entry(it)->val = r_entry->val;
         ht_set_size(h, --size);
