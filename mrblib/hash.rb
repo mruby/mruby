@@ -202,6 +202,7 @@ class Hash
     return to_enum(:reject) unless block
 
     h = {}
+    h.compare_by_identity if compare_by_identity?
     self.each {|k,v|
       unless yield([k, v])
         h[k] = v
@@ -258,6 +259,7 @@ class Hash
     return to_enum(:select) unless block
 
     h = {}
+    h.compare_by_identity if compare_by_identity?
     self.each {|k,v|
       if yield([k, v])
         h[k] = v

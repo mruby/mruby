@@ -1452,3 +1452,14 @@ assert('Hash#compare_by_identity on a frozen Hash') do
   f = {}.compare_by_identity.freeze
   assert_same f, f.compare_by_identity
 end
+
+assert('Hash#select and Hash#reject keep compare_by_identity') do
+  h = {}.compare_by_identity
+  h["a".dup] = 1
+  h["a".dup] = 2
+  assert_true h.select { true }.compare_by_identity?
+  assert_equal 2, h.select { true }.size
+  assert_true h.reject { false }.compare_by_identity?
+  assert_equal 2, h.reject { false }.size
+  assert_false({"a" => 1}.select { true }.compare_by_identity?)
+end
