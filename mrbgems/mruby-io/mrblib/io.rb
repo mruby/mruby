@@ -128,7 +128,7 @@ class IO
     begin
       fd = IO.sysopen(path, mode)
       io = IO.open(fd, mode)
-      io.seek(offset) if offset > 0
+      io.seek(offset) if offset && offset != 0
       str = io.read(length)
     ensure
       if io
@@ -173,7 +173,7 @@ class IO
     begin
       fd = IO.sysopen(path, mode)
       io = IO.open(fd, mode)
-      io.seek(offset) if offset && offset > 0
+      io.seek(offset) if offset
       n = io.write(string.to_s)
     ensure
       if io

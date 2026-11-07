@@ -1127,4 +1127,19 @@ assert('IO.write, IO.binread and IO.binwrite') do
   File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
 end
 
+assert('IO.read and IO.write with an offset that cannot be sought') do
+  IO.write($mrbtest_io_wfname, "abc")
+  assert_raise(Errno::EINVAL) { IO.write($mrbtest_io_wfname, "Z", -1) }
+  assert_raise(Errno::EINVAL) { IO.binwrite($mrbtest_io_wfname, "Z", -1) }
+  assert_equal "abc", IO.read($mrbtest_io_wfname)
+  assert_raise(Errno::EINVAL) { IO.read($mrbtest_io_wfname, 1, -1) }
+  assert_raise(Errno::EINVAL) { IO.binread($mrbtest_io_wfname, 1, -1) }
+  assert_raise(TypeError) { IO.write($mrbtest_io_wfname, "Z", "1") }
+  assert_raise(TypeError) { IO.read($mrbtest_io_wfname, 1, "1") }
+  # nil is no offset, as it is for IO.write
+  assert_equal "abc", IO.read($mrbtest_io_wfname, nil, nil)
+  assert_equal "abc", IO.binread($mrbtest_io_wfname, nil, nil)
+  File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
+end
+
 MRubyIOTestUtil.io_test_cleanup
