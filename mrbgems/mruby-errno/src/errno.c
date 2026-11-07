@@ -242,7 +242,7 @@ mrb_sce_init_m(mrb_state *mrb, mrb_value self)
   mrb_value m, n;
 
   if (mrb_get_args(mrb, "o|o", &m, &n) == 1) {
-    if (mrb_fixnum_p(m)) {
+    if (mrb_integer_p(m)) {
       n = m;
       m = mrb_nil_value();
     }
