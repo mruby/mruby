@@ -140,6 +140,61 @@ class IO
     str
   end
 
+  #
+  # call-seq:
+  #   IO.binread(name, [length [, offset]])   -> string
+  #
+  # Reads the file as IO.read does, in binary mode. The string is
+  # ASCII-8BIT where the build can mark it so (String#b).
+  #
+  def self.binread(path, length=nil, offset=0)
+    str = read(path, length, offset, mode: "rb")
+    str = str.b if str.respond_to?(:b)
+    str
+  end
+
+  #
+  # call-seq:
+  #   IO.write(name, string, [offset], mode: mode)   -> integer
+  #
+  # Opens the file, writes string to it and closes it, and returns the
+  # number of bytes written. Without an offset the file is truncated
+  # first; with one, string is written there and the rest of the file is
+  # kept. The file is created when it does not exist.
+  #
+  #   IO.write("testfile", "abc")      #=> 3
+  #   IO.write("testfile", "Z", 1)     #=> 1, the file holds "aZc"
+  #
+  def self.write(path, string, offset=nil, mode: nil)
+    mode ||= offset ? File::WRONLY | File::CREAT : "w"
+    fd = -1
+    io = nil
+    n = 0
+    begin
+      fd = IO.sysopen(path, mode)
+      io = IO.open(fd, mode)
+      io.seek(offset) if offset && offset > 0
+      n = io.write(string.to_s)
+    ensure
+      if io
+        io.close
+      elsif fd != -1
+        IO._sysclose(fd)
+      end
+    end
+    n
+  end
+
+  #
+  # call-seq:
+  #   IO.binwrite(name, string, [offset])   -> integer
+  #
+  # IO.write in binary mode.
+  #
+  def self.binwrite(path, string, offset=nil)
+    write(path, string, offset, mode: offset ? File::WRONLY | File::CREAT | File::BINARY : "wb")
+  end
+
 
 
   #

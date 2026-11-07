@@ -18,8 +18,8 @@ Add the line below to your build configuration.
 
 | method                     | mruby-io | memo     |
 | -------------------------- | -------- | -------- |
-| IO.binread                 |          |          |
-| IO.binwrite                |          |          |
+| IO.binread                 | o        |          |
+| IO.binwrite                | o        |          |
 | IO.copy_stream             |          |          |
 | IO.new, IO.for_fd, IO.open | o        |          |
 | IO.foreach                 |          |          |
@@ -30,7 +30,7 @@ Add the line below to your build configuration.
 | IO.select                  | o        |          |
 | IO.sysopen                 | o        |          |
 | IO.try_convert             |          |          |
-| IO.write                   |          |          |
+| IO.write                   | o        |          |
 | IO#<<                      |          |          |
 | IO#advise                  |          |          |
 | IO#autoclose=              | o        |          |
