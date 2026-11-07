@@ -1893,3 +1893,15 @@ assert('Module#const_defined? agrees with const_get on a module') do
   assert_false Object.const_defined?("Test4ConstDefinedPath::String")
   assert_false m.const_defined?(:I_DO_NOT_EXIST)
 end
+
+assert('Module#const_get and const_defined? with const_missing changing the path') do
+  c = Class.new do
+    def self.path=(s); @path = s; end
+    def self.const_missing(n); @path.replace("A"); self; end
+  end
+  # too long to embed, so that replace frees the buffer
+  c.path = path = ("A"*60) + "::" + ("B"*40)
+  assert_equal c, c.const_get(path)
+  c.path = path = "String::" + ("B"*60)
+  assert_false c.const_defined?(path)
+end
