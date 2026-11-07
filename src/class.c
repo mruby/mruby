@@ -2736,6 +2736,57 @@ visibility_result(mrb_state *mrb, const mrb_value *argv, mrb_int argc)
   return mrb_ary_new_from_values(mrb, argc, argv);
 }
 
+/* Gives each named method of `c` the visibility `vis`. */
+static void
+mod_set_visibility(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *argv, int vis)
+{
+  /* A visibility change writes a copy of the method into a class's own
+     table, so the table it writes to has to be prepared the way defining
+     one prepares it: `class << self; class << self; protected :p; end;
+     end` reached mt_put() with none at all (#7293), and a frozen class
+     took the change in silence.
+
+     On a prepended class that table is the origin's, not `c`'s: `c` only
+     has the prepended module in front of it, and a copy written to `c`
+     would outrank the module instead of falling behind it. The frozen
+     check still runs on `c`, the class the caller named and the one
+     `mrb_check_frozen()` can see the flag on; `mrb_method_search()` still
+     starts its walk from `c` too, exactly as it would without this
+     change. */
+  struct RClass *t = c;
+  MRB_CLASS_ORIGIN(t);
+  mrb_mt_tbl *h = mt_writable(mrb, c, t);
+  if (argc == 1 && mrb_array_p(argv[0])) {
+    /* the names `attr_accessor` and its kin answer with */
+    argc = RARRAY_LEN(argv[0]);
+    argv = RARRAY_PTR(argv[0]);
+  }
+  for (int i=0; i<argc; i++) {
+    /* a Symbol or a String, as in CRuby */
+    mrb_sym mid = mrb_obj_to_sym(mrb, argv[i]);
+    mrb_method_t m = mrb_method_search(mrb, c, mid);
+    MRB_METHOD_SET_VISIBILITY(m, vis);
+    union mrb_mt_ptr ptr;
+    if (MRB_METHOD_PROC_P(m)) {
+      struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
+
+      /* A method table entry is a GC field: mrb_gc_mark_mt() marks every
+         non-MRB_MT_FUNC entry as a child of the class. mrb_define_method_raw()
+         barriers the same kind of store; this one did not. */
+      ptr.proc = p;
+      if (p) {
+        mrb_field_write_barrier(mrb, (struct RBasic*)t, (struct RBasic*)p);
+      }
+    }
+    else {
+      ptr.func = MRB_METHOD_FUNC(m);
+    }
+    mt_put(mrb, h, mid, m.flags, ptr);
+    mc_clear_by_id(mrb, mid);
+    mrb_builtin_op_update(mrb, mid);
+  }
+}
+
 static mrb_value
 mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 {
@@ -2761,51 +2812,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
     }
   }
   else {
-    /* A visibility change writes a copy of the method into a class's own
-       table, so the table it writes to has to be prepared the way defining
-       one prepares it: `class << self; class << self; protected :p; end;
-       end` reached mt_put() with none at all (#7293), and a frozen class
-       took the change in silence.
-
-       On a prepended class that table is the origin's, not `c`'s: `c` only
-       has the prepended module in front of it, and a copy written to `c`
-       would outrank the module instead of falling behind it. The frozen
-       check still runs on `c`, the class the caller named and the one
-       `mrb_check_frozen()` can see the flag on; `mrb_method_search()` still
-       starts its walk from `c` too, exactly as it would without this
-       change. */
-    struct RClass *t = c;
-    MRB_CLASS_ORIGIN(t);
-    mrb_mt_tbl *h = mt_writable(mrb, c, t);
-    if (argc == 1 && mrb_array_p(argv[0])) {
-      /* the names `attr_accessor` and its kin answer with */
-      argc = RARRAY_LEN(argv[0]);
-      argv = RARRAY_PTR(argv[0]);
-    }
-    for (int i=0; i<argc; i++) {
-      /* a Symbol or a String, as in CRuby */
-      mrb_sym mid = mrb_obj_to_sym(mrb, argv[i]);
-      mrb_method_t m = mrb_method_search(mrb, c, mid);
-      MRB_METHOD_SET_VISIBILITY(m, vis);
-      union mrb_mt_ptr ptr;
-      if (MRB_METHOD_PROC_P(m)) {
-        struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
-
-        /* A method table entry is a GC field: mrb_gc_mark_mt() marks every
-           non-MRB_MT_FUNC entry as a child of the class. mrb_define_method_raw()
-           barriers the same kind of store; this one did not. */
-        ptr.proc = p;
-        if (p) {
-          mrb_field_write_barrier(mrb, (struct RBasic*)t, (struct RBasic*)p);
-        }
-      }
-      else {
-        ptr.func = MRB_METHOD_FUNC(m);
-      }
-      mt_put(mrb, h, mid, m.flags, ptr);
-      mc_clear_by_id(mrb, mid);
-      mrb_builtin_op_update(mrb, mid);
-    }
+    mod_set_visibility(mrb, c, argc, argv, vis);
   }
   return result;
 }
@@ -2826,6 +2833,47 @@ static mrb_value
 mrb_mod_protected(mrb_state *mrb, mrb_value mod)
 {
   return mrb_mod_visibility(mrb, mod, MT_PROTECTED);
+}
+
+static mrb_value
+mod_class_method_visibility(mrb_state *mrb, mrb_value mod, int vis)
+{
+  mrb_int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*!", &argv, &argc);
+  if (argc > 0) {
+    struct RClass *sc = mrb_class_ptr(mrb_singleton_class(mrb, mod));
+    mod_set_visibility(mrb, sc, argc, argv, vis);
+  }
+  return mod;
+}
+
+/*
+ * call-seq:
+ *   mod.public_class_method(symbol, ...)  -> mod
+ *   mod.public_class_method(array)        -> mod
+ *
+ * Makes the named class methods public.
+ */
+static mrb_value
+mrb_mod_public_class_method(mrb_state *mrb, mrb_value mod)
+{
+  return mod_class_method_visibility(mrb, mod, MRB_METHOD_PUBLIC_FL);
+}
+
+/*
+ * call-seq:
+ *   mod.private_class_method(symbol, ...)  -> mod
+ *   mod.private_class_method(array)        -> mod
+ *
+ * Makes the named class methods private, as `private_class_method :new`
+ * does for a class that hands out its instances some other way.
+ */
+static mrb_value
+mrb_mod_private_class_method(mrb_state *mrb, mrb_value mod)
+{
+  return mod_class_method_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
 }
 
 static mrb_value
@@ -5426,8 +5474,10 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_prepend,         MRB_SYM(prepend),          MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(prepended),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_private,         MRB_SYM(private),          MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.36 */
+  MRB_MT_ENTRY(mrb_mod_private_class_method, MRB_SYM(private_class_method), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_mod_protected,       MRB_SYM(protected),        MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.37 */
   MRB_MT_ENTRY(mrb_mod_public,          MRB_SYM(public),           MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.38 */
+  MRB_MT_ENTRY(mrb_mod_public_class_method, MRB_SYM(public_class_method), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_mod_remove_const,    MRB_SYM(remove_const),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.40 */
   MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(to_s),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_mod_undef,           MRB_SYM(undef_method),     MRB_ARGS_ANY()),                    /* 15.2.2.4.41 */

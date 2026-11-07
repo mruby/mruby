@@ -677,6 +677,32 @@ end
 
 # Not ISO specified
 
+assert('Module#private_class_method') do
+  c = Class.new do
+    def self.a; :a; end
+    def self.b; :b; end
+  end
+  assert_same c, c.private_class_method(:a)
+  assert_raise(NoMethodError) { c.a }
+  assert_equal :b, c.b
+  assert_same c, c.private_class_method([:a, :b])
+  assert_raise(NoMethodError) { c.b }
+  assert_equal :a, c.instance_eval { a }
+  assert_same c, c.public_class_method("a", :b)
+  assert_equal [:a, :b], [c.a, c.b]
+  assert_same c, c.private_class_method
+  assert_equal :a, c.a
+  assert_raise(NameError) { c.private_class_method(:no_such_method) }
+
+  # the instances' methods stay as they were
+  k = Class.new { def self.make; new; end; private_class_method :new }
+  assert_raise(NoMethodError) { k.new }
+  assert_kind_of k, k.make
+
+  m = Module.new { def self.m; :m; end; private_class_method :m }
+  assert_raise(NoMethodError) { m.m }
+end
+
 assert('Module#dup') do
   module TestModuleDup
     @@cvar = :cvar
