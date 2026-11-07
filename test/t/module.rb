@@ -1813,3 +1813,30 @@ assert('Module#module_function accepts String names') do
   assert_false c.new.respond_to?(:f)
   assert_equal :f, c.new.instance_eval { f }
 end
+
+assert('Module#const_get with inherit false') do
+  module Test4ConstGetInherit
+    module A
+      X = 1
+    end
+    module B
+      include A
+    end
+  end
+  b = Test4ConstGetInherit::B
+  assert_equal 1, b.const_get(:X)
+  assert_uninitialized_const{ b.const_get(:X, false) }
+  # nor Object's constants, for a module
+  assert_uninitialized_const{ b.const_get(:String, false) }
+  assert_equal String, b.const_get(:String)
+  # a module looks in Object last, as CRuby's const_get does
+  assert_equal Test4ConstGetInherit, b.const_get(:Test4ConstGetInherit)
+  assert_equal String, Module.new.const_get("String")
+  assert_uninitialized_const{ Module.new.const_get(:I_DO_NOT_EXIST) }
+  # each segment of a path is looked up in the module before it
+  assert_equal 1, Object.const_get("Test4ConstGetInherit::A::X", false)
+  assert_uninitialized_const{ b.const_get("A::X", false) }
+  # const_missing still answers
+  c = Class.new { def self.const_missing(n) = [:missing, n] }
+  assert_equal [:missing, :Y], c.const_get(:Y, false)
+end

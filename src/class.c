@@ -4615,21 +4615,35 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
   }
 }
 
+/* The constant id of mod, looked up in mod's ancestors (and in Object for a
+   module, as CRuby's const_get does) when inherit, in mod alone otherwise;
+   const_missing when there is none, either way. */
 static mrb_value
-mrb_const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id)
+const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
 {
   check_const_name_sym(mrb, id);
-  return mrb_const_get(mrb, mod, id);
+  if (inherit) {
+    if (mrb_type(mod) == MRB_TT_MODULE && !mrb_const_defined(mrb, mod, id) &&
+        mrb_const_defined_at(mrb, mrb_obj_value(mrb->object_class), id)) {
+      return mrb_const_get(mrb, mrb_obj_value(mrb->object_class), id);
+    }
+    return mrb_const_get(mrb, mod, id);
+  }
+  if (mrb_const_defined_at(mrb, mod, id)) return mrb_const_get(mrb, mod, id);
+  mrb_value name = mrb_symbol_value(id);
+  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
 static mrb_value
 mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value path = mrb_get_arg1(mrb);
+  mrb_value path;
+  mrb_bool inherit = TRUE;
 
+  mrb_get_args(mrb, "o|b", &path, &inherit);
   if (mrb_symbol_p(path)) {
     /* const get with symbol */
-    return mrb_const_get_sym(mrb, mod, mrb_symbol(path));
+    return const_get_sym(mrb, mod, mrb_symbol(path), inherit);
   }
 
   /* const get with class path string */
@@ -4643,7 +4657,7 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
     mrb_int end = mrb_str_index_lit(mrb, path, "::", off);
     if (end == -1) end = len;
     mrb_sym id = mrb_intern(mrb, ptr+off, end-off);
-    mod = mrb_const_get_sym(mrb, mod, id);
+    mod = const_get_sym(mrb, mod, id, inherit);
     if (end == len)
       off = end;
     else {
@@ -5353,7 +5367,7 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_module_eval,     MRB_SYM(class_eval),       MRB_ARGS_ANY()),                    /* 15.2.2.4.15 */
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(const_added),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_const_defined,   MRB_SYM_Q(const_defined),  MRB_ARGS_ARG(1,1)),                 /* 15.2.2.4.20 */
-  MRB_MT_ENTRY(mrb_mod_const_get,       MRB_SYM(const_get),        MRB_ARGS_REQ(1)),                   /* 15.2.2.4.21 */
+  MRB_MT_ENTRY(mrb_mod_const_get,       MRB_SYM(const_get),        MRB_ARGS_ARG(1,1)),                 /* 15.2.2.4.21 */
   MRB_MT_ENTRY(mrb_mod_const_missing,   MRB_SYM(const_missing),    MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_mod_const_set,       MRB_SYM(const_set),        MRB_ARGS_REQ(2)),                   /* 15.2.2.4.23 */
   MRB_MT_ENTRY(mod_define_method,       MRB_SYM(define_method),    MRB_ARGS_ARG(1,1)),
