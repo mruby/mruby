@@ -436,7 +436,8 @@ mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b)
     /* already initialized proc */
     return;
   }
-  if (!MRB_PROC_CFUNC_P(b) && b->body.irep) {
+  /* an alias keeps a method name where a proc keeps its irep */
+  if (!MRB_PROC_CFUNC_P(b) && !MRB_PROC_ALIAS_P(b) && b->body.irep) {
     mrb_irep_incref(mrb, (mrb_irep*)b->body.irep);
   }
   a->flags = b->flags;

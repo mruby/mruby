@@ -706,6 +706,16 @@ assert('Module#define_method with a Method or UnboundMethod') do
   assert_equal :single, o.single2
 
   assert_raise(TypeError) { Class.new { define_method(:x, 1) } }
+
+  # a method an alias stands for
+  f = Class.new do
+    def orig(x) x * 2 end
+    alias_method :renamed, :orig
+    define_method(:from_alias, instance_method(:renamed))
+    define_method(:from_bound_alias, new.method(:renamed))
+  end
+  assert_equal 8, f.new.from_alias(4)
+  assert_equal 10, f.new.from_bound_alias(5)
 end
 
 assert('Kernel#define_singleton_method with a Method or UnboundMethod') do
