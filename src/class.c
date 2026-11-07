@@ -4563,14 +4563,40 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
   }
 }
 
+/* A module looks in Object last for a lone name or the first name of a path,
+   as in CRuby. A later name does not: "M::String" is no more String than
+   M::String is. */
 static mrb_bool
-const_defined_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
+const_in_object_p(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool top)
+{
+  return top && mrb_type(mod) == MRB_TT_MODULE && !mrb_const_defined(mrb, mod, id) &&
+         mrb_const_defined_at(mrb, mrb_obj_value(mrb->object_class), id);
+}
+
+static mrb_bool
+const_defined_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit, mrb_bool top)
+{
+  check_const_name_sym(mrb, id);
+  if (!inherit) return mrb_iv_defined(mrb, mod, id);
+  return mrb_const_defined(mrb, mod, id) || const_in_object_p(mrb, mod, id, top);
+}
+
+/* The constant id of mod, looked up in mod's ancestors and const_in_object_p()
+   when inherit, in mod's own table otherwise; const_missing when there is none,
+   either way. */
+static mrb_value
+const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit, mrb_bool top)
 {
   check_const_name_sym(mrb, id);
   if (inherit) {
-    return mrb_const_defined(mrb, mod, id);
+    if (const_in_object_p(mrb, mod, id, top)) {
+      return mrb_const_get(mrb, mrb_obj_value(mrb->object_class), id);
+    }
+    return mrb_const_get(mrb, mod, id);
   }
-  return mrb_const_defined_at(mrb, mod, id);
+  if (mrb_iv_defined(mrb, mod, id)) return mrb_iv_get(mrb, mod, id);
+  mrb_value name = mrb_symbol_value(id);
+  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
 static mrb_value
@@ -4581,7 +4607,7 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "o|b", &path, &inherit);
   if (mrb_symbol_p(path)) {
-    return mrb_bool_value(const_defined_sym(mrb, mod, mrb_symbol(path), inherit));
+    return mrb_bool_value(const_defined_sym(mrb, mod, mrb_symbol(path), inherit, TRUE));
   }
 
   /* class path string: "A::B::C", or "::A::B" from Object */
@@ -4605,33 +4631,14 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
     if (end != len && end + 2 == len) { /* trailing "::" */
       mrb_name_error(mrb, id, "wrong constant name '%v'", path);
     }
-    if (!const_defined_sym(mrb, mod, id, inherit)) return mrb_false_value();
+    if (!const_defined_sym(mrb, mod, id, inherit, off == 0)) return mrb_false_value();
     if (end == len) return mrb_true_value();
+    mod = const_get_sym(mrb, mod, id, inherit, off == 0);
     off = end + 2;
-    mod = mrb_const_get(mrb, mod, id);
     if (!mrb_class_p(mod) && !mrb_module_p(mod)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%v does not refer to class/module", path);
     }
   }
-}
-
-/* The constant id of mod, looked up in mod's ancestors (and in Object for a
-   module, as CRuby's const_get does) when inherit, in mod alone otherwise;
-   const_missing when there is none, either way. */
-static mrb_value
-const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit)
-{
-  check_const_name_sym(mrb, id);
-  if (inherit) {
-    if (mrb_type(mod) == MRB_TT_MODULE && !mrb_const_defined(mrb, mod, id) &&
-        mrb_const_defined_at(mrb, mrb_obj_value(mrb->object_class), id)) {
-      return mrb_const_get(mrb, mrb_obj_value(mrb->object_class), id);
-    }
-    return mrb_const_get(mrb, mod, id);
-  }
-  if (mrb_const_defined_at(mrb, mod, id)) return mrb_const_get(mrb, mod, id);
-  mrb_value name = mrb_symbol_value(id);
-  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
 static mrb_value
@@ -4643,7 +4650,7 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "o|b", &path, &inherit);
   if (mrb_symbol_p(path)) {
     /* const get with symbol */
-    return const_get_sym(mrb, mod, mrb_symbol(path), inherit);
+    return const_get_sym(mrb, mod, mrb_symbol(path), inherit, TRUE);
   }
 
   /* const get with class path string */
@@ -4657,13 +4664,16 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
     mrb_int end = mrb_str_index_lit(mrb, path, "::", off);
     if (end == -1) end = len;
     mrb_sym id = mrb_intern(mrb, ptr+off, end-off);
-    mod = const_get_sym(mrb, mod, id, inherit);
+    mod = const_get_sym(mrb, mod, id, inherit, off == 0);
     if (end == len)
       off = end;
     else {
       off = end + 2;
       if (off == len) {         /* trailing "::" */
         mrb_name_error(mrb, id, "wrong constant name '%v'", path);
+      }
+      if (!mrb_class_p(mod) && !mrb_module_p(mod) && !mrb_sclass_p(mod)) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "%v does not refer to class/module", path);
       }
     }
   }

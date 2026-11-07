@@ -1840,3 +1840,56 @@ assert('Module#const_get with inherit false') do
   c = Class.new { def self.const_missing(n) = [:missing, n] }
   assert_equal [:missing, :Y], c.const_get(:Y, false)
 end
+
+assert('Module#const_get with a path') do
+  module Test4ConstGetPath
+    X = 1
+    module N; end
+  end
+  m = Test4ConstGetPath
+  # a module looks in Object for the first name of a path, not for a later one
+  assert_equal String, m.const_get("String")
+  assert_uninitialized_const{ Object.const_get("Test4ConstGetPath::String") }
+  assert_uninitialized_const{ m.const_get("N::String") }
+  # a path runs through modules, whatever inherit says
+  assert_raise(TypeError){ m.const_get("X::Y") }
+  assert_raise(TypeError){ m.const_get("X::Y", false) }
+  assert_raise(TypeError){ Object.const_get("Test4ConstGetPath::X::Y", false) }
+  c = Class.new { def self.const_missing(n) = 1 }
+  assert_raise(TypeError){ c.const_get("A::B", false) }
+  c = Class.new { def self.const_missing(n) = "A" }
+  assert_raise(TypeError){ c.const_get("A::B", false) }
+end
+
+assert('Module#const_get with inherit false reads the module itself') do
+  m = Module.new
+  m.const_set(:Prepended, :from_module)
+  c = Class.new
+  c.const_set(:Prepended, :own)
+  c.prepend(m)
+  assert_equal :own, c.const_get(:Prepended, false)
+  # Kernel is one of Object's ancestors, and not Object itself
+  Kernel.const_set(:Test4ConstInKernel, 1)
+  begin
+    assert_equal 1, Object.const_get(:Test4ConstInKernel)
+    assert_true Object.const_defined?(:Test4ConstInKernel)
+    assert_uninitialized_const{ Object.const_get(:Test4ConstInKernel, false) }
+    assert_false Object.const_defined?(:Test4ConstInKernel, false)
+    assert_equal 1, Module.new.const_get(:Test4ConstInKernel)
+    assert_true Module.new.const_defined?(:Test4ConstInKernel)
+  ensure
+    Kernel.__send__(:remove_const, :Test4ConstInKernel)
+  end
+end
+
+assert('Module#const_defined? agrees with const_get on a module') do
+  module Test4ConstDefinedPath; end
+  m = Test4ConstDefinedPath
+  assert_true m.const_defined?(:String)
+  assert_true m.const_defined?("String")
+  assert_true Module.new.const_defined?(:String)
+  assert_false m.const_defined?(:String, false)
+  assert_false m.const_defined?("String::Nope")
+  assert_false Object.const_defined?("Test4ConstDefinedPath::String")
+  assert_false m.const_defined?(:I_DO_NOT_EXIST)
+end
