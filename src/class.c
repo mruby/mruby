@@ -4554,7 +4554,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
     mrb_undef_method_id(mrb, c, to_sym(mrb, *argv));
     argv++;
   }
-  return mrb_nil_value();
+  return mod;
 }
 
 static void
