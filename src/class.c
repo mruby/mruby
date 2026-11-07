@@ -4338,7 +4338,8 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "nn", &new_name, &old_name);
   mrb_alias_method(mrb, c, new_name, old_name);
   mrb_method_added(mrb, c, new_name);
-  return mod;
+  /* the new name, as CRuby answers since 3.0 */
+  return mrb_symbol_value(new_name);
 }
 
 static void
