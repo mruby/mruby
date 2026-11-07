@@ -6864,10 +6864,21 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       CAST(super);
       struct mscope m;
       int n = 0, nk = 0, st = 0;
+      int sp = cursp();
 
       search_mscope(s, &m);
       push();
       CAST3(arguments, cast->arguments, arguments);
+      if (arguments && (arguments->base.flags & PM_ARGUMENTS_NODE_FLAGS_CONTAINS_FORWARDING)) {
+        /* `...` leaves the array, the hash and the block in place, as in
+           gen_call() */
+        gen_values(s, (mrc_node *)arguments, VAL, 14);
+        push(); push(); pop(); pop();
+        s->sp = sp;
+        genop_2(s, OP_SUPER, cursp(), 0xFF);
+        if (val) push();
+        break;
+      }
       if (arguments) {
         st = n = gen_values(s, (mrc_node *)arguments, VAL, 14);
         if (n < 0) {

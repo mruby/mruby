@@ -3260,3 +3260,24 @@ assert('anonymous * and ** passed on from inside a block') do
   assert_equal [[1], {k: 2}], anon_call(1, k: 2) { |*x, **y| [x, y] }
   assert_equal [3, 4], anon_return(3, 4)
 end
+
+assert('super(...)') do
+  base = Class.new do
+    def f(*a, **k, &b) = [a, k, b ? b.call : nil]
+    def anon_run; yield; end
+  end
+  c = Class.new(base) { def f(...) = super(...) }
+  assert_equal [[1, 2], {k: 3}, :b], c.new.f(1, 2, k: 3) { :b }
+  assert_equal [[], {}, nil], c.new.f
+  c = Class.new(base) { def f(x, ...) = super(x, 0, ...) }
+  assert_equal [[1, 0, 2], {k: 3}, :b], c.new.f(1, 2, k: 3) { :b }
+  c = Class.new(base) { def f(...) = anon_run { super(...) } }
+  assert_equal [[1], {k: 3}, :b], c.new.f(1, k: 3) { :b }
+  c = Class.new(base) do
+    def f(...)
+      super(...)                # the value is not used
+      [:kept, super(...)]
+    end
+  end
+  assert_equal [:kept, [[1], {}, nil]], c.new.f(1)
+end
