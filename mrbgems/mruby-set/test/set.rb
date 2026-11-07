@@ -908,3 +908,20 @@ assert("Set: instance variables") do
   assert_equal "tag", s.tag
   assert_equal "tag", d.tag
 end
+
+assert("Enumerable#to_set") do
+  assert_equal Set[3, 1], [3, 1, 3].to_set
+  assert_equal Set[2, 4, 6], (1..3).to_set { |x| x * 2 }
+  assert_equal Set[[:a, 1]], {a: 1}.to_set
+  assert_kind_of Set, [].to_set
+end
+
+assert("Set#to_set") do
+  s = Set[1, 2]
+  assert_same s, s.to_set
+  assert_equal Set[2, 3], s.to_set { |x| x + 1 }
+  sub = Class.new(Set)
+  t = sub.new([1]).to_set
+  assert_equal Set, t.class
+  assert_equal Set[1], t
+end
