@@ -250,7 +250,11 @@ set_init_copy(mrb_state *mrb, mrb_value self)
     kset_destroy_data(mrb, self_set);
   }
   kset_init_data(mrb, self_set, kset_size(orig_set));
-  kh_replace(set_val, mrb, self_set, orig_set);
+  /* kh_replace() frees the table to copy an empty one, and a Set with no
+     table is an uninitialized one: the copy keeps the table it was given */
+  if (!kset_is_empty(orig_set)) {
+    kh_replace(set_val, mrb, self_set, orig_set);
+  }
   /* the elements came in by a copy, past the barrier on each insert */
   mrb_write_barrier(mrb, mrb_basic_ptr(self));
 
