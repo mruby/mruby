@@ -35,8 +35,8 @@ Add the line below to your build configuration.
 | IO#advise                  |          |          |
 | IO#autoclose=              | o        |          |
 | IO#autoclose?              | o        |          |
-| IO#binmode                 |          |          |
-| IO#binmode?                |          |          |
+| IO#binmode                 | o        |          |
+| IO#binmode?                | o        |          |
 | IO#bytes                   |          | obsolete |
 | IO#chars                   |          | obsolete |
 | IO#clone, IO#dup           | o        |          |
