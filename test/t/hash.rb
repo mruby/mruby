@@ -1395,7 +1395,8 @@ assert('Hash#compare_by_identity') do
   assert_same a, h.keys[0]
   assert_false h.keys[0].frozen?
   assert_equal [a, 1], h.assoc(a)
-  assert_nil h.assoc("k".dup)
+  # assoc walks the pairs and asks each key, as in CRuby
+  assert_equal [a, 1], h.assoc("k".dup)
   assert_equal 1, h.delete(a)
   assert_equal 1, h.size
   # Symbols and Integers are the same objects when equal

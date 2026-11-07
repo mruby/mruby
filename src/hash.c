@@ -2420,7 +2420,7 @@ mrb_hash_assoc(mrb_state *mrb, mrb_value hash)
   H_EACH(h, entry) {
     /* the stored key answers eql? here, and can vacate its own slot */
     mrb_value stored = entry->key;
-    if (key_eql(mrb, stored, key, h)) {
+    if (obj_eql(mrb, stored, key, h)) {
       entry_check_vacated(mrb, entry, stored);
       return mrb_assoc_new(mrb, stored, entry->val);
     }
