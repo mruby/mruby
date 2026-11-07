@@ -134,6 +134,15 @@ set_get_kset(mrb_state *mrb, mrb_value self)
   return &mrb_set_ptr(self)->set;
 }
 
+/* The set of self for a method that changes it, which a frozen Set refuses */
+static kset_t*
+set_get_kset_mut(mrb_state *mrb, mrb_value self)
+{
+  kset_t *set = set_get_kset(mrb, self);
+  mrb_check_frozen_value(mrb, self);
+  return set;
+}
+
 /* Get RSet pointer from embedded kset_t pointer */
 #define kset_to_rset(kset) ((struct RBasic*)((char*)(kset) - offsetof(struct RSet, set)))
 
@@ -216,7 +225,7 @@ set_check_type(mrb_state *mrb, mrb_value obj)
 static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   if (!kset_is_uninitialized(set)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "already initialized set");
   }
@@ -234,6 +243,7 @@ set_init_copy(mrb_state *mrb, mrb_value self)
 {
   mrb_value orig = mrb_get_arg1(mrb);
 
+  mrb_check_frozen_value(mrb, self);
   if (mrb_type(orig) != MRB_TT_SET) {
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take a Set object");
   }
@@ -298,7 +308,7 @@ set_empty_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_clear(mrb_state *mrb, mrb_value self)
 {
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   if (!kset_is_empty(set)) {
     kset_clear(mrb, set);
   }
@@ -358,7 +368,7 @@ static mrb_value
 set_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   set_ensure_initialized(mrb, set);
 
   kset_put(mrb, set, obj);
@@ -378,6 +388,13 @@ set_add_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
   kset_t *set = set_get_kset(mrb, self);
+  /* as CRuby, a frozen set answers an element it holds without refusing */
+  if (mrb_frozen_p(mrb_obj_ptr(self))) {
+    if (!kset_is_empty(set) && !kset_is_end(set, kset_get(mrb, set, obj))) {
+      return mrb_nil_value();
+    }
+    mrb_check_frozen_value(mrb, self);
+  }
   set_ensure_initialized(mrb, set);
 
   int ret;
@@ -396,7 +413,7 @@ static mrb_value
 set_delete(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   if (kset_is_empty(set)) return self;
 
   kset_iter_t k = kset_get(mrb, set, obj);
@@ -422,6 +439,8 @@ set_delete_p(mrb_state *mrb, mrb_value self)
 
   kset_iter_t k = kset_get(mrb, set, obj);
   if (!kset_is_end(set, k)) {
+    /* only a set that holds obj changes, and only then does a frozen one refuse */
+    mrb_check_frozen_value(mrb, self);
     kset_del(mrb, set, k);
     return self;
   }
@@ -443,7 +462,7 @@ set_core_merge(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
 
-  kset_t *self_set = set_get_kset(mrb, self);
+  kset_t *self_set = set_get_kset_mut(mrb, self);
   kset_t *other_set = set_get_kset(mrb, other);
 
   set_ensure_initialized(mrb, self_set);
@@ -467,7 +486,7 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
 
-  kset_t *self_set = set_get_kset(mrb, self);
+  kset_t *self_set = set_get_kset_mut(mrb, self);
   if (kset_is_empty(self_set)) return mrb_true_value();
 
   kset_t *other_set = set_get_kset(mrb, other);
@@ -1204,9 +1223,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_reset(mrb_state *mrb, mrb_value self)
 {
-  mrb_check_frozen_value(mrb, self);
-
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   if (!kset_is_empty(set)) {
     kset_resize(mrb, set, kset_size(set));
   }
@@ -1227,7 +1244,7 @@ set_add_all(mrb_state *mrb, mrb_value self)
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kset_t *set = set_get_kset(mrb, self);
+  kset_t *set = set_get_kset_mut(mrb, self);
   set_ensure_initialized(mrb, set);
 
   int ai = mrb_gc_arena_save(mrb);
@@ -1371,9 +1388,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_flatten_bang(mrb_state *mrb, mrb_value self)
 {
-  mrb_check_frozen_value(mrb, self);
-
-  kset_t *self_set = set_get_kset(mrb, self);
+  kset_t *self_set = set_get_kset_mut(mrb, self);
   if (kset_is_empty(self_set)) {
     return mrb_nil_value(); /* No changes needed for empty set */
   }
@@ -1412,7 +1427,7 @@ set_delete_all(mrb_state *mrb, mrb_value self)
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kset_t *ks = set_get_kset(mrb, self);
+  kset_t *ks = set_get_kset_mut(mrb, self);
   if (kset_is_uninitialized(ks)) return self;
 
   int ai = mrb_gc_arena_save(mrb);

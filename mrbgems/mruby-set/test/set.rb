@@ -733,39 +733,6 @@ assert("Set#divide") do
   # assert_equal(Set, ret.class)
 end
 
-# freeze is not implemented yet
-#assert("freeze") do
-#  orig = set = Set[1,2,3]
-#  assert_equal false, set.frozen?
-#  set << 4
-#  assert_same orig, set.freeze
-#  assert_equal true, set.frozen?
-#  assert_raise(RuntimeError) {
-#    set << 5
-#  }
-#  assert_equal 4, set.size
-#end
-#  assert("freeze_dup") do
-#    set1 = Set[1,2,3]
-#    set1.freeze
-#    set2 = set1.dup
-#
-#    assert_not_predicate set2, :frozen?
-#    assert_nothing_raised {
-#      set2.add 4
-#    }
-#  end
-#  assert("reeze_clone") do
-#    set1 = Set[1,2,3]
-#    set1.freeze
-#    set2 = set1.clone
-#
-#    assert_predicate set2, :frozen?
-#    assert_raise(RuntimeError) {
-#      set2.add 5
-#    }
-#  end
-#
 assert("Set#inspect") do
   set = Set[1,1,1]
   assert_equal("Set[1]", set.inspect)
@@ -933,4 +900,23 @@ assert("Set#dup of an empty Set") do
   assert_equal Set[:x], Set.new.freeze.dup.add(:x)
   assert_equal Set[:x], Set.new.freeze + [:x]
   assert_equal Set[], Set.new.dup
+end
+
+assert("Set refuses changes once frozen") do
+  s = Set[1, 2].freeze
+  [-> { s.add(3) }, -> { s << 3 }, -> { s.add?(3) }, -> { s.delete(1) },
+   -> { s.delete(9) }, -> { s.delete?(1) }, -> { s.clear }, -> { s.merge([3]) },
+   -> { s.merge(Set[]) }, -> { s.subtract(Set[1]) }, -> { s.replace([3]) },
+   -> { s.delete_if { true } }, -> { s.keep_if { false } }, -> { s.map! { _1 } },
+   -> { s.instance_eval { initialize_copy(Set[3]) } }, -> { s.clone.add(3) },
+   -> { Set.new.freeze.clone.add(:x) }].each do |change|
+    assert_raise(FrozenError) { change.call }
+  end
+  assert_equal Set[1, 2], s
+  # nothing to change: as in CRuby, no refusal
+  assert_nil s.add?(1)
+  assert_nil s.delete?(9)
+  assert_nil s.reject! { false }
+  assert_same s, s.delete_if { false }
+  assert_equal Set[1, 2, 3], s.dup.add(3)
 end
