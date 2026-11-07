@@ -899,3 +899,75 @@ assert('Kernel#raise takes other keywords as a Hash argument') do
   assert_kind_of RuntimeError, e
   assert_equal({foo: 1}.to_s, e.message)
 end
+
+assert('Kernel#raise with cause: nil holds on the way up') do
+  # past an ensure, where $! names "a" again as the exception is handed on
+  e = begin
+    begin
+      raise "a"
+    rescue
+      begin
+        raise "b", cause: nil
+      ensure
+        nil
+      end
+    end
+  rescue => x
+    x
+  end
+  assert_equal "b", e.message
+  assert_nil e.cause
+  # past a C function that called back into Ruby
+  o = Object.new
+  def o.to_s; raise "b", cause: nil; end
+  e = begin
+    begin
+      raise "a"
+    rescue
+      [o].join
+    end
+  rescue => x
+    x
+  end
+  assert_equal "b", e.message
+  assert_nil e.cause
+  # the next raise of it settles the cause anew
+  e = begin
+    begin
+      raise "z"
+    rescue
+      raise e
+    end
+  rescue => x
+    x
+  end
+  assert_equal "z", e.cause.message
+end
+
+def exc_cause_overflow
+  exc_cause_overflow
+end
+
+assert('Exception#cause stays off what every SystemStackError shares') do
+  e = begin
+    begin
+      raise "a"
+    rescue
+      exc_cause_overflow
+    end
+  rescue SystemStackError => x
+    x
+  end
+  assert_nil e.cause
+end
+
+assert('Kernel#raise with cause: leaves a frozen exception as it is') do
+  f = RuntimeError.new("f").freeze
+  e = begin
+    raise f, cause: RuntimeError.new("c")
+  rescue => x
+    x
+  end
+  assert_same f, e
+  assert_nil e.cause
+end

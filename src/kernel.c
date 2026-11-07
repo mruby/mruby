@@ -599,10 +599,7 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, exc, mesg);
-    if (!mrb_undef_p(cause)) {
-      mrb_exc_raise_with_cause(mrb, exc, cause);
-    }
-    mrb_exc_raise(mrb, exc);
+    mrb_exc_raise_with_cause(mrb, exc, cause);
     break;
   }
   return mrb_nil_value();            /* not reached */

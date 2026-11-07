@@ -201,9 +201,25 @@ exc_cause(mrb_state *mrb, mrb_value exc)
   return mrb_iv_get(mrb, exc, MRB_SYM(cause));
 }
 
-/* Set on an exception that `raise` was given `cause:` for, so that raising it
-   takes no cause from `$!`; cleared as it is raised. */
+/* Set on an exception that `raise` was given `cause:` for, so that it takes no
+   cause from `$!` on its way up: an ensure and a C function that called back
+   into Ruby hand it on through mrb_exc_set() again.  The next `raise` of it
+   settles this anew. */
 #define EXC_CAUSE_GIVEN (1 << 17)
+
+/* Whether exc can hold a cause: not when frozen, nor when pre-allocated, as
+   every raise of that error shares the object. */
+static mrb_bool
+exc_holds_cause_p(mrb_state *mrb, mrb_value exc)
+{
+  struct RObject *e = mrb_obj_ptr(exc);
+
+  if (mrb_frozen_p(e) || e == mrb->nomem_err || e == mrb->stack_err) return FALSE;
+#ifdef MRB_GC_FIXED_ARENA
+  if (e == mrb->arena_err) return FALSE;
+#endif
+  return TRUE;
+}
 
 /* Whether exc is cause or one of the causes behind it. */
 static mrb_bool
@@ -225,12 +241,7 @@ exc_cause_chain_p(mrb_state *mrb, mrb_value cause, mrb_value exc)
 static void
 exc_set_implicit_cause(mrb_state *mrb, mrb_value exc)
 {
-  struct RException *e = mrb_exc_ptr(exc);
-
-  if (e->flags & EXC_CAUSE_GIVEN) {
-    e->flags &= ~EXC_CAUSE_GIVEN;
-    return;
-  }
+  if ((mrb_exc_ptr(exc)->flags & EXC_CAUSE_GIVEN) || !exc_holds_cause_p(mrb, exc)) return;
   /* `!` is not a word, so MRB_GVSYM() cannot spell the name */
   mrb_value cause = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$!"));
   if (!mrb_exception_p(cause)) return;
@@ -240,26 +251,36 @@ exc_set_implicit_cause(mrb_state *mrb, mrb_value exc)
 }
 
 /*
- * Raises exc with the cause `raise` was given: an exception, which becomes
- * the cause, or nil, which takes none from `$!` for this raise. A cause that
- * is exc itself is ignored, and one that has exc behind it is refused.
+ * Raises exc as `raise` does, with what it was given for `cause:`: undef when
+ * nothing, which leaves the cause to `$!`; an exception, which becomes the
+ * cause; or nil, which takes none from `$!` for this raise. A cause that is
+ * exc itself is ignored, and one that has exc behind it is refused.
  */
 mrb_noreturn void
 mrb_exc_raise_with_cause(mrb_state *mrb, mrb_value exc, mrb_value cause)
 {
   if (mrb_exception_p(exc)) {
-    if (!mrb_nil_p(cause)) {
-      if (!mrb_exception_p(cause)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
-      }
-      if (!mrb_obj_eq(mrb, cause, exc)) {
-        if (exc_cause_chain_p(mrb, cause, exc)) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "circular causes");
-        }
-        mrb_iv_set(mrb, exc, MRB_SYM(cause), cause);
-      }
+    struct RException *e = mrb_exc_ptr(exc);
+
+    if (mrb_undef_p(cause)) {
+      e->flags &= ~EXC_CAUSE_GIVEN;
     }
-    mrb_exc_ptr(exc)->flags |= EXC_CAUSE_GIVEN;
+    else {
+      if (!mrb_nil_p(cause)) {
+        if (!mrb_exception_p(cause)) {
+          mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
+        }
+        if (!mrb_obj_eq(mrb, cause, exc)) {
+          if (exc_cause_chain_p(mrb, cause, exc)) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "circular causes");
+          }
+          if (exc_holds_cause_p(mrb, exc)) {
+            mrb_iv_set(mrb, exc, MRB_SYM(cause), cause);
+          }
+        }
+      }
+      e->flags |= EXC_CAUSE_GIVEN;
+    }
   }
   mrb_exc_raise(mrb, exc);
 }
