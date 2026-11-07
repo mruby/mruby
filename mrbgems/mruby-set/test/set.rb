@@ -925,3 +925,12 @@ assert("Set#to_set") do
   assert_equal Set, t.class
   assert_equal Set[1], t
 end
+
+assert("Set#dup of an empty Set") do
+  d = Set.new.dup
+  assert_equal Set[:x], d.add(:x)
+  assert_equal Set[:x], Set.new.clone.add(:x)
+  assert_equal Set[:x], Set.new.freeze.dup.add(:x)
+  assert_equal Set[:x], Set.new.freeze + [:x]
+  assert_equal Set[], Set.new.dup
+end
