@@ -1814,3 +1814,13 @@ assert('String#chars of a multibyte receiver longer than the GC arena') do
   assert_equal 300, ("\u3042" * 300).chars.size
   assert_equal "\u3042", ("\u3042" * 300).chars.last
 end if UTF8STRING
+
+assert('String#dedup') do
+  a = "abc"
+  b = a.dedup
+  assert_true b.frozen?
+  assert_equal "abc", b
+  assert_false a.frozen?
+  f = "xyz".freeze
+  assert_same f, f.dedup
+end
