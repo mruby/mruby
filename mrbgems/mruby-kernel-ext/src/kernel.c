@@ -371,7 +371,7 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
 }
 
 static const mrb_mt_entry kernel_ext_rom_entries[] = {
-  MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
@@ -387,7 +387,7 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
 /* public counterparts on `Kernel` itself; see `kernel_module_function_entries`
    in src/kernel.c */
 static const mrb_mt_entry kernel_ext_module_function_entries[] = {
-  MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1)),
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE()),

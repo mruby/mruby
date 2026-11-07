@@ -547,16 +547,37 @@ mrb_false(mrb_state *mrb, mrb_value self)
  *
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
+ *
+ *  The exception being handled (`$!`) becomes the cause of the one raised;
+ *  `cause:` gives another, or with nil none.
+ *
+ *     raise ArgumentError, "bad value", cause: original_error
  */
 mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc, mesg;
-  mrb_int argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
+  mrb_sym kw_names[] = { MRB_SYM(cause) };
+  mrb_value cause, opts;
+  mrb_kwargs kw = { 1, 0, kw_names, &cause, &opts };
+  mrb_int argc = mrb_get_args(mrb, "|oo:", &exc, &mesg, &kw);
+
+  /* keywords other than cause: are a Hash argument, as in CRuby */
+  if (mrb_hash_p(opts) && !mrb_hash_empty_p(mrb, opts)) {
+    switch (argc) {
+    case 0: exc = opts; break;
+    case 1: mesg = opts; break;
+    default: mrb_argnum_error(mrb, argc + 1, 0, 2);
+    }
+    argc++;
+  }
 
   mrb->c->ci->mid = 0;
   switch (argc) {
   case 0:
+    if (!mrb_undef_p(cause)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "only cause is given with no arguments");
+    }
     /* Re-raise what a rescue clause is running, which is what `$!` names.
        Outside one it is nil, and there being nothing to re-raise is itself
        the RuntimeError.  `!` is not a word, so MRB_GVSYM() cannot spell the
@@ -578,6 +599,9 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
     /* fall through */
   default:
     exc = mrb_make_exception(mrb, exc, mesg);
+    if (!mrb_undef_p(cause)) {
+      mrb_exc_raise_with_cause(mrb, exc, cause);
+    }
     mrb_exc_raise(mrb, exc);
     break;
   }
@@ -961,7 +985,7 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_obj_is_kind_of_m,             MRB_SYM_Q(kind_of),      MRB_ARGS_REQ(1)),  /* 15.3.1.3.26 */
   MRB_MT_ENTRY(mrb_false,                        MRB_SYM_Q(nil),                     MRB_ARGS_NONE()),  /* 15.3.1.3.32 */
   MRB_MT_ENTRY(mrb_obj_id_m,                     MRB_SYM(object_id),                 MRB_ARGS_NONE()),  /* 15.3.1.3.33 */
-  MRB_MT_ENTRY(mrb_f_raise,              MRB_SYM(raise),                       MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),  /* 15.3.1.3.40 */
+  MRB_MT_ENTRY(mrb_f_raise,              MRB_SYM(raise),                       MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1) | MRB_MT_PRIVATE),  /* 15.3.1.3.40 */
   MRB_MT_ENTRY(mrb_obj_remove_instance_variable, MRB_SYM(remove_instance_variable), MRB_ARGS_REQ(1)),  /* 15.3.1.3.41 */
   MRB_MT_ENTRY(obj_respond_to,                   MRB_SYM_Q(respond_to), MRB_ARGS_ARG(1,1)),  /* 15.3.1.3.43 */
   MRB_MT_ENTRY(mrb_any_to_s,                     MRB_SYM(to_s),                      MRB_ARGS_NONE()),  /* 15.3.1.3.46 */
@@ -981,7 +1005,7 @@ static const mrb_mt_entry kernel_rom_entries[] = {
 static const mrb_mt_entry kernel_module_function_entries[] = {
   MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(block_given), MRB_ARGS_NONE()),  /* 15.3.1.2.2  */
   MRB_MT_ENTRY(mrb_f_block_given_p_m, MRB_SYM_Q(iterator),    MRB_ARGS_NONE()),  /* 15.3.1.2.5  */
-  MRB_MT_ENTRY(mrb_f_raise,           MRB_SYM(raise),      MRB_ARGS_OPT(2)),  /* 15.3.1.2.12 */
+  MRB_MT_ENTRY(mrb_f_raise,           MRB_SYM(raise),      MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1)),  /* 15.3.1.2.12 */
 #ifndef HAVE_MRUBY_IO_GEM
   MRB_MT_ENTRY(mrb_p_m,               MRB_SYM(p),          MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_print_m,           MRB_SYM(print),      MRB_ARGS_ANY()),

@@ -709,3 +709,193 @@ assert('raise without arguments re-raises the exception being rescued') do
   end
   assert_raise(RuntimeError) { raise }
 end
+
+assert('Exception#cause') do
+  assert_nil RuntimeError.new("x").cause
+  e = begin
+    raise "b"
+  rescue => x
+    x
+  end
+  assert_nil e.cause
+end
+
+assert('Exception#cause is what $! names when it is raised') do
+  e = begin
+    begin
+      raise "a"
+    rescue
+      raise "b"
+    end
+  rescue => x
+    x
+  end
+  assert_equal "b", e.message
+  assert_equal "a", e.cause.message
+  # an exception raised in C from a rescue clause, too
+  e = begin
+    begin
+      raise "a"
+    rescue
+      nil.no_such_method
+    end
+  rescue NoMethodError => x
+    x
+  end
+  assert_equal "a", e.cause.message
+  # from an ensure clause, the exception unwinding through it
+  e = begin
+    begin
+      raise "a"
+    ensure
+      raise "b" rescue nil
+      raise "c"
+    end
+  rescue => x
+    x
+  end
+  assert_equal "c", e.message
+  assert_equal "a", e.cause.message
+  # none once the rescue clause is left
+  e = begin
+    begin
+      raise "a"
+    rescue
+    end
+    raise "b"
+  rescue => x
+    x
+  end
+  assert_nil e.cause
+end
+
+assert('Exception#cause is kept when the exception is raised again') do
+  b = begin
+    begin
+      raise "a"
+    rescue
+      raise "b"
+    end
+  rescue => x
+    x
+  end
+  e = begin
+    begin
+      raise "z"
+    rescue
+      raise b
+    end
+  rescue => x
+    x
+  end
+  assert_same b, e
+  assert_equal "a", e.cause.message
+  # one raised with no cause takes the one at hand when raised again
+  n = begin; raise "n"; rescue => x; x; end
+  e = begin
+    begin
+      raise "z"
+    rescue
+      raise n
+    end
+  rescue => x
+    x
+  end
+  assert_equal "z", e.cause.message
+  # raising $! itself gives it no cause
+  e = begin
+    begin
+      raise "a"
+    rescue => y
+      raise y
+    end
+  rescue => x
+    x
+  end
+  assert_nil e.cause
+end
+
+assert('Exception#cause does not make a cycle') do
+  a = RuntimeError.new("a")
+  b = begin
+    begin
+      raise a
+    rescue
+      raise "b"
+    end
+  rescue => x
+    x
+  end
+  assert_same a, b.cause
+  e = begin
+    begin
+      raise b
+    rescue
+      raise a
+    end
+  rescue => x
+    x
+  end
+  assert_same a, e
+  assert_nil a.cause
+end
+
+assert('Kernel#raise with cause:') do
+  c = RuntimeError.new("c")
+  e = begin; raise "b", cause: c; rescue => x; x; end
+  assert_same c, e.cause
+  e = begin; raise ArgumentError, "b", cause: c; rescue => x; x; end
+  assert_kind_of ArgumentError, e
+  assert_same c, e.cause
+  # nil takes no cause from $!, for this raise only
+  e = begin
+    begin
+      raise "a"
+    rescue
+      raise "b", cause: nil
+    end
+  rescue => x
+    x
+  end
+  assert_nil e.cause
+  e2 = begin
+    begin
+      raise "z"
+    rescue
+      raise e
+    end
+  rescue => x
+    x
+  end
+  assert_equal "z", e2.cause.message
+  # an explicit cause replaces the one there was, and nil leaves it
+  q = begin; raise "q", cause: RuntimeError.new("c1"); rescue => x; x; end
+  e = begin; raise q, cause: nil; rescue => x; x; end
+  assert_equal "c1", e.cause.message
+  e = begin; raise q, cause: RuntimeError.new("c2"); rescue => x; x; end
+  assert_equal "c2", e.cause.message
+  # the exception itself as its cause is ignored
+  s = RuntimeError.new("s")
+  e = begin; raise s, cause: s; rescue => x; x; end
+  assert_nil e.cause
+end
+
+assert('Kernel#raise refuses a bad cause:') do
+  assert_raise_with_message(ArgumentError, "only cause is given with no arguments") do
+    raise cause: RuntimeError.new
+  end
+  assert_raise_with_message(TypeError, "exception object expected") do
+    raise "b", cause: 1
+  end
+  a = RuntimeError.new("a")
+  b = begin; raise "b", cause: a; rescue => x; x; end
+  assert_raise_with_message(ArgumentError, "circular causes") do
+    raise a, cause: b
+  end
+end
+
+assert('Kernel#raise takes other keywords as a Hash argument') do
+  e = begin; raise RuntimeError, foo: 1; rescue => x; x; end
+  assert_kind_of RuntimeError, e
+  assert_equal({foo: 1}.to_s, e.message)
+end
