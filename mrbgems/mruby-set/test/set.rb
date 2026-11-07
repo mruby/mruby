@@ -909,7 +909,7 @@ assert("Set refuses changes once frozen") do
    -> { s.merge(Set[]) }, -> { s.subtract(Set[1]) }, -> { s.replace([3]) },
    -> { s.delete_if { true } }, -> { s.keep_if { false } }, -> { s.map! { _1 } },
    -> { s.instance_eval { initialize_copy(Set[3]) } }, -> { s.clone.add(3) },
-   -> { Set.new.freeze.clone.add(:x) }].each do |change|
+   -> { Set.new.freeze.clone.add(:x) }, -> { Set[Set[1]].freeze.flatten! }].each do |change|
     assert_raise(FrozenError) { change.call }
   end
   assert_equal Set[1, 2], s
@@ -917,6 +917,7 @@ assert("Set refuses changes once frozen") do
   assert_nil s.add?(1)
   assert_nil s.delete?(9)
   assert_nil s.reject! { false }
+  assert_nil s.flatten!
   assert_same s, s.delete_if { false }
   assert_equal Set[1, 2, 3], s.dup.add(3)
 end

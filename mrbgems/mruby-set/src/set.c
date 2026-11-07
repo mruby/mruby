@@ -1388,7 +1388,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_flatten_bang(mrb_state *mrb, mrb_value self)
 {
-  kset_t *self_set = set_get_kset_mut(mrb, self);
+  kset_t *self_set = set_get_kset(mrb, self);
   if (kset_is_empty(self_set)) {
     return mrb_nil_value(); /* No changes needed for empty set */
   }
@@ -1397,6 +1397,8 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   if (!set_has_nested_sets(mrb, self_set)) {
     return mrb_nil_value(); /* No nested sets, no changes needed */
   }
+  /* a frozen Set refuses only a change it would actually see */
+  mrb_check_frozen_value(mrb, self);
 
   /* Create a temporary set to flatten into (GC-protected) */
   mrb_value temp = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
