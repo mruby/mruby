@@ -558,9 +558,11 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc, mesg;
   mrb_sym kw_names[] = { MRB_SYM(cause) };
-  mrb_value cause, opts;
+  mrb_value cause = mrb_undef_value(), opts = mrb_nil_value();
   mrb_kwargs kw = { 1, 0, kw_names, &cause, &opts };
-  mrb_int argc = mrb_get_args(mrb, "|oo:", &exc, &mesg, &kw);
+  /* the keyword form allocates a Hash for the rest even when there are none */
+  mrb_int argc = mrb->c->ci->kw ? mrb_get_args(mrb, "|oo:", &exc, &mesg, &kw)
+                                : mrb_get_args(mrb, "|oo", &exc, &mesg);
 
   /* keywords other than cause: are a Hash argument, as in CRuby */
   if (mrb_hash_p(opts) && !mrb_hash_empty_p(mrb, opts)) {
