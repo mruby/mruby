@@ -3244,3 +3244,19 @@ assert('case/in - a pattern in parentheses') do
   assert_equal :y, (case({a: 1}); in ({a: Integer}) then :y end)
   assert_equal :else, (case 5; in (1) then :n else :else end)
 end
+
+assert('anonymous * and ** passed on from inside a block') do
+  def anon_run; yield; end
+  def anon_yield_rest(*) = anon_run { yield(*) }
+  def anon_yield_kw(**) = anon_run { yield(**) }
+  def anon_yield_both(*, **) = anon_run { yield(*, **) }
+  def anon_nested(*, **) = anon_run { anon_run { yield(*, **) } }
+  def anon_call(*, **, &b) = anon_run { b.call(*, **) }
+  def anon_return(*) = anon_run { return [*] }
+  assert_equal [1, 2], anon_yield_rest(1, 2) { |*x| x }
+  assert_equal({k: 1}, anon_yield_kw(k: 1) { |**x| x })
+  assert_equal [[1], {k: 2}], anon_yield_both(1, k: 2) { |*x, **y| [x, y] }
+  assert_equal [[1], {k: 2}], anon_nested(1, k: 2) { |*x, **y| [x, y] }
+  assert_equal [[1], {k: 2}], anon_call(1, k: 2) { |*x, **y| [x, y] }
+  assert_equal [3, 4], anon_return(3, 4)
+end

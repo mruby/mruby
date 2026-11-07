@@ -2107,6 +2107,8 @@ false_always(mrc_node *tree)
   }
 }
 
+static void gen_anon_splat(mrc_codegen_scope *s, mrc_sym sym);
+
 static void
 gen_retval(mrc_codegen_scope *s, mrc_node *tree)
 {
@@ -2119,7 +2121,7 @@ gen_retval(mrc_codegen_scope *s, mrc_node *tree)
       } else {
         /* anonymous splat: load local variable '*' */
         pm_constant_id_t astr = MRC_OPSYM_2(mul);
-        gen_lvar(s, astr, 0);
+        gen_anon_splat(s, astr);
       }
       pop();
       genop_1(s, OP_ARYSPLAT, cursp());
@@ -2172,6 +2174,16 @@ gen_forward_arg(mrc_codegen_scope *s, mrc_sym sym, int val)
   else {
     gen_getupvar(s, cursp(), sym);
   }
+}
+
+/* Push the anonymous `*` or `**` parameter. Inside a block it is a variable
+   of the method around it, which a load from the block's own registers
+   would miss (register 0, self, is what it found). */
+static void
+gen_anon_splat(mrc_codegen_scope *s, mrc_sym sym)
+{
+  gen_forward_arg(s, sym, 1);
+  push();
 }
 
 /* The first `upto` of the arguments, which is all of them for gen_values()
@@ -2235,7 +2247,7 @@ gen_values_upto(mrc_codegen_scope *s, mrc_node *tree, int val, int limit, size_t
       } else {
         /* anonymous splat: load local variable '*' */
         pm_constant_id_t astr = MRC_OPSYM_2(mul);
-        gen_lvar(s, astr, 0);
+        gen_anon_splat(s, astr);
       }
       pop(); pop();
       genop_1(s, OP_ARYCAT, cursp());
@@ -2575,7 +2587,7 @@ gen_hash(mrc_codegen_scope *s, mrc_node *tree, int val, int limit)
       } else if (val) {
         /* anonymous keyword splat: load local variable '**' */
         pm_constant_id_t dastr = MRC_OPSYM_2(pow);
-        gen_lvar(s, dastr, 0);
+        gen_anon_splat(s, dastr);
       }
       if (val && (len > 0 || update)) {
         pop(); pop();
@@ -5867,7 +5879,7 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       } else if (val) {
         /* anonymous splat: load local variable '*' */
         pm_constant_id_t astr = MRC_OPSYM_2(mul);
-        gen_lvar(s, astr, 0);
+        gen_anon_splat(s, astr);
       }
       break;
     }
