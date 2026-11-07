@@ -1109,4 +1109,22 @@ assert('IO.select with a Float timeout that stands for no Integer') do
   assert_raise(RangeError) { IO.select(nil, nil, nil, 1e30) }
 end
 
+assert('IO.write, IO.binread and IO.binwrite') do
+  assert_equal 3, IO.write($mrbtest_io_wfname, "abc")
+  assert_equal "abc", IO.read($mrbtest_io_wfname)
+  # an offset writes there and keeps the rest
+  assert_equal 1, IO.write($mrbtest_io_wfname, "Z", 1)
+  assert_equal "aZc", IO.read($mrbtest_io_wfname)
+  # no offset truncates
+  assert_equal 1, IO.write($mrbtest_io_wfname, "q")
+  assert_equal "q", IO.read($mrbtest_io_wfname)
+  assert_equal 2, IO.binwrite($mrbtest_io_wfname, "\xff\xfe")
+  assert_equal "\xff\xfe".bytes, IO.binread($mrbtest_io_wfname).bytes
+  assert_equal [0xfe], IO.binread($mrbtest_io_wfname, 1, 1).bytes
+  assert_equal 1, IO.binwrite($mrbtest_io_wfname, "x", 1)
+  assert_equal [0xff, 0x78], IO.binread($mrbtest_io_wfname).bytes
+  assert_equal "q", File.write($mrbtest_io_wfname, "q") && File.read($mrbtest_io_wfname)
+  File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
+end
+
 MRubyIOTestUtil.io_test_cleanup
