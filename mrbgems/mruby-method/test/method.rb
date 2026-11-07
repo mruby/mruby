@@ -716,6 +716,12 @@ assert('Module#define_method with a Method or UnboundMethod') do
   end
   assert_equal 8, f.new.from_alias(4)
   assert_equal 10, f.new.from_bound_alias(5)
+
+  # and a super in it goes on from the class it is defined in
+  g = Class.new { def m; "G"; end }
+  h = Class.new(g) { def m; "H" + super; end }
+  k = Class.new(h) { alias_method :m2, :m; define_method(:m3, instance_method(:m2)) }
+  assert_equal "HHG", k.new.m3
 end
 
 assert('Kernel#define_singleton_method with a Method or UnboundMethod') do

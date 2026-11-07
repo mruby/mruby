@@ -862,6 +862,9 @@ mrb_module_define_method(mrb_state *mrb, mrb_value self)
      keeps the body it was taken with, however the owner changes later */
   struct RProc *p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(mrb, p, proc);
+  /* a method made from an alias runs under the class it is defined in, as
+     in CRuby, not under the class the alias found its original in */
+  if (MRB_PROC_ALIAS_P(p)) p->e.target_class = NULL;
   p->flags |= MRB_PROC_STRICT;
   mrb_method_t m;
   MRB_METHOD_FROM_PROC(m, p);
