@@ -1861,6 +1861,17 @@ assert('Module#const_get with a path') do
   assert_raise(TypeError){ c.const_get("A::B", false) }
 end
 
+assert('Module#const_get on a class looks in Object') do
+  c = Class.new
+  assert_equal String, c.const_get(:String)
+  assert_equal String, c.const_get("String")
+  assert_equal Comparable, (class << c; self; end).const_get(:Comparable)
+  assert_uninitialized_const{ c.const_get("String::Foo") }
+  assert_uninitialized_const{ c.const_get(:String, false) }
+  # Object is not an ancestor of a BasicObject subclass
+  assert_uninitialized_const{ Class.new(BasicObject).const_get(:String) }
+end
+
 assert('Module#const_get with inherit false reads the module itself') do
   m = Module.new
   m.const_set(:Prepended, :from_module)

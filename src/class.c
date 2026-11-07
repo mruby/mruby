@@ -4564,14 +4564,32 @@ check_const_name_sym(mrb_state *mrb, mrb_sym id)
   }
 }
 
-/* A module looks in Object last for a lone name or the first name of a path,
-   as in CRuby. A later name does not: "M::String" is no more String than
-   M::String is. */
+/* Whether mod finds id on its way to Object, where mrb_const_get() stops for
+   a class (C::String is no constant), or anywhere for a module. */
+static mrb_bool
+const_short_of_object_p(mrb_state *mrb, mrb_value mod, mrb_sym id)
+{
+  if (mrb_type(mod) == MRB_TT_MODULE) return mrb_const_defined(mrb, mod, id);
+  for (struct RClass *c = mrb_class_ptr(mod); c && c != mrb->object_class; c = c->super) {
+    if (mrb_const_defined_at(mrb, mrb_obj_value(c), id)) return TRUE;
+  }
+  return FALSE;
+}
+
+/* Whether Object is where const_get finds id: a module looks there, and a
+   class with Object among its ancestors does, as in CRuby, for a lone name or
+   the first name of a path. A later name does not: "M::String" is no more
+   String than M::String is. */
 static mrb_bool
 const_in_object_p(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool top)
 {
-  return top && mrb_type(mod) == MRB_TT_MODULE && !mrb_const_defined(mrb, mod, id) &&
-         mrb_const_defined_at(mrb, mrb_obj_value(mrb->object_class), id);
+  if (!top || const_short_of_object_p(mrb, mod, id)) return FALSE;
+  if (mrb_type(mod) != MRB_TT_MODULE) {
+    struct RClass *c = mrb_class_ptr(mod);
+    while (c && c != mrb->object_class) c = c->super;
+    if (!c) return FALSE;
+  }
+  return mrb_const_defined_at(mrb, mrb_obj_value(mrb->object_class), id);
 }
 
 static mrb_bool
