@@ -89,11 +89,57 @@ mrb_sym_slice(mrb_state *mrb, mrb_value self)
                           MRB_SYM(slice), argc, argv);
 }
 
+/*
+ * call-seq:
+ *   sym.start_with?([prefixes]+)  -> true or false
+ *
+ * Returns true if the symbol's name starts with one of the prefixes given,
+ * as `String#start_with?` answers it.
+ *
+ *   :hello.start_with?("hell")            #=> true
+ *   :hello.start_with?("heaven", "hell")  #=> true
+ */
+static mrb_value
+mrb_sym_start_with(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  /* sent, as for slice, so that a Regexp prefix answers wherever
+     mruby-regexp widens String#start_with? */
+  return mrb_funcall_argv(mrb, mrb_sym_str(mrb, mrb_symbol(self)),
+                          MRB_SYM_Q(start_with), argc, argv);
+}
+
+/*
+ * call-seq:
+ *   sym.end_with?([suffixes]+)  -> true or false
+ *
+ * Returns true if the symbol's name ends with one of the suffixes given, as
+ * `String#end_with?` answers it.
+ *
+ *   :hello.end_with?("ello")           #=> true
+ *   :hello.end_with?("heaven", "ello") #=> true
+ */
+static mrb_value
+mrb_sym_end_with(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return mrb_funcall_argv(mrb, mrb_sym_str(mrb, mrb_symbol(self)),
+                          MRB_SYM_Q(end_with), argc, argv);
+}
+
 static const mrb_mt_entry symbol_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(length), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_sym_length, MRB_SYM(size), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_sym_slice,  MRB_SYM(slice), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_sym_slice,  MRB_OPSYM(aref), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_sym_start_with, MRB_SYM_Q(start_with), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_sym_end_with, MRB_SYM_Q(end_with), MRB_ARGS_ANY()),
 };
 
 void

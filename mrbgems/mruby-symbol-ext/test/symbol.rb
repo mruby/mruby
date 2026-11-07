@@ -99,3 +99,19 @@ assert('Symbol#slice - the name comes from the symbol, not from #to_s') do
     end
   end
 end
+
+assert('Symbol#start_with?') do
+  assert_true :hello.start_with?("hell")
+  assert_true :hello.start_with?("heaven", "hell")
+  assert_false :hello.start_with?("heaven")
+  assert_false :hello.start_with?
+  assert_raise(TypeError) { :hello.start_with?(1) }
+end
+
+assert('Symbol#end_with?') do
+  assert_true :hello.end_with?("ello")
+  assert_true :hello.end_with?("heaven", "ello")
+  assert_false :hello.end_with?("heaven")
+  assert_false :hello.end_with?
+  assert_raise(TypeError) { :hello.end_with?(:lo) }
+end
