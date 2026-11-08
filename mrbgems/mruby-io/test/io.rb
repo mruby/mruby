@@ -78,6 +78,13 @@ assert('IO#binmode and IO#binmode?') do
   File.open($mrbtest_io_rfname) { |f| assert_false f.binmode? }
 end
 
+assert('IO#binmode reads line endings as they are') do
+  File.open($mrbtest_io_wfname, "wb") { |f| f.write "a\r\nb" }
+  File.open($mrbtest_io_wfname, "r") { |f| f.binmode; assert_equal "a\r\nb", f.read }
+  IO.open(IO.sysopen($mrbtest_io_wfname), "r", binmode: true) { |f| assert_equal "a\r\nb", f.read }
+  File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
+end
+
 assert('IO.new with autoclose: false') do
   io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
   dup = IO.new(io.fileno, "r", autoclose: false)

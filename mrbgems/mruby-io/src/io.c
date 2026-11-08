@@ -22,6 +22,7 @@
    reports a child's exit. */
 #if defined(_WIN32)
   #include <winsock.h>    /* getsockopt(), to tell a socket from a descriptor */
+  #include <io.h>         /* _setmode() */
   #include <stdlib.h>
   #define WEXITSTATUS(x) (x)
 
@@ -177,6 +178,28 @@ io_mode_binary_p(mrb_state *mrb, mrb_value mode, mrb_value opt)
     return (mrb_integer(mode) & MRB_O_BINARY) != 0;
   }
   return FALSE;
+}
+
+/* On Windows the CRT turns CRLF into LF on a descriptor left in text mode,
+   which is what a mode without "b" leaves it in: binary mode is the
+   descriptor's to keep, not only a flag of ours. */
+static void
+io_fd_binmode(struct mrb_io *fptr)
+{
+#ifdef _WIN32
+  /* a Winsock handle is no CRT descriptor, and IO#initialize runs before
+     the socket says it is one */
+  DWORD err;
+  int len = sizeof(err);
+  if (fptr->is_socket ||
+      getsockopt(fptr->fd, SOL_SOCKET, SO_ERROR, (char*)&err, &len) == 0) {
+    return;
+  }
+  if (fptr->fd >= 0) _setmode(fptr->fd, _O_BINARY);
+  if (fptr->fd2 >= 0) _setmode(fptr->fd2, _O_BINARY);
+#else
+  (void)fptr;
+#endif
 }
 
 static int
@@ -655,6 +678,7 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->close_fd = autoclose;
   fptr->close_fd2 = autoclose;
   fptr->binmode = io_mode_binary_p(mrb, mode, opt);
+  if (fptr->binmode) io_fd_binmode(fptr);
   io_init_buf(mrb, fptr);
   return io;
 }
@@ -1831,9 +1855,9 @@ io_sync(mrb_state *mrb, mrb_value io)
  * call-seq:
  *   ios.binmode -> ios
  *
- * Puts the stream into binary mode and returns it.  Strings are bytes
- * and no line ending is translated, so only #binmode? tells the
- * difference.
+ * Puts the stream into binary mode and returns it.  Strings are bytes,
+ * so what changes is that a platform translating line endings in text
+ * mode (Windows) stops doing so.
  *
  *   f = File.new("testfile")
  *   f.binmode.binmode?   #=> true
@@ -1843,6 +1867,7 @@ io_binmode(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   fptr->binmode = 1;
+  io_fd_binmode(fptr);
   return io;
 }
 
