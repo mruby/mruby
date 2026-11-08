@@ -54,6 +54,30 @@ assert('IO.open', '15.2.20.4.1') do
   assert_io_open(:open)
 end
 
+assert('IO#binmode and IO#binmode?') do
+  io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
+  assert_false io.binmode?
+  assert_same io, io.binmode
+  assert_true io.binmode?
+  assert_true io.dup.binmode?
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+  assert_raise(IOError) { io.binmode }
+  assert_raise(IOError) { io.binmode? }
+
+  io = IO.open(IO.sysopen($mrbtest_io_rfname), "rb")
+  assert_true io.binmode?
+  io.close
+  io = IO.new(IO.sysopen($mrbtest_io_rfname), "r", binmode: true)
+  assert_true io.binmode?
+  io.close
+  io = IO.new(IO.sysopen($mrbtest_io_rfname), File::RDONLY | File::BINARY)
+  assert_true io.binmode?
+  io.close
+  File.open($mrbtest_io_rfname, "rb") { |f| assert_true f.binmode? }
+  File.open($mrbtest_io_rfname) { |f| assert_false f.binmode? }
+end
+
 assert('IO.new with autoclose: false') do
   io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
   dup = IO.new(io.fileno, "r", autoclose: false)

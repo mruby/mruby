@@ -161,6 +161,24 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
   return flags;
 }
 
+/* Does the mode ("rb", "wb+", ... or File::BINARY) or the binmode: option
+   open the stream in binary mode? */
+static mrb_bool
+io_mode_binary_p(mrb_state *mrb, mrb_value mode, mrb_value opt)
+{
+  if (!mrb_nil_p(opt)) {
+    mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(binmode)));
+    if (mrb_test(v)) return TRUE;
+  }
+  if (mrb_string_p(mode)) {
+    return memchr(RSTRING_PTR(mode), 'b', RSTRING_LEN(mode)) != NULL;
+  }
+  if (mrb_integer_p(mode)) {
+    return (mrb_integer(mode) & MRB_O_BINARY) != 0;
+  }
+  return FALSE;
+}
+
 static int
 io_mode_to_flags(mrb_state *mrb, mrb_value mode)
 {
@@ -483,6 +501,7 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   fptr_copy->writable = fptr_orig->writable;
   fptr_copy->sync = fptr_orig->sync;
   fptr_copy->is_socket = fptr_orig->is_socket;
+  fptr_copy->binmode = fptr_orig->binmode;
 
   io_init_buf(mrb, fptr_copy);
 
@@ -612,8 +631,8 @@ io_init(mrb_state *mrb, mrb_value io)
   }
   int flags = io_mode_to_flags(mrb, mode);
   /* the keyword options: autoclose: false keeps the descriptor open
-   * after close; the others (binmode:, path:, ...) are accepted and
-   * left to the caller */
+   * after close and binmode: true sets binary mode; the others (path:,
+   * ...) are accepted and left to the caller */
   mrb_bool autoclose = TRUE;
   if (!mrb_nil_p(opt)) {
     mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(autoclose)));
@@ -635,6 +654,7 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->writable = OPEN_WRITABLE_P(flags);
   fptr->close_fd = autoclose;
   fptr->close_fd2 = autoclose;
+  fptr->binmode = io_mode_binary_p(mrb, mode, opt);
   io_init_buf(mrb, fptr);
   return io;
 }
@@ -1807,6 +1827,39 @@ io_sync(mrb_state *mrb, mrb_value io)
   return mrb_bool_value(fptr->sync);
 }
 
+/*
+ * call-seq:
+ *   ios.binmode -> ios
+ *
+ * Puts the stream into binary mode and returns it.  Strings are bytes
+ * and no line ending is translated, so only #binmode? tells the
+ * difference.
+ *
+ *   f = File.new("testfile")
+ *   f.binmode.binmode?   #=> true
+ */
+static mrb_value
+io_binmode(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  fptr->binmode = 1;
+  return io;
+}
+
+/*
+ * call-seq:
+ *   ios.binmode? -> true or false
+ *
+ * Returns whether the stream is in binary mode: opened with a "b" mode,
+ * File::BINARY or binmode: true, or put into it by #binmode.
+ */
+static mrb_value
+io_binmode_p(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  return mrb_bool_value(fptr->binmode);
+}
+
 #ifndef MRB_USE_IO_PREAD_PWRITE
 # define io_pread   mrb_notimplement_m
 # define io_pwrite  mrb_notimplement_m
@@ -2416,6 +2469,8 @@ static const mrb_mt_entry io_rom_entries[] = {
   MRB_MT_ENTRY(io_readchar,          MRB_SYM(readchar),      MRB_ARGS_NONE()),  /* 15.2.20.5.15 */
   MRB_MT_ENTRY(io_readline,          MRB_SYM(readline), MRB_ARGS_OPT(2)),  /* 15.2.20.5.16 */
   MRB_MT_ENTRY(io_readlines,         MRB_SYM(readlines), MRB_ARGS_OPT(2)),  /* 15.2.20.5.17 */
+  MRB_MT_ENTRY(io_binmode,           MRB_SYM(binmode),       MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(io_binmode_p,         MRB_SYM_Q(binmode),     MRB_ARGS_NONE()),
   MRB_MT_ENTRY(io_sync,              MRB_SYM(sync),          MRB_ARGS_NONE()),  /* 15.2.20.5.18 */
   MRB_MT_ENTRY(io_set_sync,          MRB_SYM_E(sync), MRB_ARGS_REQ(1)),  /* 15.2.20.5.19 */
   MRB_MT_ENTRY(io_sysread,           MRB_SYM(sysread), MRB_ARGS_ARG(1,1)),

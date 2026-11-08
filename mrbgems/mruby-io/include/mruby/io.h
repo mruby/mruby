@@ -51,7 +51,8 @@ struct mrb_io {
                sync:1,
                is_socket:1,
                close_fd:1,
-               close_fd2:1;
+               close_fd2:1,
+               binmode:1;
   struct mrb_io_buf *buf;
 };
 
