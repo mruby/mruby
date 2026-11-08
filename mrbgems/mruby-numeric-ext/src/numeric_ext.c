@@ -135,8 +135,17 @@ int_gcd(mrb_state *mrb, mrb_value x)
   }
   mrb_int g = mrb_int_gcd(mrb_integer(x), mrb_integer(y));
   /* g < 0 only when the mathematical result is 2^63 (= |MRB_INT_MIN|),
-     which does not fit in mrb_int. */
-  if (g < 0) mrb_int_overflow(mrb, "gcd");
+     which does not fit in mrb_int. That is the gcd spilling out of the type,
+     a bigint and not an error, so take the same bigint path the branch above
+     takes for a bigint operand. */
+  if (g < 0) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_gcd(mrb, mrb_bint_new_int(mrb, mrb_integer(x)),
+                        mrb_bint_new_int(mrb, mrb_integer(y)));
+#else
+    mrb_int_overflow(mrb, "gcd");
+#endif
+  }
   return mrb_int_value(mrb, g);
 }
 
@@ -173,19 +182,26 @@ int_lcm(mrb_state *mrb, mrb_value x)
 
   if (a == 0 || b == 0) return mrb_int_value(mrb, 0);
 
-  /* Negation of MRB_INT_MIN is UB and the lcm with any non-zero
-     operand would not fit in mrb_int anyway. */
-  if (a == MRB_INT_MIN || b == MRB_INT_MIN) mrb_int_overflow(mrb, "lcm");
-
-  gcd_val = mrb_int_gcd(a, b);
-  if (a < 0) a = -a;
-  if (b < 0) b = -b;
-
-  mrb_int lcm_val;
-  if (mrb_int_mul_overflow(a / gcd_val, b, &lcm_val)) {
-    mrb_int_overflow(mrb, "lcm");
+  /* MRB_INT_MIN cannot be negated in mrb_int, and a product past MRB_INT_MAX
+     overflows: both are the lcm spilling out of the type, a bigint and not an
+     error, so fall through to the bigint path the branch above takes for a
+     bigint operand. */
+  if (a != MRB_INT_MIN && b != MRB_INT_MIN) {
+    mrb_int lcm_val;
+    gcd_val = mrb_int_gcd(a, b);
+    if (a < 0) a = -a;
+    if (b < 0) b = -b;
+    if (!mrb_int_mul_overflow(a / gcd_val, b, &lcm_val)) {
+      return mrb_int_value(mrb, lcm_val);
+    }
   }
-  return mrb_int_value(mrb, lcm_val);
+
+#ifdef MRB_USE_BIGINT
+  return mrb_bint_lcm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)),
+                      mrb_bint_new_int(mrb, mrb_integer(y)));
+#else
+  mrb_int_overflow(mrb, "lcm");
+#endif
 }
 
 /*

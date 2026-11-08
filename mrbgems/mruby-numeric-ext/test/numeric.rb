@@ -77,6 +77,16 @@ assert('Integer#gcd') do
   assert_equal(5, (-10).gcd(15))
   assert_equal(5, 10.gcd(-15))
   assert_equal(5, (-10).gcd(-15))
+
+  # gcd(MRB_INT_MIN, MRB_INT_MIN) is |MRB_INT_MIN|, one past the type; master
+  # raised RangeError instead of returning the bigint.
+  begin
+    min = -(1 << (1.size * 8 - 1))
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  assert_equal(1 << (1.size * 8 - 1), min.gcd(min))
+  assert_equal(1 << (1.size * 8 - 1), min.gcd(0))
 end
 
 assert('Integer#lcm') do
@@ -89,6 +99,20 @@ assert('Integer#lcm') do
   assert_equal(30, (-10).lcm(15))
   assert_equal(30, 10.lcm(-15))
   assert_equal(30, (-10).lcm(-15))
+
+  # A product past the mrb_int range is the lcm as a bigint, not an error;
+  # master raised RangeError from the fixnum path. m is half the width, so
+  # m+1 and m-1 are fixnums whose product m*m-1 overflows whatever the build's
+  # integer width; they are coprime, so that product is their lcm.
+  begin
+    1 << (1.size * 8)   # probe: a value past mrb_int needs mruby-bigint
+  rescue RangeError
+    skip 'requires mruby-bigint'
+  end
+  m = 1 << (1.size * 4)
+  assert_equal(m * m - 1, (m + 1).lcm(m - 1))
+  min = -(1 << (1.size * 8 - 1))
+  assert_equal(1 << (1.size * 8 - 1), min.lcm(1))
 end
 
 assert('Integer#ceildiv') do
