@@ -851,9 +851,11 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
-  mrb_int perm = -1;
+  mrb_value perm_v = mrb_nil_value();
 
-  mrb_get_args(mrb, "S|oi", &path, &mode, &perm);
+  /* a nil permission is the default one, as an omitted one is */
+  mrb_get_args(mrb, "S|oo", &path, &mode, &perm_v);
+  mrb_int perm = mrb_nil_p(perm_v) ? -1 : mrb_as_int(mrb, perm_v);
   if (perm < 0) {
     perm = 0666;
   }

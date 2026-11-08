@@ -475,6 +475,17 @@ assert('IO.sysopen("./nonexistent")') do
   end
 end
 
+assert('IO.sysopen with a nil permission') do
+  fd = IO.sysopen $mrbtest_io_rfname, "r", nil
+  io = IO.new(fd)
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+
+  File.open($mrbtest_io_wfname, "w", nil) { |f| f.write "abc" }
+  assert_equal "abc", File.read($mrbtest_io_wfname)
+  assert_raise(TypeError) { IO.sysopen $mrbtest_io_rfname, "r", "0644" }
+end
+
 assert('IO.sysopen, IO#sysread') do
   fd = IO.sysopen $mrbtest_io_rfname
   io = IO.new(fd)
