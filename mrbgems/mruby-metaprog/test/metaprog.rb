@@ -607,6 +607,18 @@ assert('Object#public_send visibility') do
   assert_equal [:nope, [1]], mm.public_send(:nope, 1)
 end
 
+assert('Kernel#send and #public_send to method_missing pass keywords') do
+  mm = Class.new do
+    def method_missing(name, *args, **opts, &blk)
+      [name, args, opts, blk&.call]
+    end
+  end.new
+  assert_equal [:nope, [1], { k: 2 }, nil], mm.send(:nope, 1, k: 2)
+  assert_equal [:nope, [1], { k: 2 }, 3], mm.send(:nope, 1, k: 2) { 3 }
+  assert_equal [:nope, [], { k: 2 }, nil], mm.public_send(:nope, k: 2)
+  assert_equal [:nope, [{ k: 2 }], {}, nil], mm.send(:nope, { k: 2 })
+end
+
 assert('Module#remove_method on a module prepended to Integer restores the builtin operator') do
   # A module prepended to `Integer` changes what `-` resolves to without
   # touching the method table of `Integer` itself, and `OP_SUB` honors that on

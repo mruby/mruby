@@ -1832,9 +1832,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
   mrb_sym name;
 
   if (ci->cci > CINFO_NONE) {
-#ifndef MRB_USE_REFINEMENTS
   funcall:;
-#endif
     const mrb_value *argv;
     mrb_int argc;
     mrb_value block;
@@ -1859,24 +1857,34 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
 
   struct RClass *c = mrb_class(mrb, self);
 #ifdef MRB_USE_REFINEMENTS
-  m = mrb_vm_find_method_in_scope(mrb, mrb_vm_caller_refinements(mrb), c, &c, name);
-  if (MRB_METHOD_UNDEF_P(m)) {
-    /* `method_missing` is sent by name: a funcall of the name itself would
-       look it up with no scope and reach a method the scope undefines */
-    const mrb_value *argv;
-    mrb_int argc;
-    mrb_value block;
-    mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
-    mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
-    mrb_ary_unshift(mrb, args, mrb_symbol_value(name));
-    return mrb_funcall_with_block(mrb, self, MRB_SYM(method_missing), RARRAY_LEN(args), RARRAY_PTR(args), block);
-  }
+  struct RClass *scope = mrb_vm_caller_refinements(mrb);
+  m = mrb_vm_find_method_in_scope(mrb, scope, c, &c, name);
 #else
   m = mrb_vm_find_method(mrb, c, &c, name);
-  if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
-    goto funcall;
-  }
 #endif
+  if (MRB_METHOD_UNDEF_P(m)) {
+    /* call `method_missing` in this frame: the arguments are laid out as
+       it takes them, the name first, and keep their keyword hash, which a
+       funcall would pass as a positional hash.  It is looked up in the
+       caller's scope, as the name was. */
+    c = mrb_class(mrb, self);
+#ifdef MRB_USE_REFINEMENTS
+    m = mrb_vm_find_method_in_scope(mrb, scope, c, &c, MRB_SYM(method_missing));
+#else
+    m = mrb_vm_find_method(mrb, c, &c, MRB_SYM(method_missing));
+#endif
+    if (MRB_METHOD_UNDEF_P(m)) goto funcall;    /* just in case */
+    if (n == 15) {      /* a copy: the array may be the caller's own */
+      regs[0] = mrb_ary_new_from_values(mrb, RARRAY_LEN(regs[0]), RARRAY_PTR(regs[0]));
+      mrb_ary_set(mrb, regs[0], 0, mrb_symbol_value(name));
+    }
+    else {
+      regs[0] = mrb_symbol_value(name);
+    }
+    ci->mid = MRB_SYM(method_missing);
+    ci->u.target_class = c;
+    goto call;
+  }
 
   if (pub) {
     mrb_bool priv = TRUE;
@@ -1912,6 +1920,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
     ci->n--;
   }
 
+  call:
   if (MRB_METHOD_FUNC_P(m)) {
     check_argument_count(mrb, ci, MRB_MT_ASPEC(m.flags));
     return MRB_METHOD_FUNC(m)(mrb, self);
