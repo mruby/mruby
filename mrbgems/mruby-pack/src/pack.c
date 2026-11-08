@@ -967,6 +967,15 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
   }\
 } while (0)
 
+/* The string a, A, Z, m, M or u has just pushed holds bytes, as CRuby's
+   ASCII-8BIT one does: index it by bytes, not by UTF-8 characters. */
+static void
+unpacked_binary(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value s = mrb_ary_entry(ary, -1);
+  if (mrb_string_p(s)) RSTR_ENCODING_SET(mrb_str_ptr(s), MRB_STR_ENCODING_BINARY);
+}
+
 static mrb_int
 unpack_str(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary, int count, unsigned int flags)
 {
@@ -1868,10 +1877,17 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   memset(RSTRING_PTR(result), 0, 128);
   mrb_int aidx = 0;
   mrb_int ridx = 0;
+  /* As in CRuby, the result holds bytes (ASCII-8BIT) once a directive other
+     than U, m, M and u is used; with only those it is text. */
+  mrb_bool binary = FALSE;
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
     if (dir == PACK_DIR_NONE) break;
+    if (dir != PACK_DIR_UTF8 && dir != PACK_DIR_BASE64 &&
+        dir != PACK_DIR_QENC && dir != PACK_DIR_UU) {
+      binary = TRUE;
+    }
     if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
@@ -1998,6 +2014,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   }
 
   mrb_str_resize(mrb, result, ridx);
+  if (binary) RSTR_ENCODING_SET(mrb_str_ptr(result), MRB_STR_ENCODING_BINARY);
   return result;
 }
 
@@ -2055,20 +2072,24 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       continue;
     case PACK_DIR_STR:
       srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, (int)count, flags);
+      unpacked_binary(mrb, result);
       if (single) goto single_return;
       continue;
 
     /* String formats without flags - (mrb, sptr, len, result) */
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
+      unpacked_binary(mrb, result);
       if (single) goto single_return;
       continue;
     case PACK_DIR_UU:
       srcidx += unpack_uu(mrb, sptr, srclen - srcidx, result);
+      unpacked_binary(mrb, result);
       if (single) goto single_return;
       continue;
     case PACK_DIR_QENC:
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
+      unpacked_binary(mrb, result);
       if (single) goto single_return;
       continue;
 
