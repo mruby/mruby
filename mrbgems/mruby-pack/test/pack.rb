@@ -465,3 +465,32 @@ assert 'pack and unpack of an unsigned value past mrb_int' do
     end
   end
 end
+
+# What unpack hands back for a, A, Z, m, M and u holds bytes, as CRuby's
+# ASCII-8BIT strings do: an index counts bytes, even where the bytes would
+# read as UTF-8 characters or as none.
+assert('unpack gives bytes for a, A, Z, m, M and u') do
+  bytes = "\xE3\x81\x82\xFFab"
+  %w[a* A* Z*].each do |d|
+    s = bytes.unpack1(d)
+    assert_equal 6, s.size, d
+    assert_equal "\xE3", s[0], d
+  end
+  m = [bytes].pack("m0").unpack1("m0")
+  assert_equal 6, m.size
+  assert_equal "\xFFab", m[3..]
+  assert_equal 6, [bytes].pack("M").unpack1("M").size
+  assert_equal 6, [bytes].pack("u").unpack1("u").size
+  assert_equal "e38182", "\xE3\x81\x82".unpack1("H*")
+end
+
+assert('pack gives bytes unless only U, m, M and u are used') do
+  assert_equal 2, [0xE3, 0x81].pack("C*").size
+  assert_equal 3, ["\xE3\x81\x82"].pack("a*").size
+  assert_equal 4, [0x3042, 0].pack("Ux").size
+  if __ENCODING__ == "UTF-8"
+    # U alone is text: a character each
+    assert_equal 1, [0x3042].pack("U").size
+    assert_equal 2, [0x3042, 0x3044].pack("U*").size
+  end
+end
