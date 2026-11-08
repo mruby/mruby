@@ -65,6 +65,14 @@ assert('File.basename') do
   assert_raise(ArgumentError) { File.basename("/a/b\0") }
 end
 
+assert('File.split') do
+  assert_equal ['/home/gumby', '.profile'], File.split('/home/gumby/.profile')
+  assert_equal ['.', 'foo'], File.split('foo')
+  assert_equal ['/', '/'], File.split('/')
+  assert_equal ['/a', 'b'], File.split('/a/b/')
+  assert_equal ['.', ''], File.split('')
+end
+
 assert('File.basename with suffix') do
   assert_equal 'foo', File.basename('foo.rb', '.rb')
   assert_equal 'foo.rb', File.basename('foo.rb', '.py')

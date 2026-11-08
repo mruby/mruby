@@ -112,6 +112,20 @@ class File < IO
     end
   end
 
+  #
+  # call-seq:
+  #   File.split(file_name)   -> array
+  #
+  # Splits the given string into a directory and a file component and
+  # returns them in a two-element array. See also File.dirname and
+  # File.basename.
+  #
+  #   File.split("/home/gumby/.profile")   #=> ["/home/gumby", ".profile"]
+  #
+  def self.split(path)
+    [dirname(path), basename(path)]
+  end
+
 
 
 end
