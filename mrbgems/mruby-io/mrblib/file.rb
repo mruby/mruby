@@ -91,7 +91,9 @@ class File < IO
   #   File.new("testfile").inspect   #=> "#<File:testfile>"
   #
   def inspect
-    "<#{self.class}:#{@path}>"
+    desc = @path || (closed? ? nil : "fd #{fileno}")
+    desc = desc ? "#{desc} (closed)" : "(closed)" if closed?
+    "#<#{self.class}:#{desc}>"
   end
 
 

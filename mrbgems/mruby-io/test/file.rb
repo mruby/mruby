@@ -486,6 +486,19 @@ assert('File.open - a mode with an execute bit') do
   end
 end
 
+assert('File#inspect') do
+  f = File.new($mrbtest_io_rfname)
+  assert_equal "#<File:#{$mrbtest_io_rfname}>", f.inspect
+  f.close
+  assert_equal "#<File:#{$mrbtest_io_rfname} (closed)>", f.inspect
+
+  fd = IO.sysopen($mrbtest_io_rfname)
+  f = File.new(fd)
+  assert_equal "#<File:fd #{fd}>", f.inspect
+  f.close
+  assert_equal "#<File:(closed)>", f.inspect
+end
+
 assert('File.new with perm:') do
   path = "#{$mrbtest_io_wfname}.perm-test"
   probe = "#{$mrbtest_io_wfname}.perm-probe"
