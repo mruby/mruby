@@ -890,6 +890,14 @@ io_str_read(struct mrb_io *fptr, mrb_value str)
   return fptr->binmode ? io_str_binary(str) : str;
 }
 
+/* A read by length is binary, but a buffer the caller hands in keeps its
+   own encoding, as in CRuby. */
+static mrb_value
+io_str_bytes(mrb_value str, mrb_bool outbuf_given)
+{
+  return outbuf_given ? str : io_str_binary(str);
+}
+
 /* The unbuffered readers (#sysread, #pread) hand the descriptor a string of
    `maxlen` bytes and trim it to what arrived. Sizing the string comes first;
    a read of nothing is answered here with an empty string and asks the
@@ -941,11 +949,12 @@ io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
+  mrb_bool given = !mrb_nil_p(buf);
   buf = io_sysread_buf(mrb, buf, maxlen);
   if (maxlen == 0) return io_str_binary(buf);
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_int n = mrb_hal_io_read(mrb, fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
-  return io_str_binary(io_sysread_done(mrb, fptr, buf, n));
+  return io_str_bytes(io_sysread_done(mrb, fptr, buf, n), given);
 }
 
 static mrb_value
@@ -1930,11 +1939,12 @@ io_pread(mrb_state *mrb, mrb_value io)
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
   off_t offset = (off_t)mrb_as_int(mrb, off);
+  mrb_bool given = !mrb_nil_p(buf);
   buf = io_sysread_buf(mrb, buf, maxlen);
   if (maxlen == 0) return io_str_binary(buf);
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_int n = (mrb_int)pread(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen, offset);
-  return io_str_binary(io_sysread_done(mrb, fptr, buf, n));
+  return io_str_bytes(io_sysread_done(mrb, fptr, buf, n), given);
 }
 
 /*
@@ -2176,6 +2186,7 @@ io_read(mrb_state *mrb, mrb_value io)
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
   mrb_get_args(mrb, "|o?S", &len, &length_given, &outbuf);
+  mrb_bool given = !mrb_nil_p(outbuf);
   if (length_given) {
     if (mrb_nil_p(len)) {
       length_given = FALSE;
@@ -2186,7 +2197,7 @@ io_read(mrb_state *mrb, mrb_value io)
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %i given", length);
       }
       if (length == 0) {
-        return io_str_binary(io_reset_outbuf(mrb, outbuf, 0));
+        return io_str_bytes(io_reset_outbuf(mrb, outbuf, 0), given);
       }
     }
   }
@@ -2203,7 +2214,7 @@ io_read(mrb_state *mrb, mrb_value io)
     if (fptr->eof || length == 0) {
       if (RSTRING_LEN(outbuf) == 0)
         return mrb_nil_value();
-      return io_str_binary(outbuf);
+      return io_str_bytes(outbuf, given);
     }
     if (buf->len < length) {
       length -= buf->len;
@@ -2211,7 +2222,7 @@ io_read(mrb_state *mrb, mrb_value io)
     }
     else {
       io_buf_cat(mrb, outbuf, buf, length);
-      return io_str_binary(outbuf);
+      return io_str_bytes(outbuf, given);
     }
   }
 }

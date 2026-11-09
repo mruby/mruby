@@ -134,6 +134,22 @@ assert('IO reads return byte strings in binary mode and by length') do
     File.open($mrbtest_io_wfname, "r") do |f|
       assert_equal 2, f.pread(2, 1).length if f.respond_to?(:pread)
     end
+    # a buffer handed in keeps its own encoding
+    File.open($mrbtest_io_wfname, "rb") do |f|
+      buf = "\u3042".dup
+      f.read(3, buf)
+      assert_equal 2, buf.length    # "a\u00e9", still UTF-8
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      buf = "\u3042".dup
+      f.sysread(3, buf)
+      assert_equal 2, buf.length
+    end if File.method_defined?(:sysread)
+    File.open($mrbtest_io_wfname, "r") do |f|
+      buf = "\u3042".dup
+      f.pread(3, 0, buf)
+      assert_equal 2, buf.length
+    end if File.method_defined?(:pread)
     assert_equal 8, File.binread($mrbtest_io_wfname).length
     assert_equal 6, File.read($mrbtest_io_wfname).length
   ensure
