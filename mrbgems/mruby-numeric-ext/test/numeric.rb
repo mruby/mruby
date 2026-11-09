@@ -175,6 +175,14 @@ assert('Integer.sqrt') do
   assert_equal(4, Integer.sqrt(16))
   assert_equal(10, Integer.sqrt(100))
   assert_equal(85, Integer.sqrt(7244))
+
+  # MRB_INT_MAX, built from two halves so no step passes it. The first
+  # Babylonian guess (n + 1) / 2 overflowed there and the answer came back
+  # negative.
+  half = 1 << (1.size * 8 - 2)
+  max = half - 1 + half
+  r = Integer.sqrt(max)
+  assert_true(r > 0 && r <= max / r && r + 1 > max / (r + 1))
 end
 
 assert('Integer#bit_length') do
