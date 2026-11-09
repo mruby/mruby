@@ -681,6 +681,14 @@ assert('IO#gets') do
   # gets with rs, limit
   io.pos = 0
   assert_equal $mrbtest_io_msg[0, 5], io.gets(' ', 5), "gets with rs, limit"
+
+  # gets with nil, the rest of the file
+  io.pos = 0
+  assert_equal $mrbtest_io_msg[0, 3], io.gets(3)
+  assert_equal $mrbtest_io_msg[3..], io.gets(nil), "gets with nil"
+  assert_equal nil, io.gets(nil), "gets with nil returns nil, when EOF"
+  io.pos = 0
+  assert_equal $mrbtest_io_msg[0, 4], io.gets(nil, 4), "gets with nil, limit"
   io.close
   assert_equal true, io.closed?, "close success"
 
@@ -707,6 +715,23 @@ assert('IO#gets') do
   # gets third line
   assert_equal nil, io.gets, "gets third line; returns nil"
 
+  io.close
+end
+
+assert('IO#gets(nil) on a file of many lines') do
+  fd = IO.sysopen $mrbtest_io_wfname, "w"
+  io = IO.new(fd, "w")
+  io.write "a\nb\n\nc"
+  io.close
+
+  io = IO.new(IO.sysopen($mrbtest_io_wfname))
+  assert_equal "a\n", io.gets
+  assert_equal "b\n\nc", io.gets(nil)
+  assert_equal nil, io.gets(nil)
+  io.close
+
+  io = IO.new(IO.sysopen($mrbtest_io_wfname))
+  assert_equal ["a\nb\n\nc"], io.readlines(nil)
   io.close
 end
 
