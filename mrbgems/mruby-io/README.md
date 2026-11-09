@@ -26,7 +26,7 @@ Add the line below to your build configuration.
 | IO.pipe                    | o        |          |
 | IO.popen                   | o        |          |
 | IO.read                    | o        |          |
-| IO.readlines               |          |          |
+| IO.readlines               | o        |          |
 | IO.select                  | o        |          |
 | IO.sysopen                 | o        |          |
 | IO.try_convert             |          |          |
