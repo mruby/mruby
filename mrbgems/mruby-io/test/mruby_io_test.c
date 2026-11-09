@@ -39,6 +39,8 @@ mkstemp(char *p)
 }
 #endif
 
+/* mingw-w64 has mkdtemp() since 14.0 */
+#if !defined(MRB_MINGW64_VERSION) || MRB_MINGW64_VERSION < 14000
 static char*
 mkdtemp(char *temp)
 {
@@ -47,6 +49,7 @@ mkdtemp(char *temp)
   if (_mkdir(path) < 0) return NULL;
   return path;
 }
+#endif
 
 #define umask(mode) _umask(mode)
 #define rmdir(path) _rmdir(path)

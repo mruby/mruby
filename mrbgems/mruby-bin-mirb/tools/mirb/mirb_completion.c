@@ -24,10 +24,10 @@
 #define strdup _strdup
 #endif
 
-/* strndup is not available on Windows (MSVC and MinGW) */
-#ifdef _WIN32
+/* strndup is missing from MSVC and older MinGW, and newer MinGW declares it,
+   so use a helper of our own everywhere */
 static char*
-strndup(const char *s, size_t n)
+mirb_strndup(const char *s, size_t n)
 {
   size_t len = strlen(s);
   if (len > n) len = n;
@@ -38,7 +38,6 @@ strndup(const char *s, size_t n)
   }
   return p;
 }
-#endif
 
 /* ============================================================
  * Core Completion Engine
@@ -505,7 +504,7 @@ mirb_generate_completions(mirb_completion_ctx *ctx, const char *line, int cursor
   if (ctx->match_prefix) {
     free(ctx->match_prefix);
   }
-  ctx->match_prefix = strndup(line + i, cursor_pos - i);
+  ctx->match_prefix = mirb_strndup(line + i, cursor_pos - i);
   ctx->prefix_len = cursor_pos - i;
 
   /* Detect completion type */
