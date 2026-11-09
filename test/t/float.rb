@@ -371,6 +371,12 @@ assert('Float#to_i', '15.2.9.3.14') do
   assert_raise(FloatDomainError) { Float::INFINITY.to_i }
   assert_raise(FloatDomainError) { (-Float::INFINITY).to_i }
   assert_raise(FloatDomainError) { Float::NAN.to_i }
+
+  # an Integer past what a 32-bit word carries inline, but within 32 bits
+  assert_equal(1500000000, 1500000000.75.to_i)
+  assert_equal(-1500000000, -1500000000.75.to_i)
+  assert_equal(1500000000, 1500000000.25.round)
+  assert_equal(1500000000, 1500000000.75.floor)
 end
 
 assert('Float#truncate', '15.2.9.3.15') do

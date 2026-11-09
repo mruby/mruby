@@ -23,10 +23,13 @@ MRB_BEGIN_DECL
 #define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
 #define FIXABLE(f) TYPED_FIXABLE(f,mrb_int)
 #ifndef MRB_NO_FLOAT
+/* whether a float fits in mrb_int; an mrb_int past MRB_FIXNUM_MAX is still
+   an Integer (boxed), so the bound is the type's, written as powers of two
+   that a float holds exactly */
 #ifdef MRB_INT64
 #define FIXABLE_FLOAT(f) ((f)>=-9223372036854775808.0 && (f)<9223372036854775808.0)
 #else
-#define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,mrb_float)
+#define FIXABLE_FLOAT(f) ((f)>=-2147483648.0 && (f)<2147483648.0)
 #endif
 #endif
 
