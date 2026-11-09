@@ -1791,12 +1791,32 @@ assert('String#scrub with block') do
   assert_equal "abc42def", "abc\x80def".scrub { 42 }
 end
 
+assert('String#scrub!') do
+  skip unless "あ".length == 1
+  s = "abc\x80def"
+  assert_same s, s.scrub!
+  assert_equal "abc\u{FFFD}def", s
+  s = "a\x80b"
+  assert_same s, s.scrub!("?")
+  assert_equal "a?b", s
+  s = "x\x80"
+  assert_same s, s.scrub! { |b| "<#{b.bytes.first}>" }
+  assert_equal "x<128>", s
+  # nothing to replace: self, even when frozen
+  f = "abc".freeze
+  assert_same f, f.scrub!
+  assert_raise(FrozenError) { "a\x80".freeze.scrub! }
+end
+
 assert('String#scrub no-op on non-UTF-8 build') do
   skip if "あ".length == 1
   # Method is still defined and returns a (string-equal) copy.
   assert_equal "abc\x80def", "abc\x80def".scrub
   assert_equal "abc\x80def", "abc\x80def".scrub("?")
   assert_equal "abc\x80def", "abc\x80def".scrub { |_| "?" }
+  s = "abc\x80def"
+  assert_same s, s.scrub!
+  assert_equal "abc\x80def", s
 end
 
 assert('String#chars of a receiver longer than the GC arena') do

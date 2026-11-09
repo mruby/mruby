@@ -114,6 +114,7 @@ assert('every mutating method leaves an answer the string can stand behind') do
       "tr_s!"          => ->(s) { s.tr_s!("a", "\xE3") },
       "squeeze!"       => ->(s) { s.squeeze! },
       "delete!"        => ->(s) { s.delete!("a") },
+      "scrub!"         => ->(s) { s.scrub!("?") },
       "slice!"         => ->(s) { s.slice!(0) },
       "clear"          => ->(s) { s.clear },
       # Both cut one byte off an end, which is where a character can be left

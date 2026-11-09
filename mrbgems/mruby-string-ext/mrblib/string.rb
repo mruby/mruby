@@ -193,4 +193,23 @@ class String
     end
     result
   end
+
+  ##
+  # call-seq:
+  #    str.scrub!                                  -> str
+  #    str.scrub!(repl)                            -> str
+  #    str.scrub! {|bytes| block }                 -> str
+  #
+  # Replaces the invalid UTF-8 bytes of +self+ as String#scrub does and
+  # returns +self+. A string with nothing to replace is left as it is,
+  # frozen or not.
+  #
+  #    s = "abc\x80def"
+  #    s.scrub!                    #=> "abc\u{FFFD}def"
+  #    s                           #=> "abc\u{FFFD}def"
+  def scrub!(repl = nil, &block)
+    str = scrub(repl, &block)
+    replace(str) unless str == self
+    self
+  end
 end
