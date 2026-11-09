@@ -872,6 +872,24 @@ eof_error(mrb_state *mrb)
   mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
 }
 
+/* What a read hands back is binary (ASCII-8BIT in CRuby) when it was read
+   by its length in bytes, as #read(length), #sysread and #pread read, or
+   from a stream in binary mode; otherwise it keeps the default encoding. */
+static mrb_value
+io_str_binary(mrb_value str)
+{
+  if (mrb_string_p(str)) {
+    RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
+  }
+  return str;
+}
+
+static mrb_value
+io_str_read(struct mrb_io *fptr, mrb_value str)
+{
+  return fptr->binmode ? io_str_binary(str) : str;
+}
+
 /* The unbuffered readers (#sysread, #pread) hand the descriptor a string of
    `maxlen` bytes and trim it to what arrived. Sizing the string comes first;
    a read of nothing is answered here with an empty string and asks the
@@ -924,10 +942,10 @@ io_sysread(mrb_state *mrb, mrb_value io)
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
   buf = io_sysread_buf(mrb, buf, maxlen);
-  if (maxlen == 0) return buf;
+  if (maxlen == 0) return io_str_binary(buf);
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_int n = mrb_hal_io_read(mrb, fptr->fd, RSTRING_PTR(buf), (size_t)maxlen);
-  return io_sysread_done(mrb, fptr, buf, n);
+  return io_str_binary(io_sysread_done(mrb, fptr, buf, n));
 }
 
 static mrb_value
@@ -1913,10 +1931,10 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   off_t offset = (off_t)mrb_as_int(mrb, off);
   buf = io_sysread_buf(mrb, buf, maxlen);
-  if (maxlen == 0) return buf;
+  if (maxlen == 0) return io_str_binary(buf);
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_int n = (mrb_int)pread(fptr->fd, RSTRING_PTR(buf), (size_t)maxlen, offset);
-  return io_sysread_done(mrb, fptr, buf, n);
+  return io_str_binary(io_sysread_done(mrb, fptr, buf, n));
 }
 
 /*
@@ -2168,14 +2186,14 @@ io_read(mrb_state *mrb, mrb_value io)
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %i given", length);
       }
       if (length == 0) {
-        return io_reset_outbuf(mrb, outbuf, 0);
+        return io_str_binary(io_reset_outbuf(mrb, outbuf, 0));
       }
     }
   }
 
   outbuf = io_reset_outbuf(mrb, outbuf, MRB_IO_BUF_SIZE);
   if (!length_given) {          /* read as much as possible */
-    return io_read_all(mrb, fptr, outbuf);
+    return io_str_read(fptr, io_read_all(mrb, fptr, outbuf));
   }
 
   struct mrb_io_buf *buf = fptr->buf;
@@ -2185,7 +2203,7 @@ io_read(mrb_state *mrb, mrb_value io)
     if (fptr->eof || length == 0) {
       if (RSTRING_LEN(outbuf) == 0)
         return mrb_nil_value();
-      return outbuf;
+      return io_str_binary(outbuf);
     }
     if (buf->len < length) {
       length -= buf->len;
@@ -2193,7 +2211,7 @@ io_read(mrb_state *mrb, mrb_value io)
     }
     else {
       io_buf_cat(mrb, outbuf, buf, length);
-      return outbuf;
+      return io_str_binary(outbuf);
     }
   }
 }
@@ -2216,7 +2234,7 @@ io_find_index(struct mrb_io *fptr, const char *rs, mrb_int rslen)
 }
 
 static mrb_value
-io_gets(mrb_state *mrb, mrb_value io)
+io_gets_str(mrb_state *mrb, mrb_value io)
 {
   mrb_value rs = mrb_nil_value();
   mrb_bool rs_given = FALSE;    /* newline break */
@@ -2317,6 +2335,13 @@ io_gets(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+io_gets(mrb_state *mrb, mrb_value io)
+{
+  mrb_value str = io_gets_str(mrb, io);
+  return io_str_read(io_get_read_fptr(mrb, io), str);
+}
+
+static mrb_value
 io_readline(mrb_state *mrb, mrb_value io)
 {
   mrb_value result = io_gets(mrb, io);
@@ -2349,7 +2374,7 @@ io_getc(mrb_state *mrb, mrb_value io)
   if (fptr->eof) return mrb_nil_value();
 #ifdef MRB_UTF8_STRING
   const char *p = &buf->mem[buf->start];
-  if ((*p) & 0x80) {
+  if (!fptr->binmode && ((*p) & 0x80)) {   /* binary mode reads bytes */
     len = mrb_utf8len(p, p+buf->len);
     if (len == 1 && buf->len < 4) { /* partial UTF-8 */
       io_fill_buf_comp(mrb, fptr);
@@ -2360,7 +2385,7 @@ io_getc(mrb_state *mrb, mrb_value io)
 #endif
   mrb_value str = mrb_str_new(mrb, buf->mem+buf->start, len);
   io_buf_shift(buf, len);
-  return str;
+  return io_str_read(fptr, str);
 }
 
 static mrb_value
