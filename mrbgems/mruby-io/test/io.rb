@@ -54,6 +54,14 @@ assert('IO.open', '15.2.20.4.1') do
   assert_io_open(:open)
 end
 
+assert('IO.open passes keywords on to new') do
+  IO.open(IO.sysopen($mrbtest_io_rfname), mode: "r", binmode: true) do |io|
+    assert_true io.binmode?
+    assert_equal $mrbtest_io_msg, io.read
+  end
+  File.open($mrbtest_io_wfname, "w", binmode: true) { |f| assert_true f.binmode? }
+end
+
 assert('IO#binmode and IO#binmode?') do
   io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
   assert_false io.binmode?
