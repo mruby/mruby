@@ -113,6 +113,23 @@ assert('Kernel#public_methods', '15.3.1.3.38') do
   assert_equal [:foo], c.new.public_methods(false)
 end
 
+assert('Kernel#public_methods and #private_methods take the nearest definition') do
+  a = Class.new do
+    private def foo; end
+    def bar; end
+  end
+  b = Class.new(a) do
+    public def foo; end
+    private def bar; end
+  end
+  o = b.new
+  assert_include o.public_methods, :foo
+  assert_not_include o.private_methods, :foo
+  assert_include o.private_methods, :bar
+  assert_not_include o.public_methods, :bar
+  assert_not_include o.methods, :bar
+end
+
 assert('Kernel#singleton_methods', '15.3.1.3.45') do
   assert_equal singleton_methods.class, Array
 end
@@ -374,6 +391,22 @@ assert('Module#instance_methods', '15.2.2.4.33') do
   assert_equal Array, r.class
   assert_true r.include?(:method3)
   assert_true r.include?(:method2)
+end
+
+assert('Module#public_instance_methods and #private_instance_methods take the nearest definition') do
+  a = Class.new do
+    private def foo; end
+    def bar; end
+  end
+  b = Class.new(a) do
+    public def foo; end
+    private def bar; end
+  end
+  assert_include b.public_instance_methods, :foo
+  assert_not_include b.private_instance_methods, :foo
+  assert_include b.private_instance_methods, :bar
+  assert_not_include b.public_instance_methods, :bar
+  assert_not_include b.instance_methods, :bar
 end
 
 assert('Module#instance_methods lists a method that is unimplemented here') do
