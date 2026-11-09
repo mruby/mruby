@@ -988,6 +988,7 @@ class Array
   end
 
   def sort_by!(&block)
+    return to_enum(:sort_by!) unless block
     self.replace(self.sort_by(&block))
   end
 end
