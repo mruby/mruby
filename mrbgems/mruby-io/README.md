@@ -152,7 +152,7 @@ Add the line below to your build configuration.
 | File.symlink?               | o        | FileTest |
 | File.truncate               |          |          |
 | File.umask                  | o        |          |
-| File.utime                  |          |          |
+| File.utime                  | o        |          |
 | File.world_readable?        |          |          |
 | File.world_writable?        |          |          |
 | File.writable?              |          | FileTest |

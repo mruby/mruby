@@ -202,6 +202,19 @@ int mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
 int mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode);
 
 /**
+ * Set file access and modification times
+ *
+ * @param mrb mruby state
+ * @param path File path (UTF-8)
+ * @param atime New access time, or NULL for the current time
+ * @param mtime New modification time, or NULL for the current time
+ * @return 0 on success, -1 on error (sets errno)
+ */
+int mrb_hal_io_utime(mrb_state *mrb, const char *path,
+                     const mrb_io_timeval *atime,
+                     const mrb_io_timeval *mtime);
+
+/**
  * Set/get file creation mask
  *
  * @param mrb mruby state
