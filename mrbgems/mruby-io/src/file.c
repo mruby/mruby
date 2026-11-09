@@ -15,6 +15,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -781,7 +782,7 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 #endif
 
 /* a time for File.utime: an Integer or Float of seconds since the Epoch,
-   or a Time (anything with to_i and usec) */
+   or [seconds, microseconds], the form File.utime turns a Time into */
 static mrb_io_timeval
 file_timeval(mrb_state *mrb, mrb_value time)
 {
@@ -793,34 +794,31 @@ file_timeval(mrb_state *mrb, mrb_value time)
       break;
 
 #ifndef MRB_NO_FLOAT
-    case MRB_TT_FLOAT:
-      t.tv_sec = mrb_as_int(mrb, time);
-      t.tv_usec = (mrb_int)((mrb_float(time) - t.tv_sec) * 1000000.0);
+    case MRB_TT_FLOAT: {
+      /* floored, so that a time before the Epoch keeps 0 <= usec < 1000000 */
+      mrb_float f = mrb_float(time);
+      mrb_float sec = floor(f);
+      t.tv_sec = mrb_as_int(mrb, mrb_float_value(mrb, sec));
+      t.tv_usec = (mrb_int)((f - sec) * 1000000.0);
       break;
+    }
 #endif
 
-    default:
-      if (!mrb_respond_to(mrb, time, MRB_SYM(to_i)) ||
-          !mrb_respond_to(mrb, time, MRB_SYM(usec))) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into time", time);
+    case MRB_TT_ARRAY:
+      if (RARRAY_LEN(time) == 2) {
+        t.tv_sec = mrb_as_int(mrb, RARRAY_PTR(time)[0]);
+        t.tv_usec = mrb_as_int(mrb, RARRAY_PTR(time)[1]);
+        break;
       }
-      t.tv_sec = mrb_as_int(mrb, mrb_funcall_id(mrb, time, MRB_SYM(to_i), 0));
-      t.tv_usec = mrb_as_int(mrb, mrb_funcall_id(mrb, time, MRB_SYM(usec), 0));
-      break;
+      /* fall through */
+    default:
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %T into time", time);
   }
   return t;
 }
 
-/*
- * call-seq:
- *   File.utime(atime, mtime, file_name, ...) -> integer
- *
- * Sets the access and modification times of each named file. A time is
- * a Time or a number of seconds since the Epoch; nil stands for the
- * current time. Returns the number of file names.
- *
- *   File.utime(0, Time.now, "testfile") #=> 1
- */
+/* File.__utime(atime, mtime, *paths): the body of File.utime, which hands
+   it each time as nil, a number, or [seconds, microseconds] */
 static mrb_value
 mrb_file_s_utime(mrb_state *mrb, mrb_value klass)
 {
@@ -1145,7 +1143,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(rename), mrb_file_s_rename, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, file, MRB_SYM(symlink), mrb_file_s_symlink, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, file, MRB_SYM(chmod), mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
-  mrb_define_class_method_id(mrb, file, MRB_SYM(utime), mrb_file_s_utime, MRB_ARGS_REQ(2) | MRB_ARGS_REST());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(__utime), mrb_file_s_utime, MRB_ARGS_REQ(2) | MRB_ARGS_REST());
   mrb_define_class_method_id(mrb, file, MRB_SYM(readlink), mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_ARG(1,1));

@@ -144,6 +144,23 @@ class File < IO
     [dirname(path), basename(path)]
   end
 
+  #
+  # call-seq:
+  #   File.utime(atime, mtime, file_name, ...)   -> integer
+  #
+  # Sets the access and modification times of each named file. A time is
+  # a Time or a number of seconds since the Epoch; nil stands for the
+  # current time. Returns the number of file names.
+  #
+  #   File.utime(0, Time.now, "testfile")   #=> 1
+  #
+  def self.utime(atime, mtime, *paths)
+    # a Time is read here, so that the C side never calls back into Ruby
+    atime = [atime.to_i, atime.usec] if atime.respond_to?(:usec)
+    mtime = [mtime.to_i, mtime.usec] if mtime.respond_to?(:usec)
+    __utime(atime, mtime, *paths)
+  end
+
 
 
 end

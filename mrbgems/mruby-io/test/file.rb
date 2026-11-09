@@ -282,6 +282,9 @@ assert('File.utime') do
     if Object.const_defined?(:Float)
       File.utime(0, 1500000000.75, path)
       File.open(path) { |f| assert_equal 1500000000, f.mtime.to_i }
+      # before the Epoch: -1.5 is 2 seconds back plus half a second
+      File.utime(0, -1.5, path)
+      File.open(path) { |f| assert_equal(-2, f.mtime.to_i) }
     end
     now = Time.now.to_i
     File.utime(nil, nil, path)
