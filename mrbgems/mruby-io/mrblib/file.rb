@@ -25,7 +25,8 @@ class File < IO
   #
   def initialize(fd_or_path, mode = "r", perm = nil, **opts)
     mode = opts[:mode] if opts[:mode]
-    if opts.key?(:perm)
+    # a nil perm: stands for no keyword, as a nil positional one does
+    unless opts[:perm].nil?
       raise ArgumentError, "perm specified twice" unless perm.nil?
       perm = opts[:perm]
     end

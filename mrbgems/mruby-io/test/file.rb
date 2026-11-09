@@ -507,6 +507,7 @@ assert('File.new with perm:') do
     assert_equal "a", File.read(path)
     assert_raise(Errno::EACCES) { File.open(path, 'w') {} } if enforced
     assert_raise(ArgumentError) { File.new(path, "r", 0644, perm: 0600) }
+    File.new(path, "r", 0644, perm: nil).close
   ensure
     File.chmod(0600, path) rescue nil
     File.chmod(0600, probe) rescue nil
