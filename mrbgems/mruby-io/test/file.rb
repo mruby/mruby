@@ -56,6 +56,15 @@ assert('File#path', '15.2.21.4.2') do
   assert_true io.closed?
 end
 
+assert('File#to_path') do
+  File.open($mrbtest_io_rfname, "r") do |io|
+    assert_equal $mrbtest_io_rfname, io.to_path
+  end
+  io = File.new(IO.sysopen($mrbtest_io_rfname), path: "given")
+  assert_equal "given", io.to_path
+  io.close
+end
+
 assert('File.basename') do
   assert_equal '', File.basename('')
   assert_equal '/', File.basename('//')

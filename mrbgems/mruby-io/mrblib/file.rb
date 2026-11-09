@@ -4,6 +4,15 @@ class File < IO
 
   #
   # call-seq:
+  #   file.to_path    -> filepath
+  #
+  # The path of the file, as File#path gives it: a File stands for its path
+  # where an object with to_path is taken for one.
+  #
+  alias to_path path
+
+  #
+  # call-seq:
   #   File.new(filename, mode="r")            -> file
   #   File.new(filename [, mode [, perm]])    -> file
   #   File.new(fd [, mode])                   -> file
