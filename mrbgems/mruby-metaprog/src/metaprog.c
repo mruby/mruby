@@ -141,9 +141,11 @@ method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 {
   struct mt_set *s = (struct mt_set*)p;
 
-  if (vicheck(m.flags, s->visibility) && kh_get(st, mrb, s->set, mid) == kh_end(s->set)) {
+  /* the nearest definition decides, whatever its visibility: a method
+     redefined public hides a private one of the same name further up */
+  if (kh_get(st, mrb, s->set, mid) == kh_end(s->set)) {
     khint_t k = kh_put(st, mrb, s->set, mid);
-    kh_val(st, s->set, k) = !MRB_METHOD_UNDEF_P(m);
+    kh_val(st, s->set, k) = vicheck(m.flags, s->visibility) && !MRB_METHOD_UNDEF_P(m);
   }
   return 0;
 }
@@ -293,7 +295,9 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 
   ary = mrb_ary_new(mrb);
   KHASH_FOREACH(st, set, k) {
-    mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
+    if (kh_val(st, set, k)) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
+    }
   }
   kh_destroy(st, mrb, set);
 
