@@ -2,6 +2,7 @@
 
 Dir class for mruby. Supported methods are:
 
+`.[]`
 `.chdir`
 `.chroot`
 `.delete`
@@ -9,6 +10,7 @@ Dir class for mruby. Supported methods are:
 `.exist?`
 `.foreach`
 `.getwd`
+`.glob`
 `.mkdir`
 `.open`
 `#close`
@@ -17,6 +19,8 @@ Dir class for mruby. Supported methods are:
 `#rewind`
 `#seek`
 `#tell`
+
+`Dir.glob` matches with `File.fnmatch`, so mruby-dir depends on mruby-io.
 
 ## What the port declares
 
