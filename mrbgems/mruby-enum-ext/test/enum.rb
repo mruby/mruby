@@ -48,6 +48,19 @@ assert("Enumerable#sort_by") do
   assert_equal ["car", "train", "bicycle"], %w{car bicycle train}.sort_by {|e| e.length}
 end
 
+assert("Array#sort_by!") do
+  a = %w{car bicycle train}
+  assert_same a, a.sort_by! {|e| e.length}
+  assert_equal ["car", "train", "bicycle"], a
+
+  # without a block, an Enumerator that sorts in place by the block it is given
+  a = %w{b a c}
+  e = a.sort_by!
+  assert_kind_of Enumerator, e
+  assert_same a, e.with_index {|_, i| -i}
+  assert_equal ["c", "a", "b"], a
+end
+
 assert("Enumerable#first") do
   a = Object.new
   a.extend Enumerable
