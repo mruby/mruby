@@ -310,6 +310,43 @@ mrb_filetest_s_size_p(mrb_state *mrb, mrb_value klass)
   return mrb_int_value(mrb, st.st_size);
 }
 
+/* File.__atime(file_name), File.__mtime and File.__ctime: whole seconds
+   since the Epoch, as File#atime and the others read them, which
+   File.atime and the others turn into a Time */
+static mrb_value
+file_s_time(mrb_state *mrb, int which)
+{
+  mrb_io_stat st;
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  if (mrb_stat(mrb, obj, &st) < 0) {
+    mrb_sys_fail(mrb, mrb_string_p(obj) ? RSTRING_CSTR(mrb, obj) : NULL);
+  }
+  switch (which) {
+    case 'a': return mrb_int_value(mrb, st.st_atime);
+    case 'm': return mrb_int_value(mrb, st.st_mtime);
+    default:  return mrb_int_value(mrb, st.st_ctime);
+  }
+}
+
+static mrb_value
+mrb_file_s_atime(mrb_state *mrb, mrb_value klass)
+{
+  return file_s_time(mrb, 'a');
+}
+
+static mrb_value
+mrb_file_s_mtime(mrb_state *mrb, mrb_value klass)
+{
+  return file_s_time(mrb, 'm');
+}
+
+static mrb_value
+mrb_file_s_ctime(mrb_state *mrb, mrb_value klass)
+{
+  return file_s_time(mrb, 'c');
+}
+
 void
 mrb_init_file_test(mrb_state *mrb)
 {
@@ -340,4 +377,8 @@ mrb_init_file_test(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(socket),    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(symlink),   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(zero),      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
+
+  mrb_define_class_method_id(mrb, file, MRB_SYM(__atime),     mrb_file_s_atime,           MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(__mtime),     mrb_file_s_mtime,           MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(__ctime),     mrb_file_s_ctime,           MRB_ARGS_REQ(1));
 }

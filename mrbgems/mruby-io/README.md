@@ -104,13 +104,13 @@ Add the line below to your build configuration.
 | method                      | mruby-io | memo     |
 | --------------------------- | -------- | -------- |
 | File.absolute_path          |          |          |
-| File.atime                  |          |          |
+| File.atime                  | o        |          |
 | File.basename               | o        |          |
 | File.blockdev?              |          | FileTest |
 | File.chardev?               |          | FileTest |
 | File.chmod                  | o        |          |
 | File.chown                  |          |          |
-| File.ctime                  |          |          |
+| File.ctime                  | o        |          |
 | File.delete, File.unlink    | o        |          |
 | File.directory?             | o        | FileTest |
 | File.dirname                | o        |          |
@@ -129,7 +129,7 @@ Add the line below to your build configuration.
 | File.lchown                 |          |          |
 | File.link                   |          |          |
 | File.lstat                  |          |          |
-| File.mtime                  |          |          |
+| File.mtime                  | o        |          |
 | File.new, File.open         | o        |          |
 | File.owned?                 |          | FileTest |
 | File.path                   |          |          |

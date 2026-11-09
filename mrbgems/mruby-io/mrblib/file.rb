@@ -93,6 +93,45 @@ class File < IO
 
   #
   # call-seq:
+  #   File.atime(file_name)  -> time
+  #
+  # Returns the last access time of the named file (or of an IO), as
+  # File#atime does.
+  #
+  #   File.atime("testfile")   #=> Wed Apr 09 08:51:48 CDT 2003
+  #
+  def self.atime(file_name)
+    Time.at(__atime(file_name))
+  end
+
+  #
+  # call-seq:
+  #   File.ctime(file_name)  -> time
+  #
+  # Returns the change time of the named file (or of an IO), as
+  # File#ctime does.
+  #
+  #   File.ctime("testfile")   #=> Wed Apr 09 08:53:13 CDT 2003
+  #
+  def self.ctime(file_name)
+    Time.at(__ctime(file_name))
+  end
+
+  #
+  # call-seq:
+  #   File.mtime(file_name)  -> time
+  #
+  # Returns the modification time of the named file (or of an IO), as
+  # File#mtime does.
+  #
+  #   File.mtime("testfile")   #=> Wed Apr 09 08:53:14 CDT 2003
+  #
+  def self.mtime(file_name)
+    Time.at(__mtime(file_name))
+  end
+
+  #
+  # call-seq:
   #   file.inspect  -> string
   #
   # Return a string describing this File object.

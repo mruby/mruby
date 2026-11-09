@@ -635,4 +635,27 @@ assert('File.open with "x" mode') do
   end
 end
 
+assert('File.atime, File.mtime and File.ctime') do
+  path = "#{$mrbtest_io_wfname}.times"
+  File.open(path, "w") {}
+  begin
+    File.utime(1000000000, 1100000000, path)
+    assert_equal Time, File.atime(path).class
+    assert_equal 1000000000, File.atime(path).to_i
+    assert_equal 1100000000, File.mtime(path).to_i
+    assert_equal Time, File.ctime(path).class
+    File.open(path) do |f|
+      assert_equal f.mtime, File.mtime(path)
+      assert_equal f.ctime, File.ctime(path)
+      # an IO is asked for its file's times
+      assert_equal 1100000000, File.mtime(f).to_i
+    end
+  ensure
+    File.delete(path)
+  end
+  assert_raise(Errno::ENOENT) { File.mtime(path) }
+  assert_raise(Errno::ENOENT) { File.atime(path) }
+  assert_raise(Errno::ENOENT) { File.ctime(path) }
+end
+
 MRubyIOTestUtil.io_test_cleanup
