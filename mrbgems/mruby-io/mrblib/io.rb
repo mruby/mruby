@@ -22,8 +22,8 @@ class IO
   #   $stderr.puts "Hello"
   #   a.close
   #
-  def self.open(*args, &block)
-    io = self.new(*args)
+  def self.open(*args, **opts, &block)
+    io = self.new(*args, **opts)
 
     return io unless block
 
