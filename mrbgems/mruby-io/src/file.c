@@ -76,6 +76,16 @@
 #define LOCK_UN MRB_IO_LOCK_UN
 #endif
 
+mrb_value
+mrb_io_path(mrb_state *mrb, mrb_value path)
+{
+  if (!mrb_string_p(path) && mrb_respond_to(mrb, path, MRB_SYM(to_path))) {
+    path = mrb_funcall_argv(mrb, path, MRB_SYM(to_path), 0, NULL);
+  }
+  mrb_ensure_string_type(mrb, path);
+  return path;
+}
+
 /*
  * call-seq:
  *   File.umask([mask]) -> integer
@@ -118,8 +128,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (int i = 0; i < argc; i++) {
-    mrb_value pathv = argv[i];
-    mrb_ensure_string_type(mrb, pathv);
+    mrb_value pathv = mrb_io_path(mrb, argv[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, pathv);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (mrb_hal_io_unlink(mrb, path) < 0) {
@@ -144,7 +153,9 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 {
   mrb_value from, to;
 
-  mrb_get_args(mrb, "SS", &from, &to);
+  mrb_get_args(mrb, "oo", &from, &to);
+  from = mrb_io_path(mrb, from);
+  to = mrb_io_path(mrb, to);
   char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
   if (mrb_hal_io_rename(mrb, src, dst) < 0) {
@@ -198,9 +209,10 @@ scan_dirname(const char *path, mrb_int level)
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-  const char *path;
+  mrb_value pathv;
   mrb_int level = 1;
-  mrb_get_args(mrb, "z|i", &path, &level);
+  mrb_get_args(mrb, "o|i", &pathv, &level);
+  const char *path = RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv));
 
   if (level < 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level: %i", level);
@@ -258,10 +270,11 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  const char *path;
+  mrb_value pathv;
   const char *suffix = NULL;
 
-  mrb_get_args(mrb, "z|z", &path, &suffix);
+  mrb_get_args(mrb, "o|z", &pathv, &suffix);
+  const char *path = RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv));
 
   const char *endp = path + strlen(path);
   if (path == endp) {
@@ -342,8 +355,10 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
   mrb_value pathname, dir_string;
 
-  if (mrb_get_args(mrb, "S|S", &pathname, &dir_string) == 2) {
-    mrb_value s = mrb_str_dup(mrb, dir_string);
+  mrb_int argc = mrb_get_args(mrb, "o|o", &pathname, &dir_string);
+  pathname = mrb_io_path(mrb, pathname);
+  if (argc == 2) {
+    mrb_value s = mrb_str_dup(mrb, mrb_io_path(mrb, dir_string));
     s = mrb_str_cat_cstr(mrb, s, FILE_SEPARATOR);
     s = mrb_str_append(mrb, s, pathname);
     pathname = s;
@@ -584,10 +599,12 @@ path_expand(mrb_state *mrb, const char *path, const char *base, mrb_bool tilda)
 static mrb_value
 mrb_file_expand_path(mrb_state *mrb, mrb_value self)
 {
-  const char *path;
+  mrb_value pathv, dirv;
   const char *default_dir = ".";
-  mrb_get_args(mrb, "z|z", &path, &default_dir);
-  return path_expand(mrb, path, default_dir, TRUE);
+  if (mrb_get_args(mrb, "o|o", &pathv, &dirv) == 2) {
+    default_dir = RSTRING_CSTR(mrb, mrb_io_path(mrb, dirv));
+  }
+  return path_expand(mrb, RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv)), default_dir, TRUE);
 }
 
 /*
@@ -601,10 +618,12 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
 {
-  const char *path;
+  mrb_value pathv, dirv;
   const char *default_dir = ".";
-  mrb_get_args(mrb, "z|z", &path, &default_dir);
-  return path_expand(mrb, path, default_dir, FALSE);
+  if (mrb_get_args(mrb, "o|o", &pathv, &dirv) == 2) {
+    default_dir = RSTRING_CSTR(mrb, mrb_io_path(mrb, dirv));
+  }
+  return path_expand(mrb, RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv)), default_dir, FALSE);
 }
 
 /*
@@ -619,8 +638,7 @@ mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value path = mrb_get_arg1(mrb);
-  mrb_ensure_string_type(mrb, path);
+  mrb_value path = mrb_io_path(mrb, mrb_get_arg1(mrb));
   return mrb_bool_value(path_absolute_p(RSTRING_CSTR(mrb, path)));
 }
 
@@ -763,7 +781,9 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 {
   mrb_value from, to;
 
-  mrb_get_args(mrb, "SS", &from, &to);
+  mrb_get_args(mrb, "oo", &from, &to);
+  from = mrb_io_path(mrb, from);
+  to = mrb_io_path(mrb, to);
   char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
   if (mrb_hal_io_symlink(mrb, src, dst) == -1) {
@@ -833,8 +853,7 @@ mrb_file_s_utime(mrb_state *mrb, mrb_value klass)
   if (!mrb_nil_p(mtime)) mt = file_timeval(mrb, mtime);
   ai = mrb_gc_arena_save(mrb);
   for (int i = 0; i < argc; i++) {
-    mrb_ensure_string_type(mrb, filenames[i]);
-    const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
+    const char *utf8_path = RSTRING_CSTR(mrb, mrb_io_path(mrb, filenames[i]));
     char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (mrb_hal_io_utime(mrb, path, mrb_nil_p(atime) ? NULL : &at,
                          mrb_nil_p(mtime) ? NULL : &mt) == -1) {
@@ -867,8 +886,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
   for (int i = 0; i < argc; i++) {
-    mrb_ensure_string_type(mrb, filenames[i]);
-    const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
+    const char *utf8_path = RSTRING_CSTR(mrb, mrb_io_path(mrb, filenames[i]));
     char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (mrb_hal_io_chmod(mrb, path, mode) == -1) {
       mrb_locale_free(path);
@@ -898,9 +916,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
-  const char *path;
-
-  mrb_get_args(mrb, "z", &path);
+  const char *path = RSTRING_CSTR(mrb, mrb_io_path(mrb, mrb_get_arg1(mrb)));
 
   char *tmp = mrb_locale_from_utf8(path, -1);
   /* Use mrb_temp_alloc for exception safety - GC will clean up on exception */
@@ -938,8 +954,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_extname(mrb_state *mrb, mrb_value klass)
 {
-  char *path;
-  mrb_get_args(mrb, "z", &path);
+  const char *path = RSTRING_CSTR(mrb, mrb_io_path(mrb, mrb_get_arg1(mrb)));
 
   size_t len = strlen(path);
   if (len == 0) {
@@ -992,9 +1007,7 @@ mrb_file_extname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_path(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value filename;
-  mrb_get_args(mrb, "S", &filename);
-  return filename;
+  return mrb_io_path(mrb, mrb_get_arg1(mrb));
 }
 
 /* Flattens the arguments of File.join into `names`, checking each value
@@ -1019,8 +1032,7 @@ mrb_file_join_flatten(mrb_state *mrb, mrb_value names, mrb_value seen, const mrb
       mrb_ary_pop(mrb, seen);
     }
     else {
-      mrb_ensure_string_type(mrb, arg);
-      mrb_ary_push(mrb, names, arg);
+      mrb_ary_push(mrb, names, mrb_io_path(mrb, arg));
     }
   }
 }

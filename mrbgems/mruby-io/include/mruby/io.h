@@ -81,5 +81,9 @@ struct mrb_io {
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
+/* A path argument as a String: the String itself, or what the object's
+   to_path answers, as a Pathname or a File stands for its path. */
+mrb_value mrb_io_path(mrb_state *mrb, mrb_value path);
+
 MRB_END_DECL
 #endif /* MRUBY_IO_H */

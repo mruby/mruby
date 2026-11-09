@@ -34,7 +34,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, mrb_io_stat *st, int do_lstat)
     return -1;
   }
   else {
-    char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, obj), -1);
+    char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, mrb_io_path(mrb, obj)), -1);
     int ret;
     if (path == NULL) {
       errno = EINVAL;
