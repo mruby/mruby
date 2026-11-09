@@ -14,16 +14,22 @@ class File < IO
   # the new File object will be associated with that descriptor.
   #
   # The keyword options are those of IO.new: +mode:+ in place of the
-  # positional mode, +autoclose:+ for a descriptor, and +path:+ for the path
-  # that File#path reports for a descriptor. Other keywords are ignored.
+  # positional mode, +perm:+ in place of the positional permission,
+  # +autoclose:+ for a descriptor, and +path:+ for the path that File#path
+  # reports for a descriptor. Other keywords are ignored.
   #
   #   f = File.new("testfile", "r")
   #   f = File.new("newfile",  "w+")
   #   f = File.new("tmpfile",  "a")
   #   f = File.new(fd, autoclose: false, path: "/dev/stdout")
   #
-  def initialize(fd_or_path, mode = "r", perm = 0666, **opts)
+  def initialize(fd_or_path, mode = "r", perm = nil, **opts)
     mode = opts[:mode] if opts[:mode]
+    if opts.key?(:perm)
+      raise ArgumentError, "perm specified twice" unless perm.nil?
+      perm = opts[:perm]
+    end
+    perm ||= 0666
     if Integer === fd_or_path
       @path = opts[:path]
       super(fd_or_path, mode, opts)
