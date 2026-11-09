@@ -233,6 +233,46 @@ mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
   return chmod(path, perm_from_hal(mode));
 }
 
+int
+mrb_hal_io_utime(mrb_state *mrb, const char *path,
+                 const mrb_io_timeval *atime,
+                 const mrb_io_timeval *mtime)
+{
+  (void)mrb;
+#ifdef UTIME_NOW
+  struct timespec ts[2];
+  const mrb_io_timeval *tv[2] = { atime, mtime };
+
+  for (int i = 0; i < 2; i++) {
+    if (tv[i]) {
+      ts[i].tv_sec = (time_t)tv[i]->tv_sec;
+      ts[i].tv_nsec = (long)tv[i]->tv_usec * 1000;
+    }
+    else {
+      ts[i].tv_sec = 0;
+      ts[i].tv_nsec = UTIME_NOW;
+    }
+  }
+  return utimensat(AT_FDCWD, path, ts, 0);
+#else
+  struct timeval tv[2], now;
+
+  if (!atime && !mtime) return utimes(path, NULL);
+  gettimeofday(&now, NULL);
+  tv[0] = now;
+  tv[1] = now;
+  if (atime) {
+    tv[0].tv_sec = (time_t)atime->tv_sec;
+    tv[0].tv_usec = (suseconds_t)atime->tv_usec;
+  }
+  if (mtime) {
+    tv[1].tv_sec = (time_t)mtime->tv_sec;
+    tv[1].tv_usec = (suseconds_t)mtime->tv_usec;
+  }
+  return utimes(path, tv);
+#endif
+}
+
 mrb_int
 mrb_hal_io_umask(mrb_state *mrb, mrb_int mask)
 {

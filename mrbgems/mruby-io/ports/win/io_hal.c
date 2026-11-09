@@ -20,6 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <direct.h>
+#include <sys/utime.h>
+#include <time.h>
 #include <stdint.h>
 
 /* Maximum path length */
@@ -215,6 +217,23 @@ mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 {
   (void)mrb;
   return _chmod(path, perm_from_hal(mode));
+}
+
+int
+mrb_hal_io_utime(mrb_state *mrb, const char *path,
+                 const mrb_io_timeval *atime,
+                 const mrb_io_timeval *mtime)
+{
+  struct _utimbuf t;
+  time_t now;
+
+  (void)mrb;
+  if (!atime && !mtime) return _utime(path, NULL);
+  now = time(NULL);
+  /* _utime keeps whole seconds */
+  t.actime = atime ? (time_t)atime->tv_sec : now;
+  t.modtime = mtime ? (time_t)mtime->tv_sec : now;
+  return _utime(path, &t);
 }
 
 mrb_int

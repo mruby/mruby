@@ -780,6 +780,76 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 # define mrb_file_s_symlink mrb_notimplement_m
 #endif
 
+/* a time for File.utime: an Integer or Float of seconds since the Epoch,
+   or a Time (anything with to_i and usec) */
+static mrb_io_timeval
+file_timeval(mrb_state *mrb, mrb_value time)
+{
+  mrb_io_timeval t = { 0, 0 };
+
+  switch (mrb_type(time)) {
+    case MRB_TT_INTEGER:
+      t.tv_sec = mrb_integer(time);
+      break;
+
+#ifndef MRB_NO_FLOAT
+    case MRB_TT_FLOAT:
+      t.tv_sec = mrb_as_int(mrb, time);
+      t.tv_usec = (mrb_int)((mrb_float(time) - t.tv_sec) * 1000000.0);
+      break;
+#endif
+
+    default:
+      if (!mrb_respond_to(mrb, time, MRB_SYM(to_i)) ||
+          !mrb_respond_to(mrb, time, MRB_SYM(usec))) {
+        mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into time", time);
+      }
+      t.tv_sec = mrb_as_int(mrb, mrb_funcall_id(mrb, time, MRB_SYM(to_i), 0));
+      t.tv_usec = mrb_as_int(mrb, mrb_funcall_id(mrb, time, MRB_SYM(usec), 0));
+      break;
+  }
+  return t;
+}
+
+/*
+ * call-seq:
+ *   File.utime(atime, mtime, file_name, ...) -> integer
+ *
+ * Sets the access and modification times of each named file. A time is
+ * a Time or a number of seconds since the Epoch; nil stands for the
+ * current time. Returns the number of file names.
+ *
+ *   File.utime(0, Time.now, "testfile") #=> 1
+ */
+static mrb_value
+mrb_file_s_utime(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value atime, mtime;
+  mrb_int argc;
+  const mrb_value *filenames;
+  mrb_io_timeval at, mt;
+  int ai;
+
+  mrb_get_args(mrb, "oo*", &atime, &mtime, &filenames, &argc);
+  if (!mrb_nil_p(atime)) at = file_timeval(mrb, atime);
+  if (!mrb_nil_p(mtime)) mt = file_timeval(mrb, mtime);
+  ai = mrb_gc_arena_save(mrb);
+  for (int i = 0; i < argc; i++) {
+    mrb_ensure_string_type(mrb, filenames[i]);
+    const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
+    char *path = mrb_locale_from_utf8(utf8_path, -1);
+    if (mrb_hal_io_utime(mrb, path, mrb_nil_p(atime) ? NULL : &at,
+                         mrb_nil_p(mtime) ? NULL : &mt) == -1) {
+      mrb_locale_free(path);
+      mrb_sys_fail(mrb, utf8_path);
+    }
+    mrb_locale_free(path);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  return mrb_fixnum_value(argc);
+}
+
 /*
  * call-seq:
  *   File.chmod(mode_int, file_name, ...) -> integer
@@ -1075,6 +1145,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(rename), mrb_file_s_rename, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, file, MRB_SYM(symlink), mrb_file_s_symlink, MRB_ARGS_REQ(2));
   mrb_define_class_method_id(mrb, file, MRB_SYM(chmod), mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(utime), mrb_file_s_utime, MRB_ARGS_REQ(2) | MRB_ARGS_REST());
   mrb_define_class_method_id(mrb, file, MRB_SYM(readlink), mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_ARG(1,1));

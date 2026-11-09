@@ -271,6 +271,33 @@ assert('File#mtime') do
   end
 end
 
+assert('File.utime') do
+  path = "#{$mrbtest_io_wfname}.utime"
+  File.write(path, "")
+  begin
+    assert_equal 1, File.utime(1000000000, 1234567890, path)
+    File.open(path) { |f| assert_equal 1234567890, f.mtime.to_i }
+    assert_equal 1, File.utime(Time.at(1300000000), Time.at(1400000000, 500000), path)
+    File.open(path) { |f| assert_equal 1400000000, f.mtime.to_i }
+    if Object.const_defined?(:Float)
+      File.utime(0, 1500000000.75, path)
+      File.open(path) { |f| assert_equal 1500000000, f.mtime.to_i }
+    end
+    now = Time.now.to_i
+    File.utime(nil, nil, path)
+    File.open(path) { |f| assert_true now - 1 <= f.mtime.to_i }
+    File.utime(0, 1234567890, path)
+    File.utime(0, nil, path)
+    File.open(path) { |f| assert_true now - 1 <= f.mtime.to_i }
+    assert_equal 2, File.utime(0, 0, path, path)
+    assert_equal 0, File.utime(0, 0)
+    assert_raise(Errno::ENOENT) { File.utime(0, 0, "#{path}.none") }
+    assert_raise(TypeError) { File.utime("0", 0, path) }
+  ensure
+    File.delete(path)
+  end
+end
+
 assert('File#size and File#truncate') do
   fname = "#{$mrbtest_io_wfname}.resize"
   begin
