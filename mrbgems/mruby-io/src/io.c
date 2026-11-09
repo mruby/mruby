@@ -2229,10 +2229,7 @@ io_gets(mrb_state *mrb, mrb_value io)
 
   if (limit_given == FALSE) {
     if (rs_given) {
-      if (mrb_nil_p(rs)) {
-        rs_given = FALSE;
-      }
-      else if (!mrb_string_p(rs)) {
+      if (!mrb_nil_p(rs) && !mrb_string_p(rs)) {
         limit = mrb_as_int(mrb, rs);
         limit_given = TRUE;
         rs = mrb_nil_value();
@@ -2256,12 +2253,12 @@ io_gets(mrb_state *mrb, mrb_value io)
   }
 
   /* from now on rs_given==FALSE means no RS */
+  io_fill_buf(mrb, fptr);
+  if (fptr->eof) return mrb_nil_value();
+
   if (mrb_nil_p(rs) && !limit_given) {
     return io_read_all(mrb, fptr, mrb_str_new_capa(mrb, MRB_IO_BUF_SIZE));
   }
-
-  io_fill_buf(mrb, fptr);
-  if (fptr->eof) return mrb_nil_value();
 
   mrb_value outbuf;
   if (limit_given) {
