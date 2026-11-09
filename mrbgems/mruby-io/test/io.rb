@@ -93,6 +93,54 @@ assert('IO#binmode reads line endings as they are') do
   File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
 end
 
+assert('IO reads return byte strings in binary mode and by length') do
+  skip unless "\u3042".length == 1   # a UTF-8 build tells the two apart
+  data = "a\u00e9\nb\u00e9\n"           # each \u00e9 is two bytes
+  File.open($mrbtest_io_wfname, "wb") { |f| f.write data }
+  begin
+    # binary mode: every read counts bytes
+    File.open($mrbtest_io_wfname, "rb") do |f|
+      assert_equal 8, f.read.length
+    end
+    File.open($mrbtest_io_wfname, "rb") do |f|
+      assert_equal 4, f.gets.length
+      assert_equal "b", f.getc
+      assert_equal [0xC3], f.getc.bytes   # one byte, not the character
+      assert_equal [0xA9], f.getc.bytes
+      assert_equal ["\n"], f.readlines
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      f.binmode
+      assert_equal 4, f.readline.length
+    end
+    # text mode: lines and characters are characters, but a read by length,
+    # sysread and pread count bytes
+    File.open($mrbtest_io_wfname, "r") do |f|
+      assert_equal 3, f.gets.length
+      assert_equal "b", f.getc
+      assert_equal "\u00e9", f.getc
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      assert_equal 6, f.read.length
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      s = f.read(3)
+      assert_equal 3, s.length
+      assert_equal [0x61, 0xC3, 0xA9], s.bytes
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      assert_equal 3, f.sysread(3).length if f.respond_to?(:sysread)
+    end
+    File.open($mrbtest_io_wfname, "r") do |f|
+      assert_equal 2, f.pread(2, 1).length if f.respond_to?(:pread)
+    end
+    assert_equal 8, File.binread($mrbtest_io_wfname).length
+    assert_equal 6, File.read($mrbtest_io_wfname).length
+  ensure
+    File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
+  end
+end
+
 assert('IO.new with autoclose: false') do
   io = IO.open(IO.sysopen($mrbtest_io_rfname), "r")
   dup = IO.new(io.fileno, "r", autoclose: false)
