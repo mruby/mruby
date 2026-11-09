@@ -486,6 +486,35 @@ assert('File.open - a mode with an execute bit') do
   end
 end
 
+assert('File.new with perm:') do
+  path = "#{$mrbtest_io_wfname}.perm-test"
+  probe = "#{$mrbtest_io_wfname}.perm-probe"
+  begin
+    # where the caller writes whatever the bits say (root), a read-only
+    # file tells nothing; see File.umask below
+    File.open(probe, 'w') {}
+    File.chmod(0400, probe)
+    enforced = begin
+      File.open(probe, 'w') {}
+      false
+    rescue Errno::EACCES
+      true
+    end
+
+    f = File.new(path, File::WRONLY | File::CREAT | File::EXCL, perm: 0400)
+    f.write "a"
+    f.close
+    assert_equal "a", File.read(path)
+    assert_raise(Errno::EACCES) { File.open(path, 'w') {} } if enforced
+    assert_raise(ArgumentError) { File.new(path, "r", 0644, perm: 0600) }
+  ensure
+    File.chmod(0600, path) rescue nil
+    File.chmod(0600, probe) rescue nil
+    File.delete(path) rescue nil
+    File.delete(probe) rescue nil
+  end
+end
+
 assert('File.umask') do
   path = "#{$mrbtest_io_wfname}.umask-test"
   probe = "#{$mrbtest_io_wfname}.umask-probe"
