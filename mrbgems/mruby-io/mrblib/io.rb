@@ -142,6 +142,45 @@ class IO
 
   #
   # call-seq:
+  #   IO.readlines(name, sep=$/ [, limit], chomp: false, mode: "r")   -> array
+  #   IO.readlines(name, limit, chomp: false, mode: "r")              -> array
+  #
+  # Opens the file, reads its lines as IO#readlines does, and closes it.
+  # With chomp: true each line comes without its separator.
+  #
+  #   IO.readlines("testfile")               #=> ["This is line one\n", "This is line two\n"]
+  #   IO.readlines("testfile", chomp: true)  #=> ["This is line one", "This is line two"]
+  #
+  def self.readlines(path, *args, chomp: false, mode: "r")
+    lines = nil
+    fd = -1
+    io = nil
+    begin
+      fd = IO.sysopen(path, mode)
+      io = IO.open(fd, mode)
+      lines = io.readlines(*args)
+    ensure
+      if io
+        io.close
+      elsif fd != -1
+        IO._sysclose(fd)
+      end
+    end
+    if chomp
+      sep = args[0]
+      if sep.is_a?(String)
+        lines.map! { |line| line.chomp(sep) }
+      elsif !args.empty? && sep.nil?
+        # nil reads the whole file as one line; there is no separator
+      else
+        lines.map! { |line| line.chomp }
+      end
+    end
+    lines
+  end
+
+  #
+  # call-seq:
   #   IO.binread(name, [length [, offset]])   -> string
   #
   # Reads the file as IO.read does, in binary mode. The string is

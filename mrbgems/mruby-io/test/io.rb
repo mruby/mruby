@@ -386,6 +386,21 @@ assert('IO#readchar', '15.2.20.5.15') do
   end
 end
 
+assert('IO.readlines') do
+  path = "#{$mrbtest_io_wfname}.readlines"
+  File.write(path, "a\nbXc\n\nd")
+  begin
+    assert_equal ["a\n", "bXc\n", "\n", "d"], IO.readlines(path)
+    assert_equal ["a\n", "bXc\n", "\n", "d"], File.readlines(path)
+    assert_equal ["a", "bXc", "", "d"], IO.readlines(path, chomp: true)
+    assert_equal ["a\nbX", "c\n\nd"], IO.readlines(path, "X")
+    assert_equal ["a\nb", "c\n\nd"], IO.readlines(path, "X", chomp: true)
+    assert_raise(Errno::ENOENT) { IO.readlines("#{path}.none") }
+  ensure
+    File.delete(path)
+  end
+end
+
 #assert('IO#readline', '15.2.20.5.16') do
 #assert('IO#readlines', '15.2.20.5.17') do
 
