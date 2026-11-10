@@ -129,16 +129,21 @@ class String
       end
       return self
     end
+    # step by succ up to max, which a shorter string reaches past others
+    # that sort after it ("b" comes between "a" and "aa"); stop when the
+    # string grows longer than max, as CRuby does
+    n = (self <=> max)
+    return self if n > 0 || (exclusive && n == 0)
+    after_max = max.succ
     bs = self
-    while true
-      n = (bs <=> max)
-      break if n > 0
-      break if exclusive and n == 0
+    while bs != after_max
+      succ = (exclusive || bs != max) ? bs.succ : nil
       yield bs
-      break if n == 0
+      break if succ.nil?
+      bs = succ
+      break if exclusive && bs == max
       bsiz = bs.size
-      break if bsiz > max.size || bsiz == 0
-      bs = bs.succ
+      break if bsiz > maxlen || bsiz == 0
     end
     self
   end
