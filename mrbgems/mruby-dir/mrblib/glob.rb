@@ -5,8 +5,8 @@ class Dir
     #   Dir.glob(pattern, flags = 0, base: nil, sort: true)                 -> array
     #   Dir.glob(pattern, flags = 0, base: nil, sort: true) { |name| block } -> nil
     #
-    # Returns the names of the files that match pattern, a String or an
-    # Array of them. A pattern is matched name by name, as File.fnmatch
+    # Returns the names of the files that match pattern, a String (or an
+    # object with to_path, such as a Pathname) or an Array of them. A pattern is matched name by name, as File.fnmatch
     # matches it under File::FNM_PATHNAME:
     #
     # - `*` matches any name, or any part of one, `?` any one character,
@@ -30,6 +30,10 @@ class Dir
     #
     def glob(pattern, flags = 0, base: nil, sort: true, &block)
       patterns = pattern.is_a?(Array) ? pattern : [pattern]
+      unless base.nil?
+        base = __glob_path(base)
+        raise TypeError, "#{base.class} cannot be converted to String" unless base.is_a?(String)
+      end
       g = {
         base: base, sort: sort, found: [],
         flags: flags,
@@ -38,7 +42,7 @@ class Dir
       }
       i = 0
       while i < patterns.size
-        pat = patterns[i]
+        pat = __glob_path(patterns[i])
         raise TypeError, "#{pat.class} cannot be converted to String" unless pat.is_a?(String)
         __glob_pattern(g, pat)
         i += 1
@@ -59,6 +63,12 @@ class Dir
     #
     def [](*patterns, base: nil, sort: true)
       glob(patterns, 0, base: base, sort: sort)
+    end
+
+    # A String, or what an object with to_path answers
+    def __glob_path(obj)
+      return obj if obj.is_a?(String) || !obj.respond_to?(:to_path)
+      obj.to_path
     end
 
     # A pattern that starts with a brace is spelt out whole; any other

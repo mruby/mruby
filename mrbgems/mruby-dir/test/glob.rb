@@ -108,6 +108,22 @@ assert('Dir.glob - symbolic links') do
   end
 end
 
+assert('Dir.glob takes an object with to_path for a pattern and for base:') do
+  pattern = Object.new
+  def pattern.to_path
+    "g/lib/*.rb"
+  end
+  lib = Object.new
+  def lib.to_path
+    "g/lib"
+  end
+  assert_equal ["g/lib/a.rb", "g/lib/b.rb"], Dir.glob(pattern)
+  assert_equal ["g/lib/a.rb", "g/lib/b.rb"], Dir.glob([pattern])
+  assert_equal ["g/lib/a.rb", "g/lib/b.rb"], Dir[pattern]
+  assert_equal ["a.rb", "b.rb"], Dir.glob("*.rb", base: lib)
+  assert_raise(TypeError) { Dir.glob("*", base: 1) }
+end
+
 assert('DirTest.teardown for Dir.glob') do
   GLOB_FILES.each { |f| File.delete(f) }
   GLOB_DIRS.reverse.each { |d| Dir.delete(d) }
