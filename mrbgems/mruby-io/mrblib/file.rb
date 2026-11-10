@@ -44,6 +44,8 @@ class File < IO
       @path = opts[:path]
       super(fd_or_path, mode, opts)
     else
+      # a Pathname or a File stands for its path
+      fd_or_path = fd_or_path.to_path if !(String === fd_or_path) && fd_or_path.respond_to?(:to_path)
       @path = fd_or_path
       fd = IO.sysopen(@path, mode, perm)
       super(fd, mode, opts)

@@ -658,4 +658,62 @@ assert('File.atime, File.mtime and File.ctime') do
   assert_raise(Errno::ENOENT) { File.ctime(path) }
 end
 
+# an object that stands for a path, as a Pathname does
+class MRubyIOTestPath
+  def initialize(path)
+    @path = path
+  end
+
+  def to_path
+    @path
+  end
+end
+
+assert('File methods take an object with to_path for a path') do
+  rfname = $mrbtest_io_rfname
+  path = MRubyIOTestPath.new(rfname)
+  assert_equal rfname, File.path(path)
+  assert_true File.exist?(path)
+  assert_true File.file?(path)
+  assert_false File.directory?(path)
+  assert_equal $mrbtest_io_msg.size, File.size(path)
+  assert_equal File.basename(rfname), File.basename(path)
+  assert_equal File.basename(rfname, ".*"), File.basename(path, ".*")
+  assert_equal File.dirname(rfname), File.dirname(path)
+  assert_equal File.extname(rfname), File.extname(path)
+  assert_equal File.split(rfname), File.split(path)
+  assert_equal File.expand_path(rfname), File.expand_path(path)
+  assert_equal "/tmp/x", File.expand_path("x", MRubyIOTestPath.new("/tmp"))
+  assert_equal File.realpath(rfname), File.realpath(path)
+  assert_equal "a/b/c", File.join(MRubyIOTestPath.new("a"), ["b", MRubyIOTestPath.new("c")])
+  assert_true File.absolute_path?(MRubyIOTestPath.new("/a"))
+  assert_raise(TypeError) { File.exist?(Object.new) }
+  assert_raise(TypeError) { File.path(1) }
+end
+
+assert('File.open takes an object with to_path for a path') do
+  path = MRubyIOTestPath.new($mrbtest_io_rfname)
+  File.open(path) do |f|
+    assert_equal $mrbtest_io_rfname, f.path
+    assert_equal $mrbtest_io_msg, f.read
+  end
+  assert_equal $mrbtest_io_msg, File.read(path)
+  # a File stands for its path
+  File.open($mrbtest_io_rfname) do |f|
+    assert_equal $mrbtest_io_rfname, File.path(f)
+    File.open(f) { |g| assert_equal $mrbtest_io_msg, g.read }
+  end
+end
+
+assert('File.chmod, File.rename and File.delete take an object with to_path') do
+  wfname = $mrbtest_io_wfname
+  moved = wfname + ".moved"
+  File.open(wfname, "w") {}
+  assert_equal 1, File.chmod(0644, MRubyIOTestPath.new(wfname))
+  assert_equal 0, File.rename(MRubyIOTestPath.new(wfname), MRubyIOTestPath.new(moved))
+  assert_true File.exist?(moved)
+  assert_equal 1, File.delete(MRubyIOTestPath.new(moved))
+  assert_false File.exist?(moved)
+end
+
 MRubyIOTestUtil.io_test_cleanup

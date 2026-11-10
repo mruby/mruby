@@ -173,6 +173,28 @@ assert('Dir#seek') do
   end
 end
 
+assert('Dir methods take an object with to_path for a path') do
+  # an object that stands for a path, as a Pathname does
+  path = Object.new
+  def path.to_path
+    DirTest.sandbox + "/topath"
+  end
+  assert_equal 0, Dir.mkdir(path)
+  assert_true Dir.exist?(path)
+  assert_true Dir.empty?(path)
+  assert_equal [".", ".."], Dir.entries(path).sort
+  assert_equal [], Dir.children(path)
+  d = Dir.new(path)
+  names = []
+  d.each { |name| names << name }
+  assert_equal [".", ".."], names.sort
+  d.close
+  Dir.chdir(path) { assert_true Dir.getwd.include?("topath") }
+  assert_equal 0, Dir.delete(path)
+  assert_false Dir.exist?(path)
+  assert_raise(TypeError) { Dir.exist?(1) }
+end
+
 assert('DirTest.teardown') do
   GC.start
   assert_nothing_raised{DirTest.teardown}
