@@ -120,7 +120,7 @@ Add the line below to your build configuration.
 | File.expand_path            | o        |          |
 | File.extname                | o        |          |
 | File.file?                  | o        | FileTest |
-| File.fnmatch, File.fnmatch? |          |          |
+| File.fnmatch, File.fnmatch? | o        |          |
 | File.ftype                  |          |          |
 | File.grpowned?              |          | FileTest |
 | File.identical?             |          | FileTest |

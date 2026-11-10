@@ -15,6 +15,12 @@ class File
 
     # Makes the pattern case insensitive (overrides FNM_SYSCASE)
     FNM_CASEFOLD = 8
+
+    # Enables {a,b} in File.fnmatch patterns
+    FNM_EXTGLOB  = 16
+
+    # Makes patterns match short names on Windows; no effect elsewhere
+    FNM_SHORTNAME = 0
   end
 end
 
