@@ -7,7 +7,65 @@
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
 #include <mruby/class.h>
+#include <mruby/variable.h>
 #include <mruby/internal.h>
+
+/* The entries `caller` and `caller_locations` answer with, for the
+   arguments they are given: FALSE when the answer is nil, else `*levp`
+   entries are skipped and `*np` taken after the first of `bt_len`, which is
+   the method itself. */
+static mrb_bool
+caller_range(mrb_state *mrb, mrb_int bt_len, mrb_int *levp, mrb_int *np)
+{
+  mrb_value v;
+  mrb_int argc, lev, n;
+
+  argc = mrb_get_args(mrb, "|oi", &v, &n);
+
+  switch (argc) {
+  case 0:
+    lev = 1;
+    n = bt_len - 1;
+    break;
+  case 1:
+    if (mrb_range_p(v)) {
+      mrb_int beg, len;
+      if (mrb_range_beg_len(mrb, v, &beg, &len, bt_len, TRUE) == MRB_RANGE_OK) {
+        lev = beg;
+        n = len;
+      }
+      else {
+        return FALSE;
+      }
+    }
+    else {
+      lev = mrb_as_int(mrb, v);
+      if (lev < 0) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
+      }
+      n = bt_len - lev;
+    }
+    break;
+  case 2:
+    lev = mrb_as_int(mrb, v);
+    break;
+  default:
+    /* not reached */
+    lev = n = 0;
+    break;
+  }
+  if (lev >= bt_len) return FALSE;
+  if (lev < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
+  }
+  if (n < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%d)", n);
+  }
+  if (bt_len <= n + lev) n = bt_len - lev - 1;
+  *levp = lev;
+  *np = n;
+  return TRUE;
+}
 
 /*
  * call-seq:
@@ -33,58 +91,171 @@
 static mrb_value
 mrb_f_caller(mrb_state *mrb, mrb_value self)
 {
-  mrb_value bt, v;
-  mrb_int bt_len, argc, lev, n;
+  mrb_value bt = mrb_get_backtrace(mrb);
+  mrb_int lev, n;
 
-  argc = mrb_get_args(mrb, "|oi", &v, &n);
-
-  bt = mrb_get_backtrace(mrb);
-  bt_len = RARRAY_LEN(bt);
-
-  switch (argc) {
-  case 0:
-    lev = 1;
-    n = bt_len - 1;
-    break;
-  case 1:
-    if (mrb_range_p(v)) {
-      mrb_int beg, len;
-      if (mrb_range_beg_len(mrb, v, &beg, &len, bt_len, TRUE) == MRB_RANGE_OK) {
-        lev = beg;
-        n = len;
-      }
-      else {
-        return mrb_nil_value();
-      }
-    }
-    else {
-      lev = mrb_as_int(mrb, v);
-      if (lev < 0) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
-      }
-      n = bt_len - lev;
-    }
-    break;
-  case 2:
-    lev = mrb_as_int(mrb, v);
-    break;
-  default:
-    /* not reached */
-    lev = n = 0;
-    break;
-  }
-  if (lev >= bt_len) return mrb_nil_value();
-  if (lev < 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
-  }
-  if (n < 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%d)", n);
-  }
-  if (n == 0) {
-    return mrb_ary_new(mrb);
-  }
-  if (bt_len <= n + lev) n = bt_len - lev - 1;
+  if (!caller_range(mrb, RARRAY_LEN(bt), &lev, &n)) return mrb_nil_value();
+  if (n == 0) return mrb_ary_new(mrb);
   return mrb_ary_new_from_values(mrb, n, RARRAY_PTR(bt)+lev+1);
+}
+
+/* A Thread::Backtrace::Location is entry `__idx__` of the packed backtrace
+   `__bt__`, read when it is asked for. */
+static mrb_value
+location_new(mrb_state *mrb, struct RClass *location, mrb_value bt, mrb_int i)
+{
+  struct RObject *loc = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, location);
+
+  mrb_obj_iv_set_force(mrb, loc, MRB_SYM(__bt__), bt);
+  mrb_obj_iv_set_force(mrb, loc, MRB_SYM(__idx__), mrb_int_value(mrb, i));
+  return mrb_obj_value(loc);
+}
+
+static mrb_value
+locations_new(mrb_state *mrb, mrb_value bt, mrb_int lev, mrb_int n)
+{
+  struct RClass *thread = mrb_class_get_id(mrb, MRB_SYM(Thread));
+  struct RClass *backtrace = mrb_class_get_under_id(mrb, thread, MRB_SYM(Backtrace));
+  struct RClass *location = mrb_class_get_under_id(mrb, backtrace, MRB_SYM(Location));
+  mrb_value ary = mrb_ary_new_capa(mrb, n);
+  int ai = mrb_gc_arena_save(mrb);
+
+  for (mrb_int i = 0; i < n; i++) {
+    mrb_ary_push(mrb, ary, location_new(mrb, location, bt, lev + i));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return ary;
+}
+
+/*
+ * call-seq:
+ *   caller_locations(start = 1)          -> array or nil
+ *   caller_locations(range)              -> array or nil
+ *   caller_locations(start, length)      -> array or nil
+ *
+ * Returns the current execution stack as Thread::Backtrace::Location
+ * objects, one for each string `caller` gives for the same arguments.
+ *
+ *   def a
+ *     caller_locations(0, 1)[0]
+ *   end
+ *   loc = a
+ *   loc.path    #=> "prog"
+ *   loc.lineno  #=> 2
+ *   loc.label   #=> "a"
+ */
+static mrb_value
+mrb_f_caller_locations(mrb_state *mrb, mrb_value self)
+{
+  mrb_value bt = mrb_get_packed_backtrace(mrb);
+  mrb_int lev, n;
+
+  if (!caller_range(mrb, mrb_backtrace_len(bt), &lev, &n)) return mrb_nil_value();
+  return locations_new(mrb, bt, lev+1, n);
+}
+
+/*
+ * call-seq:
+ *   exc.backtrace_locations -> array or nil
+ *
+ * Returns the backtrace of the exception as Thread::Backtrace::Location
+ * objects; nil before the exception is raised, or once its backtrace has
+ * been set with set_backtrace.
+ */
+static mrb_value
+mrb_exc_backtrace_locations(mrb_state *mrb, mrb_value exc)
+{
+  mrb_value bt = mrb_exc_packed_backtrace(mrb, exc);
+
+  if (mrb_nil_p(bt)) return bt;
+  return locations_new(mrb, bt, 0, mrb_backtrace_len(bt));
+}
+
+static mrb_bool
+location_get(mrb_state *mrb, mrb_value self, const char **file, int32_t *lineno, mrb_sym *mid, mrb_value *str)
+{
+  struct RObject *loc = mrb_obj_ptr(self);
+  mrb_value bt = mrb_obj_iv_get(mrb, loc, MRB_SYM(__bt__));
+  mrb_int i = mrb_integer(mrb_obj_iv_get(mrb, loc, MRB_SYM(__idx__)));
+
+  return mrb_backtrace_location(mrb, bt, i, file, lineno, mid, str);
+}
+
+/*
+ * call-seq:
+ *   loc.path -> string
+ *
+ * The file of the location; "(unknown)" when there is no debug information.
+ */
+static mrb_value
+location_path(mrb_state *mrb, mrb_value self)
+{
+  const char *file = NULL;
+  int32_t lineno;
+
+  if (!location_get(mrb, self, &file, &lineno, NULL, NULL) || !file) {
+    return mrb_str_new_lit(mrb, "(unknown)");
+  }
+  return mrb_str_new_cstr(mrb, file);
+}
+
+/*
+ * call-seq:
+ *   loc.lineno -> integer
+ *
+ * The line of the location; 0 when it is unknown.
+ */
+static mrb_value
+location_lineno(mrb_state *mrb, mrb_value self)
+{
+  const char *file;
+  int32_t lineno = 0;
+
+  if (!location_get(mrb, self, &file, &lineno, NULL, NULL) || lineno < 0) {
+    return mrb_fixnum_value(0);
+  }
+  return mrb_fixnum_value(lineno);
+}
+
+/*
+ * call-seq:
+ *   loc.label -> string or nil
+ *
+ * The method of the location, as `caller` names it; nil for none.
+ */
+static mrb_value
+location_label(mrb_state *mrb, mrb_value self)
+{
+  const char *file;
+  int32_t lineno;
+  mrb_sym mid;
+
+  location_get(mrb, self, &file, &lineno, &mid, NULL);
+  if (mid == 0) return mrb_nil_value();
+  return mrb_sym_str(mrb, mid);
+}
+
+/*
+ * call-seq:
+ *   loc.to_s -> string
+ *
+ * The location as the string `caller` gives for it.
+ */
+static mrb_value
+location_to_s(mrb_state *mrb, mrb_value self)
+{
+  const char *file;
+  int32_t lineno;
+  mrb_value str;
+
+  location_get(mrb, self, &file, &lineno, NULL, &str);
+  return str;
+}
+
+static mrb_value
+location_inspect(mrb_state *mrb, mrb_value self)
+{
+  return mrb_str_inspect(mrb, location_to_s(mrb, self));
 }
 
 /*
@@ -373,6 +544,7 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
 static const mrb_mt_entry kernel_ext_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_caller_locations, MRB_SYM(caller_locations), MRB_ARGS_OPT(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE() | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1) | MRB_ARGS_KEY(1,0) | MRB_MT_PRIVATE),
@@ -389,6 +561,7 @@ static const mrb_mt_entry kernel_ext_rom_entries[] = {
 static const mrb_mt_entry kernel_ext_module_function_entries[] = {
   MRB_MT_ENTRY(mrb_f_raise, MRB_SYM(fail),      MRB_ARGS_OPT(2) | MRB_ARGS_KEY(1,1)),
   MRB_MT_ENTRY(mrb_f_caller, MRB_SYM(caller),    MRB_ARGS_OPT(2)),
+  MRB_MT_ENTRY(mrb_f_caller_locations, MRB_SYM(caller_locations), MRB_ARGS_OPT(2)),
   MRB_MT_ENTRY(mrb_f_method, MRB_SYM(__method__),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_f_callee, MRB_SYM(__callee__),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_f_integer, MRB_SYM(Integer), MRB_ARGS_ARG(1,1) | MRB_ARGS_KEY(1,0)),
@@ -400,6 +573,20 @@ static const mrb_mt_entry kernel_ext_module_function_entries[] = {
   MRB_MT_ENTRY(mrb_f_hash, MRB_SYM(Hash),      MRB_ARGS_REQ(1)),
 };
 
+static const mrb_mt_entry location_rom_entries[] = {
+  MRB_MT_ENTRY(location_path,    MRB_SYM(path),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_path,    MRB_SYM(absolute_path), MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_lineno,  MRB_SYM(lineno),        MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_label,   MRB_SYM(label),         MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_label,   MRB_SYM(base_label),    MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_to_s,    MRB_SYM(to_s),          MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(location_inspect, MRB_SYM(inspect),       MRB_ARGS_NONE()),
+};
+
+static const mrb_mt_entry exception_ext_rom_entries[] = {
+  MRB_MT_ENTRY(mrb_exc_backtrace_locations, MRB_SYM(backtrace_locations), MRB_ARGS_NONE()),
+};
+
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
@@ -408,6 +595,15 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
   MRB_MT_INIT_ROM(mrb, krn, kernel_ext_rom_entries);
   MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
                   kernel_ext_module_function_entries);
+
+  /* CRuby's name for it; `Thread` is only its namespace here */
+  struct RClass *thread = mrb_define_class_id(mrb, MRB_SYM(Thread), mrb->object_class);
+  struct RClass *backtrace = mrb_define_class_under_id(mrb, thread, MRB_SYM(Backtrace), mrb->object_class);
+  struct RClass *location = mrb_define_class_under_id(mrb, backtrace, MRB_SYM(Location), mrb->object_class);
+  MRB_UNDEF_ALLOCATOR(location);
+  mrb_undef_class_method_id(mrb, location, MRB_SYM(new));
+  MRB_MT_INIT_ROM(mrb, location, location_rom_entries);
+  MRB_MT_INIT_ROM(mrb, mrb->eException_class, exception_ext_rom_entries);
 }
 
 void

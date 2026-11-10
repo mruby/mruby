@@ -36,6 +36,68 @@ assert('Kernel.caller, Kernel#caller') do
   assert_raise(TypeError) { c.new.baz(nil) }
 end
 
+assert('Kernel.caller_locations, Kernel#caller_locations') do
+  skip "backtrace isn't available" if caller(0).empty?
+
+  caller_lineno = __LINE__ + 3
+  c = Class.new do
+    def foo(*args)
+      [caller_locations(*args), caller(*args)]
+    end
+
+    def bar(*args)
+      foo(*args)
+    end
+
+    def baz(*args)
+      bar(*args)
+    end
+  end
+
+  skip "backtrace isn't available" if (c.new.baz(0)[1][0].include?("unknown"))
+
+  locs, strs = c.new.baz(0)
+  loc = locs[0]
+  assert_kind_of Thread::Backtrace::Location, loc
+  assert_equal "kernel.rb", loc.path[-9..-1]
+  assert_equal loc.path, loc.absolute_path
+  assert_equal caller_lineno, loc.lineno
+  assert_equal "foo", loc.label
+  assert_equal "foo", loc.base_label
+  assert_equal strs[0], loc.to_s
+  assert_equal strs[0].inspect, loc.inspect
+  assert_equal strs, locs.map { |l| l.to_s }
+
+  [[], [1], [2], [0, 2], [1..2], [1, 0]].each do |args|
+    locs, strs = c.new.baz(*args)
+    assert_equal strs, locs.map { |l| l.to_s }, "caller_locations(#{args.inspect[1..-2]})"
+  end
+  assert_nil c.new.baz(10..20)[0]
+  assert_nil c.new.baz(1000)[0]
+  assert_raise(ArgumentError) { c.new.baz(-1) }
+  assert_raise(ArgumentError) { c.new.baz(1, -1) }
+  assert_raise(TypeError) { c.new.baz(nil) }
+  assert_raise(NoMethodError) { Thread::Backtrace::Location.new }
+end
+
+assert('Exception#backtrace_locations') do
+  skip "backtrace isn't available" if caller(0).empty?
+
+  assert_nil RuntimeError.new.backtrace_locations
+
+  raise_lineno = __LINE__ + 1
+  e = (raise "x" rescue $!)
+  locs = e.backtrace_locations
+  skip "backtrace isn't available" if locs.empty? || locs[0].to_s.include?("unknown")
+  assert_kind_of Thread::Backtrace::Location, locs[0]
+  assert_equal raise_lineno, locs[0].lineno
+  assert_equal e.backtrace, locs.map { |l| l.to_s }
+
+  # the locations stay once the backtrace is read
+  assert_same e.backtrace, e.backtrace
+  assert_equal e.backtrace, e.backtrace_locations.map { |l| l.to_s }
+end
+
 assert('Kernel#__method__') do
   c = Class.new do
     def m1; __method__ end

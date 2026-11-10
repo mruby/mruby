@@ -204,16 +204,61 @@ mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
   if (backtrace->tt == MRB_TT_ARRAY) {
     return mrb_obj_value(backtrace);
   }
-  /* unpack packed-backtrace */
-  backtrace = mrb_unpack_backtrace(mrb, backtrace);
-  store_backtrace(mrb, exc, backtrace);
-  return mrb_obj_value(backtrace);
+  /* the packed backtrace stays, for backtrace_locations; the strings
+     unpacked from it are kept beside it */
+  struct RObject *e = mrb_obj_ptr(exc);
+  mrb_value bt = mrb_obj_iv_get(mrb, e, MRB_SYM(__backtrace__));
+  if (mrb_array_p(bt)) return bt;
+  bt = mrb_obj_value(mrb_unpack_backtrace(mrb, backtrace));
+  mrb_obj_iv_set_force(mrb, e, MRB_SYM(__backtrace__), bt);
+  return bt;
 }
 
 mrb_value
 mrb_get_backtrace(mrb_state *mrb)
 {
   return mrb_obj_value(mrb_unpack_backtrace(mrb, packed_backtrace(mrb)));
+}
+
+/* The current stack, packed; with mrb_backtrace_len and
+   mrb_backtrace_location, read an entry at a time. */
+mrb_value
+mrb_get_packed_backtrace(mrb_state *mrb)
+{
+  return mrb_obj_value(packed_backtrace(mrb));
+}
+
+/* The packed backtrace of a raised exception; nil before it is raised, or
+   once set_backtrace has replaced it. */
+mrb_value
+mrb_exc_packed_backtrace(mrb_state *mrb, mrb_value exc)
+{
+  struct RBasic *backtrace = mrb_exc_ptr(exc)->backtrace;
+  if (backtrace == NULL || backtrace->tt != MRB_TT_BACKTRACE) {
+    return mrb_nil_value();
+  }
+  return mrb_obj_value(backtrace);
+}
+
+mrb_int
+mrb_backtrace_len(mrb_value bt)
+{
+  return (mrb_int)((struct RBacktrace*)mrb_basic_ptr(bt))->len;
+}
+
+/* Entry `i` of a packed backtrace: its file and line, FALSE when they are
+   unknown, and its method, 0 for none. The string is the one Kernel#caller
+   and Exception#backtrace give for it. */
+mrb_bool
+mrb_backtrace_location(mrb_state *mrb, mrb_value bt, mrb_int i,
+                       const char **file, int32_t *lineno, mrb_sym *mid, mrb_value *str)
+{
+  const struct mrb_backtrace_location *entry = &((struct RBacktrace*)mrb_basic_ptr(bt))->locations[i];
+
+  if (mid) *mid = entry->method_id;
+  if (str) *str = decode_location(mrb, entry);
+  if (!entry->irep) return FALSE;
+  return mrb_debug_get_position(mrb, entry->irep, entry->idx, lineno, file);
 }
 
 #ifndef MRB_NO_STDIO

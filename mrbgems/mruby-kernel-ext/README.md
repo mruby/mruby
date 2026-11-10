@@ -42,6 +42,35 @@ end
 foo
 ```
 
+### `caller_locations(start=1, length=nil) -> array | nil`
+
+### `caller_locations(range) -> array | nil`
+
+Returns the current execution stack as `Thread::Backtrace::Location`
+objects, one for each string `caller` returns for the same arguments.
+
+A location has `path` (and `absolute_path`, the same), `lineno`, `label`
+(and `base_label`, the same: the method name, as `caller` gives it) and
+`to_s`, which is the string `caller` returns for it. `path` is `"(unknown)"`
+and `lineno` is `0` when the code has no debug information.
+
+Example:
+
+```ruby
+def foo
+  loc = caller_locations(0, 1)[0]
+  puts "#{loc.path}:#{loc.lineno} #{loc.label}"
+end
+
+foo
+```
+
+### `Exception#backtrace_locations -> array | nil`
+
+Returns the backtrace of a raised exception as `Thread::Backtrace::Location`
+objects. Returns `nil` before the exception is raised, and once its
+backtrace has been replaced with `set_backtrace`.
+
 ### `__method__ -> symbol | nil`
 
 Returns the name of the current method as a `Symbol`. If called outside of a method, it returns `nil`.
