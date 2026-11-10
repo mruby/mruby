@@ -26,3 +26,18 @@ assert('NameError#initialize', '15.2.31.2.2') do
   assert_equal 'a', e.message
   assert_equal :foo, e.name
 end
+
+assert('NameError#receiver') do
+  e = NameError.new('a', :foo, receiver: 1)
+  assert_equal 1, e.receiver
+  assert_nil NameError.new('a', :foo, receiver: nil).receiver
+  assert_raise(ArgumentError) { NameError.new('a').receiver }
+  assert_raise(ArgumentError) { NameError.new('a', :foo, bogus: 1) }
+
+  # the module a missing constant was looked up in
+  module NameErrorReceiverTest; end
+  e = assert_raise(NameError) { NameErrorReceiverTest::Missing }
+  assert_equal NameErrorReceiverTest, e.receiver
+  e = assert_raise(NameError) { NameErrorReceiverTestMissing }
+  assert_equal Object, e.receiver
+end

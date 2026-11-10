@@ -4793,10 +4793,10 @@ mrb_value
 mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   if (mrb_class_real(mrb_class_ptr(mod)) != mrb->object_class) {
-    mrb_name_error(mrb, sym, "uninitialized constant %v::%n", mod, sym);
+    mrb_name_error_recv(mrb, sym, mod, "uninitialized constant %v::%n", mod, sym);
   }
   else {
-    mrb_name_error(mrb, sym, "uninitialized constant %n", sym);
+    mrb_name_error_recv(mrb, sym, mod, "uninitialized constant %n", sym);
   }
   /* not reached */
   return mrb_nil_value();
@@ -5313,7 +5313,7 @@ mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
 mrb_noreturn void
 mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
 {
-  mrb_no_method_error(mrb, name, args, "undefined method '%n' for %T", name, self);
+  mrb_no_method_error_recv(mrb, name, self, args, "undefined method '%n' for %T", name, self);
 }
 
 /* 15.3.1.3.30 */
