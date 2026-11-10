@@ -1,5 +1,13 @@
 /*
 ** fnmatch.c - File.fnmatch
+**
+** The matcher and the brace expansion follow bracket(), fnmatch_helper(),
+** fnmatch() and ruby_brace_expand() in CRuby's dir.c, used with the
+** permission of its author:
+**
+**   Copyright (C) 1993-2007 Yukihiro Matsumoto
+**
+** See Copyright Notice in mruby.h
 */
 
 #include <mruby.h>
