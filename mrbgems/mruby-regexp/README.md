@@ -255,6 +255,16 @@ Regexp.new("(a)(?<b>b)\\1")
 # RegexpError: numbered backref/call is not allowed. (use name)
 ```
 
+A regexp literal with named groups on the left of `=~` assigns each name to
+a local variable, as in CRuby: the group's text when the match succeeds, nil
+when it fails.
+
+```ruby
+if /(?<year>\d+)-(?<mon>\d+)/ =~ "2026-11"
+  year                           # => "2026"
+end
+```
+
 ## Engine Architecture
 
 Two engines, chosen automatically at compile time by pattern analysis.
