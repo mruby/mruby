@@ -120,3 +120,38 @@ assert('Numeric#step') do
   assert_step([], -inf, [inf, -inf])
   assert_step([-inf], -inf, [-inf, -inf])
 end
+
+# A Numeric of its own, which converts to Float with to_f
+class ToFTestFour < Numeric
+  def to_f; 4.0; end
+end
+
+class ToFTestBad < Numeric
+  def to_f; "4"; end
+end
+
+assert('a Numeric converts to Float with its to_f') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal 5.5, 1.5 + ToFTestFour.new
+  assert_equal 5.0, 1 + ToFTestFour.new
+  assert_raise(TypeError) { 1.5 + ToFTestBad.new }
+  # to_f is asked of a Numeric only
+  o = Object.new
+  def o.to_f; 4.0; end
+  assert_raise(TypeError) { 1.5 + o }
+end
+
+# answers to_f through method_missing, and says so in respond_to_missing?
+class ToFTestMissing < Numeric
+  def method_missing(name, *args)
+    name == :to_f ? 4.0 : super
+  end
+  def respond_to_missing?(name, priv = false)
+    name == :to_f || super
+  end
+end
+
+assert('a Numeric whose to_f is answered by method_missing') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal 5.5, 1.5 + ToFTestMissing.new
+end

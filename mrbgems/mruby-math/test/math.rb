@@ -199,3 +199,21 @@ assert('Math.frexp') do
   assert_float_and_int([0.5,  2], Math.frexp(2.0))
   assert_float_and_int([0.75, 2], Math.frexp(3.0))
 end
+
+assert('Math functions take a Numeric that converts with to_f') do
+  four = Class.new(Numeric) { def to_f; 4.0; end }.new
+  assert_equal 2.0, Math.sqrt(four)
+  assert_equal 5.0, Math.hypot(four, 3.0)
+end
+
+assert('Math functions read every argument after a to_f that grows the stack') do
+  # a fiber starts on a small stack, which the recursion in to_f outgrows
+  deep = Class.new(Numeric) do
+    def down(n, a = 0, b = 0, c = 0, d = 0)
+      n == 0 ? 3.0 : down(n - 1, a, b, c, d)
+    end
+    def to_f; down(40); end
+  end
+  assert_equal 5.0, Fiber.new { Math.hypot(deep.new, 4.0) }.resume
+  assert_equal 5.0, Fiber.new { Math.hypot(4.0, deep.new) }.resume
+end
