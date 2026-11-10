@@ -154,6 +154,45 @@ assert("FileTest.symlink?") do
   assert_true FileTest.symlink?($mrbtest_io_symlinkname)
 end
 
+assert("FileTest.readable?, writable? and executable?") do
+  assert_true  FileTest.readable?($mrbtest_io_rfname)
+  assert_true  File.readable?($mrbtest_io_rfname)
+  assert_true  FileTest.writable?($mrbtest_io_wfname)
+  assert_true  File.writable?($mrbtest_io_wfname)
+  assert_false FileTest.readable?("not-exist-test-target-file")
+  assert_false FileTest.writable?("not-exist-test-target-file")
+  assert_false FileTest.executable?("not-exist-test-target-file")
+
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    # a directory is searchable
+    assert_true File.executable?(dir)
+    name = dir + "/run.bat"
+    File.open(name, "w") {}
+    begin
+      if MRubyIOTestUtil.win?
+        # Windows runs a file by its extension
+        assert_true File.executable?(name)
+      else
+        File.chmod(0644, name)
+        assert_false File.executable?(name)
+        File.chmod(0755, name)
+        assert_true File.executable?(name)
+      end
+      assert_true File.readable?(name)
+    ensure
+      File.delete(name)
+    end
+  ensure
+    MRubyIOTestUtil.rmdir dir
+  end
+
+  # a File, by its path
+  File.open($mrbtest_io_rfname) do |f|
+    assert_true File.readable?(f)
+  end
+end
+
 assert("FileTest.zero?") do
   assert_equal false, FileTest.zero?($mrbtest_io_rfname)
   assert_equal true,  FileTest.zero?($mrbtest_io_wfname)

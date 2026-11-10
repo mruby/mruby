@@ -234,6 +234,23 @@ mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 }
 
 int
+mrb_hal_io_access(mrb_state *mrb, const char *path, int mode)
+{
+  int amode = 0;
+
+  (void)mrb;
+  if (mode & MRB_IO_ACCESS_R) amode |= R_OK;
+  if (mode & MRB_IO_ACCESS_W) amode |= W_OK;
+  if (mode & MRB_IO_ACCESS_X) amode |= X_OK;
+#ifdef AT_EACCESS
+  /* by the effective IDs, as CRuby's File.readable? and the rest ask */
+  return faccessat(AT_FDCWD, path, amode, AT_EACCESS);
+#else
+  return access(path, amode);
+#endif
+}
+
+int
 mrb_hal_io_utime(mrb_state *mrb, const char *path,
                  const mrb_io_timeval *atime,
                  const mrb_io_timeval *mtime)

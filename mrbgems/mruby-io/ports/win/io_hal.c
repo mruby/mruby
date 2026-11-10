@@ -220,6 +220,28 @@ mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)
 }
 
 int
+mrb_hal_io_access(mrb_state *mrb, const char *path, int mode)
+{
+  int amode = 0;
+
+  if (mode & MRB_IO_ACCESS_R) amode |= 4;
+  if (mode & MRB_IO_ACCESS_W) amode |= 2;
+  if (_access(path, amode) != 0) return -1;
+  if (mode & MRB_IO_ACCESS_X) {
+    /* no execute permission here: _stat() gives a directory, and a file
+       by its extension (.exe, .bat and the like), the owner's execute bit */
+    mrb_io_stat st;
+
+    if (mrb_hal_io_stat(mrb, path, &st) != 0) return -1;
+    if (!MRB_IO_S_ISDIR(st.st_mode) && !(st.st_mode & MRB_IO_S_IXUSR)) {
+      errno = EACCES;
+      return -1;
+    }
+  }
+  return 0;
+}
+
+int
 mrb_hal_io_utime(mrb_state *mrb, const char *path,
                  const mrb_io_timeval *atime,
                  const mrb_io_timeval *mtime)
