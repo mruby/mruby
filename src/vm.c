@@ -1500,7 +1500,7 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
 
   if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
   method_missing:
-    if (super) mrb_no_method_error(mrb, mid, args, "no superclass method '%n' for %T", mid, recv);
+    if (super) mrb_no_method_error_recv(mrb, mid, recv, args, "no superclass method '%n' for %T", mid, recv);
     else mrb_method_missing(mrb, mid, recv, args);
     /* not reached */
   }
@@ -1821,7 +1821,7 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
 static mrb_noreturn void
 vis_error(mrb_state *mrb, mrb_sym mid, mrb_value args, mrb_value recv, mrb_bool priv)
 {
-  mrb_no_method_error(mrb, mid, args, "%s method '%n' called for %T", (priv ? "private" : "protected"), mid, recv);
+  mrb_no_method_error_recv(mrb, mid, recv, args, "%s method '%n' called for %T", (priv ? "private" : "protected"), mid, recv);
 }
 
 static mrb_value

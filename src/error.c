@@ -769,6 +769,43 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
   mrb_exc_raise(mrb, exc);
 }
 
+/*
+ * Raises a NoMethodError, as mrb_no_method_error() does, that also records
+ * `recv`, the object the method was called for, for NameError#receiver.
+ */
+mrb_noreturn void
+mrb_no_method_error_recv(mrb_state *mrb, mrb_sym id, mrb_value recv, mrb_value args, const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+
+  mrb_value exc = error_va(mrb, E_NOMETHOD_ERROR, fmt, ap);
+  va_end(ap);
+  mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
+  mrb_iv_set(mrb, exc, MRB_IVSYM(args), args);
+  mrb_iv_set(mrb, exc, MRB_IVSYM(receiver), recv);
+  mrb_exc_raise(mrb, exc);
+}
+
+/*
+ * Raises a NameError, as mrb_name_error() does, that also records `recv`,
+ * the object the name was looked up on, for NameError#receiver.
+ */
+mrb_noreturn void
+mrb_name_error_recv(mrb_state *mrb, mrb_sym id, mrb_value recv, const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+
+  mrb_value exc = error_va(mrb, E_NAME_ERROR, fmt, ap);
+  va_end(ap);
+  mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
+  mrb_iv_set(mrb, exc, MRB_IVSYM(receiver), recv);
+  mrb_exc_raise(mrb, exc);
+}
+
 static mrb_noreturn void
 frozen_error(mrb_state *mrb, mrb_value v)
 {

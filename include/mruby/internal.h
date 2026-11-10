@@ -112,6 +112,8 @@ void mrb_codedump_all_file(mrb_state *mrb, struct RProc *proc, FILE *out);
 
 /* error */
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
+mrb_noreturn void mrb_no_method_error_recv(mrb_state *mrb, mrb_sym id, mrb_value recv, mrb_value args, const char *fmt, ...);
+mrb_noreturn void mrb_name_error_recv(mrb_state *mrb, mrb_sym id, mrb_value recv, const char *fmt, ...);
 mrb_value mrb_exc_inspect(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
 mrb_noreturn void mrb_exc_raise_with_cause(mrb_state *mrb, mrb_value exc, mrb_value cause);
