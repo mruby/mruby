@@ -58,6 +58,7 @@ module MRuby
       numeric.c
       numops.c
       proc.c
+      refinement.c
       kernel.c
       enum.c
       error.c
