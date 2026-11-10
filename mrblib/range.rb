@@ -37,6 +37,18 @@ class Range
       end
     end
 
+    # a range of symbols steps their names, as String#upto does, when
+    # mruby-symbol-ext and mruby-string-ext are there to give it
+    if Symbol === val && (last.nil? || Symbol === last) && val.respond_to?(:succ)
+      name = val.to_s
+      if last.nil?
+        return name.__upto_endless { |s| yield s.to_sym } if name.respond_to? :__upto_endless
+      elsif name.respond_to? :upto
+        name.upto(last.to_s, exclude_end?) { |s| yield s.to_sym }
+        return self
+      end
+    end
+
     if Integer === val && Integer === last # integers are special
       lim = last
       lim += 1 unless exclude_end?
