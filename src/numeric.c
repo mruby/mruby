@@ -20,6 +20,47 @@
 #endif
 #endif
 
+/* An operand of none of mruby's own numeric types that answers `coerce` is
+   asked to turn the pair into one the operator takes, as in CRuby; an
+   operator of Integer or Float does so before it gives up on the operand. */
+static mrb_bool
+num_coerce_p(mrb_state *mrb, mrb_value y)
+{
+  switch (mrb_type(y)) {
+  case MRB_TT_INTEGER:
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+#endif
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+#endif
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+#endif
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+#endif
+    return FALSE;
+  default:
+    return mrb_respond_to(mrb, y, MRB_SYM(coerce));
+  }
+}
+
+/* `x op y` as `a op b`, where [a, b] is what `y.coerce(x)` answers */
+static mrb_value
+num_coerce_bin(mrb_state *mrb, mrb_value x, mrb_value y, mrb_sym op)
+{
+  mrb_value pair = mrb_funcall_argv(mrb, y, MRB_SYM(coerce), 1, &x);
+
+  if (!mrb_array_p(pair) || RARRAY_LEN(pair) != 2) {
+    mrb_raise(mrb, E_TYPE_ERROR, "coerce must return [x, y]");
+  }
+  mrb_value a = RARRAY_PTR(pair)[0];
+  mrb_value b = RARRAY_PTR(pair)[1];
+  return mrb_funcall_argv(mrb, a, op, 1, &b);
+}
+
+
 /**
  * This function is called to raise a RangeError when an integer operation
  * results in an overflow. It's marked mrb_noreturn as it always raises an
@@ -270,6 +311,9 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 static mrb_value
 int_pow(mrb_state *mrb, mrb_value x)
 {
+  if (num_coerce_p(mrb, mrb_get_arg1(mrb))) {
+    return num_coerce_bin(mrb, x, mrb_get_arg1(mrb), MRB_OPSYM(pow));
+  }
   return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
 }
 
@@ -335,6 +379,8 @@ static mrb_value
 int_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(div));
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     if (mrb_bigint_p(y) || mrb_integer_p(y)) {
@@ -408,6 +454,9 @@ flo_floor_div(mrb_state *mrb, mrb_float x, mrb_float y)
 static mrb_value
 int_idiv(mrb_state *mrb, mrb_value x)
 {
+  if (num_coerce_p(mrb, mrb_get_arg1(mrb))) {
+    return num_coerce_bin(mrb, x, mrb_get_arg1(mrb), MRB_SYM(div));
+  }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(mrb_get_arg1(mrb))) {
     return flo_floor_div(mrb, mrb_as_float(mrb, x), mrb_float(mrb_get_arg1(mrb)));
@@ -429,6 +478,9 @@ int_idiv(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_fdiv(mrb_state *mrb, mrb_value x)
 {
+  if (num_coerce_p(mrb, mrb_get_arg1(mrb))) {
+    return num_coerce_bin(mrb, x, mrb_get_arg1(mrb), MRB_SYM(fdiv));
+  }
   mrb_float y = mrb_as_float(mrb,  mrb_get_arg1(mrb));
 
   if (y == 0) {
@@ -446,6 +498,9 @@ int_fdiv(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_quo(mrb_state *mrb, mrb_value x)
 {
+  if (num_coerce_p(mrb, mrb_get_arg1(mrb))) {
+    return num_coerce_bin(mrb, x, mrb_get_arg1(mrb), MRB_SYM(quo));
+  }
 #ifndef MRB_USE_RATIONAL
 
 #ifdef MRB_NO_FLOAT
@@ -506,6 +561,8 @@ static mrb_value
 flo_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(pow));
   mrb_float d = pow(mrb_as_float(mrb, x), mrb_as_float(mrb, y));
   return mrb_float_value(mrb, d);
 }
@@ -513,6 +570,9 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
+  if (num_coerce_p(mrb, mrb_get_arg1(mrb))) {
+    return num_coerce_bin(mrb, xv, mrb_get_arg1(mrb), MRB_SYM(div));
+  }
   return flo_floor_div(mrb, mrb_float(xv), mrb_as_float(mrb, mrb_get_arg1(mrb)));
 }
 
@@ -541,6 +601,8 @@ static mrb_value
 flo_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(div));
   mrb_float a = mrb_float(x);
 
   switch(mrb_type(y)) {
@@ -645,6 +707,8 @@ static mrb_value
 flo_add(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(add));
   mrb_float a = mrb_float(x);
 
   switch (mrb_type(y)) {
@@ -672,6 +736,8 @@ static mrb_value
 flo_sub(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(sub));
   mrb_float a = mrb_float(x);
 
   switch (mrb_type(y)) {
@@ -699,6 +765,8 @@ static mrb_value
 flo_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(mul));
   mrb_float a = mrb_float(x);
 
   switch (mrb_type(y)) {
@@ -766,6 +834,8 @@ static mrb_value
 flo_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(mod));
   mrb_float mod;
 
   flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), NULL, &mod);
@@ -1355,6 +1425,8 @@ int_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(mul));
+
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     return mrb_bint_mul(mrb, x, y);
@@ -1398,6 +1470,8 @@ static mrb_value
 int_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_OPSYM(mod));
   mrb_int a, b;
 
 #ifdef MRB_USE_BIGINT
@@ -1452,6 +1526,8 @@ int_divmod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_SYM(divmod));
+
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
 #ifndef MRB_NO_FLOAT
@@ -1484,6 +1560,8 @@ static mrb_value
 flo_divmod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, y)) return num_coerce_bin(mrb, x, y, MRB_SYM(divmod));
   mrb_float div, mod;
   mrb_value a, b;
 
@@ -2172,6 +2250,8 @@ int_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+  if (num_coerce_p(mrb, other)) return num_coerce_bin(mrb, self, other, MRB_OPSYM(add));
+
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
     return mrb_bint_add(mrb, self, other);
@@ -2254,6 +2334,8 @@ static mrb_value
 int_sub(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
+
+  if (num_coerce_p(mrb, other)) return num_coerce_bin(mrb, self, other, MRB_OPSYM(sub));
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
@@ -2572,6 +2654,7 @@ num_cmp(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2 && num_coerce_p(mrb, other)) return num_coerce_bin(mrb, self, other, MRB_OPSYM(cmp));
   if (n == -2 || n == CMP_UNORDERED) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
@@ -2582,12 +2665,23 @@ cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %t with %t failed", v1, v2);
 }
 
+/* a comparison through `coerce` that answers nil has failed, as in CRuby */
+static mrb_value
+num_coerce_relop(mrb_state *mrb, mrb_value x, mrb_value y, mrb_sym op)
+{
+  mrb_value v = num_coerce_bin(mrb, x, y, op);
+
+  if (mrb_nil_p(v)) cmperr(mrb, x, y);
+  return v;
+}
+
 static mrb_value
 num_lt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2 && num_coerce_p(mrb, other)) return num_coerce_relop(mrb, self, other, MRB_OPSYM(lt));
   /* A NaN stands in no order with anything, so every comparison against one is
      false; an exception is not an answer CRuby gives here either. */
   if (n == CMP_UNORDERED) return mrb_false_value();
@@ -2602,6 +2696,7 @@ num_le(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2 && num_coerce_p(mrb, other)) return num_coerce_relop(mrb, self, other, MRB_OPSYM(le));
   if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n <= 0) return mrb_true_value();
@@ -2614,6 +2709,7 @@ num_gt(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2 && num_coerce_p(mrb, other)) return num_coerce_relop(mrb, self, other, MRB_OPSYM(gt));
   if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n > 0) return mrb_true_value();
@@ -2626,6 +2722,7 @@ num_ge(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2 && num_coerce_p(mrb, other)) return num_coerce_relop(mrb, self, other, MRB_OPSYM(ge));
   if (n == CMP_UNORDERED) return mrb_false_value();
   if (n == -2) cmperr(mrb, self, other);
   if (n >= 0) return mrb_true_value();
@@ -2706,6 +2803,36 @@ flo_hash(mrb_state *mrb, mrb_value flo)
 }
 #endif
 
+/*
+ * call-seq:
+ *   int.coerce(numeric)  ->  array
+ *   float.coerce(numeric)  ->  array
+ *
+ * Returns `[numeric, self]` when `numeric` is of the receiver's class, and
+ * both converted to Float otherwise.
+ *
+ *   1.coerce(2)      #=> [2, 1]
+ *   1.coerce(2.5)    #=> [2.5, 1.0]
+ *   1.5.coerce(2)    #=> [2.0, 1.5]
+ */
+static mrb_value
+num_coerce_m(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+
+  if (mrb_obj_class(mrb, x) == mrb_obj_class(mrb, y)) {
+    return mrb_assoc_new(mrb, y, x);
+  }
+#ifdef MRB_NO_FLOAT
+  mrb_raisef(mrb, E_TYPE_ERROR, "%T can't be coerced into %T", y, x);
+#else
+  if (mrb_string_p(y)) {
+    y = mrb_float_value(mrb, mrb_str_to_dbl(mrb, y, TRUE));
+  }
+  return mrb_assoc_new(mrb, mrb_ensure_float_type(mrb, y), mrb_ensure_float_type(mrb, x));
+#endif
+}
+
 /* ------------------------------------------------------------------------*/
 static const mrb_mt_entry numeric_rom_entries[] = {
   MRB_MT_ENTRY(num_finite_p,   MRB_SYM_Q(finite), MRB_ARGS_NONE()),
@@ -2764,6 +2891,7 @@ static const mrb_mt_entry integer_rom_entries[] = {
   MRB_MT_ENTRY(int_to_s,             MRB_SYM(to_s),     MRB_ARGS_OPT(1)),  /* 15.2.8.3.25 */
   MRB_MT_ENTRY(int_to_s,             MRB_SYM(inspect),  MRB_ARGS_OPT(1)),
   MRB_MT_ENTRY(int_divmod,           MRB_SYM(divmod),   MRB_ARGS_REQ(1)),  /* 15.2.8.3.30(x) */
+  MRB_MT_ENTRY(num_coerce_m,         MRB_SYM(coerce),   MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(coerce_step_counter,  MRB_SYM(__coerce_step_counter), MRB_ARGS_REQ(1)),
 #ifndef MRB_NO_FLOAT
   MRB_MT_ENTRY(int_fdiv, MRB_SYM(fdiv), MRB_ARGS_REQ(1)),
@@ -2797,6 +2925,7 @@ static const mrb_mt_entry float_rom_entries[] = {
   MRB_MT_ENTRY(flo_to_i,       MRB_SYM(to_i),     MRB_ARGS_NONE()),  /* 15.2.9.3.14 */
   MRB_MT_ENTRY(flo_truncate,   MRB_SYM(truncate), MRB_ARGS_OPT(1)),  /* 15.2.9.3.15 */
   MRB_MT_ENTRY(flo_divmod,     MRB_SYM(divmod), MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(num_coerce_m,   MRB_SYM(coerce), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_flo_to_s,       MRB_SYM(to_s),     MRB_ARGS_NONE()),  /* 15.2.9.3.16(x) */
   MRB_MT_ENTRY(mrb_flo_to_s,       MRB_SYM(inspect),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(flo_nan_p,      MRB_SYM_Q(nan),    MRB_ARGS_NONE()),

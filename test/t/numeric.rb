@@ -120,3 +120,64 @@ assert('Numeric#step') do
   assert_step([], -inf, [inf, -inf])
   assert_step([-inf], -inf, [-inf, -inf])
 end
+
+# A value that is no Numeric and takes part in arithmetic through coerce,
+# the way a duration or a money amount does
+class CoerceTestLength
+  attr_reader :n
+  def initialize(n); @n = n; end
+  def coerce(other); [CoerceTestLength.new(other), self]; end
+  def +(o); CoerceTestLength.new(@n + (o.is_a?(CoerceTestLength) ? o.n : o)); end
+  def -(o); CoerceTestLength.new(@n - (o.is_a?(CoerceTestLength) ? o.n : o)); end
+  def *(o); CoerceTestLength.new(@n * (o.is_a?(CoerceTestLength) ? o.n : o)); end
+  def /(o); CoerceTestLength.new(@n / (o.is_a?(CoerceTestLength) ? o.n : o)); end
+  def <=>(o); @n <=> (o.is_a?(CoerceTestLength) ? o.n : o); end
+  def <(o); (self <=> o) < 0; end
+  def >(o); (self <=> o) > 0; end
+end
+
+# coerces into a pair whose comparison answers nil
+class CoerceTestUnordered
+  def initialize(unordered); @unordered = unordered; end
+  def coerce(other); [@unordered, self]; end
+end
+
+assert('Integer#coerce') do
+  assert_equal [2, 1], 1.coerce(2)
+  skip unless Object.const_defined?(:Float)
+  assert_equal [2.5, 1.0], 1.coerce(2.5)
+end
+
+assert('Float#coerce') do
+  skip unless Object.const_defined?(:Float)
+  assert_equal [2.0, 1.5], 1.5.coerce(2)
+  assert_equal [2.5, 1.5], 1.5.coerce(2.5)
+end
+
+assert('Integer and Float operators coerce an operand that answers coerce') do
+  len = CoerceTestLength.new(3)
+  assert_equal 5, (2 + len).n
+  assert_equal(-1, (2 - len).n)
+  assert_equal 6, (2 * len).n
+  assert_equal 2, (6 / len).n
+  assert_equal(-1, 2 <=> len)
+  assert_true 2 < len
+  assert_false 2 > len
+  skip unless Object.const_defined?(:Float)
+  assert_equal 4.5, (1.5 * len).n
+  assert_true 1.5 < len
+end
+
+assert('coerce must answer a pair') do
+  bad = Object.new
+  def bad.coerce(other); :nope; end
+  assert_raise(TypeError) { 1 + bad }
+end
+
+assert('a comparison through coerce that answers nil fails') do
+  unordered = Object.new
+  def unordered.<(other); nil; end
+  o = CoerceTestUnordered.new(unordered)
+  assert_raise(ArgumentError) { 1 < o }
+  assert_nil(1 <=> Object.new)
+end
