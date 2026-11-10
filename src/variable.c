@@ -1536,7 +1536,7 @@ const_lookup(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value *vp, mrb_b
   mrb_value v;
 
   if (!iv_get(mrb, class_iv_ptr(c), sym, &v)) return FALSE;
-  struct autoload *al = autoload_check(v);
+  struct autoload *al = mrb->autoload_used ? autoload_check(v) : NULL;
   if (al) {
     if (al->loading) return FALSE;
     if (load) {
@@ -1574,6 +1574,7 @@ mrb_autoload_define(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value pat
   memcpy(al->path, RSTRING_PTR(path), len);
   al->path[len] = '\0';
   d->data = al;
+  mrb->autoload_used = TRUE;
   mrb_obj_iv_set(mrb, (struct RObject*)c, sym, mrb_obj_value(d));
   mrb_const_cache_clear(mrb);
 

@@ -418,6 +418,11 @@ struct mrb_state {
      global still pays nothing until a program actually writes through it. */
   mrb_bool svar_used;
 
+  /* Whether Module#autoload has been called in this state.  Until it has,
+     no constant can be a pending autoload, so a constant lookup takes what
+     it finds without asking. */
+  mrb_bool autoload_used;
+
 #ifdef MRB_USE_REFINEMENTS
   struct RClass *refinement_class;
   /* Weak table of the refinement scopes procs carry by index (see
