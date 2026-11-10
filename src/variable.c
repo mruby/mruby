@@ -1496,6 +1496,15 @@ autoload_load(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value marker)
   int ai = mrb_gc_arena_save(mrb);
   mrb_bool error;
 
+  /* mruby has no require of its own: name what is missing rather than
+     fail on a method the program never called; the autoload stays */
+  mrb_value top = mrb_top_self(mrb);
+  if (!mrb_obj_respond_to(mrb, mrb_class(mrb, top), MRB_SYM(require))) {
+    mrb_raisef(mrb, E_NOTIMP_ERROR,
+               "autoload of %C::%n needs Kernel#require to load \"%s\"",
+               c, sym, al->path);
+  }
+
   /* the file may replace the constant, and with it the last reference */
   mrb_gc_protect(mrb, marker);
   mrb_value path = mrb_str_new(mrb, al->path, al->len);

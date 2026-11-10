@@ -200,3 +200,23 @@ assert('an autoload whose file only autoloads the name anew') do
   assert_raise(NameError) { AutoloadTest::Again }
   assert_equal "al/again2", AutoloadTest.autoload?(:Again)
 end
+
+assert('an autoload with no Kernel#require to load it') do
+  class << self
+    alias __autoload_test_require require
+    undef require
+  end
+  begin
+    skip "this build has a Kernel#require" if respond_to?(:require, true)
+    module AutoloadTest; autoload :NoReq, "al/noreq"; end
+
+    e = assert_raise(NotImplementedError) { AutoloadTest::NoReq }
+    assert_include e.message, "Kernel#require"
+    assert_include e.message, "AutoloadTest::NoReq"
+    assert_equal "al/noreq", AutoloadTest.autoload?(:NoReq)
+  ensure
+    class << self
+      alias require __autoload_test_require
+    end
+  end
+end
