@@ -683,10 +683,12 @@ assert('File methods take an object with to_path for a path') do
   assert_equal File.extname(rfname), File.extname(path)
   assert_equal File.split(rfname), File.split(path)
   assert_equal File.expand_path(rfname), File.expand_path(path)
-  assert_equal "/tmp/x", File.expand_path("x", MRubyIOTestPath.new("/tmp"))
+  # an absolute directory the platform spells its own way
+  dir = File.dirname(File.expand_path(rfname))
+  assert_equal File.expand_path("x", dir), File.expand_path("x", MRubyIOTestPath.new(dir))
   assert_equal File.realpath(rfname), File.realpath(path)
   assert_equal "a/b/c", File.join(MRubyIOTestPath.new("a"), ["b", MRubyIOTestPath.new("c")])
-  assert_true File.absolute_path?(MRubyIOTestPath.new("/a"))
+  assert_true File.absolute_path?(MRubyIOTestPath.new(dir))
   assert_raise(TypeError) { File.exist?(Object.new) }
   assert_raise(TypeError) { File.path(1) }
 end
