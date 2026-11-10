@@ -131,7 +131,9 @@ class String
     end
     # step by succ up to max, which a shorter string reaches past others
     # that sort after it ("b" comes between "a" and "aa"); stop when the
-    # string grows longer than max, as CRuby does
+    # string grows longer than max. The loop follows rb_str_upto_each()
+    # in CRuby's string.c, used with the permission of its author
+    # (Copyright (C) 1993-2007 Yukihiro Matsumoto).
     n = (self <=> max)
     return self if n > 0 || (exclusive && n == 0)
     after_max = max.succ
