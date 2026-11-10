@@ -1300,6 +1300,10 @@ assert('String#upto') do
   assert_upto [], "b", "aa"
   assert_upto [""], "", "a"
   assert_upto %w(9 10), "9", "10"
+  # strings with digits that are not all digits step by succ
+  assert_upto %w(1.9 2.0 2.1), "1.9", "2.1"
+  assert_upto %w(1y 1z 2a), "1y", "2a"
+  assert_upto %w(00 01 02), "00", "02"
 
   if UTF8STRING
     assert_upto %w(あ ぃ い ぅ う ぇ え ぉ お), "あ", "お"

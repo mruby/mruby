@@ -119,7 +119,10 @@ class String
     # both edges are all digits
     bi = self.to_i(10)
     ei = max.to_i(10)
-    if (bi > 0 or bi == "0"*len) and (ei > 0 or ei == "0"*maxlen)
+    # to_i also reads "1a" and "1.9": all digits only when the number
+    # spells the string back, leading zeros and all
+    if bi >= 0 and ei >= 0 and
+       bi.to_s.rjust(len, "0") == self and ei.to_s.rjust(maxlen, "0") == max
       while bi <= ei
         break if exclusive and bi == ei
         s = bi.to_s
