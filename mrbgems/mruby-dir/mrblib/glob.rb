@@ -6,8 +6,9 @@ class Dir
     #   Dir.glob(pattern, flags = 0, base: nil, sort: true) { |name| block } -> nil
     #
     # Returns the names of the files that match pattern, a String (or an
-    # object with to_path, such as a Pathname) or an Array of them. A pattern is matched name by name, as File.fnmatch
-    # matches it under File::FNM_PATHNAME:
+    # object with to_path, such as a Pathname) or an Array of them. A
+    # pattern is matched name by name, as File.fnmatch matches it under
+    # File::FNM_PATHNAME:
     #
     # - `*` matches any name, or any part of one, `?` any one character,
     #   and `[set]` one character of the set;
