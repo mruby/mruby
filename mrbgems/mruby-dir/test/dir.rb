@@ -39,6 +39,15 @@ assert('Dir.foreach') do
   assert_true a.include?("b")
 end
 
+assert('Dir.each_child') do
+  a = []
+  assert_nil Dir.each_child(DirTest.sandbox) { |s| a << s }
+  assert_true a.include?("a")
+  assert_true a.include?("b")
+  assert_false a.include?(".")
+  assert_false a.include?("..")
+end
+
 assert('Dir.getwd') do
   s = Dir.getwd
   assert_true s.kind_of? String

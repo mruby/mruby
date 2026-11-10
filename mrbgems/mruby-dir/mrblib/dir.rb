@@ -64,6 +64,24 @@ class Dir
 
     #
     # call-seq:
+    #   Dir.each_child(dirname) { |filename| block } -> nil
+    #   Dir.each_child(dirname)                      -> enumerator
+    #
+    # Calls the block once for each entry in the named directory except for
+    # "." and "..", passing the filename of each entry to the block.
+    #
+    #   Dir.each_child("testdir") { |x| puts "Got #{x}" }
+    #
+    def each_child(path, &block)
+      return to_enum(:each_child, path) unless block
+      self.open(path) do |d|
+        d.each_child(&block)
+      end
+      nil
+    end
+
+    #
+    # call-seq:
     #   Dir.open(string) -> aDir
     #   Dir.open(string) { |aDir| block } -> obj
     #

@@ -6,6 +6,7 @@ Dir class for mruby. Supported methods are:
 `.chdir`
 `.chroot`
 `.delete`
+`.each_child`
 `.entries`
 `.exist?`
 `.foreach`
