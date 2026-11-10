@@ -114,7 +114,7 @@ Add the line below to your build configuration.
 | File.delete, File.unlink    | o        |          |
 | File.directory?             | o        | FileTest |
 | File.dirname                | o        |          |
-| File.executable?            |          | FileTest |
+| File.executable?            | o        | FileTest |
 | File.executable_real?       |          | FileTest |
 | File.exist?, exists?        | o        | FileTest |
 | File.expand_path            | o        |          |
@@ -134,7 +134,7 @@ Add the line below to your build configuration.
 | File.owned?                 |          | FileTest |
 | File.path                   |          |          |
 | File.pipe?                  | o        | FileTest |
-| File.readable?              |          | FileTest |
+| File.readable?              | o        | FileTest |
 | File.readable_real?         |          | FileTest |
 | File.readlink               | o        |          |
 | File.realdirpath            |          |          |
@@ -155,7 +155,7 @@ Add the line below to your build configuration.
 | File.utime                  | o        |          |
 | File.world_readable?        |          |          |
 | File.world_writable?        |          |          |
-| File.writable?              |          | FileTest |
+| File.writable?              | o        | FileTest |
 | File.writable_real?         |          | FileTest |
 | File.zero?                  | o        | FileTest |
 | File#atime                  | o        |          |

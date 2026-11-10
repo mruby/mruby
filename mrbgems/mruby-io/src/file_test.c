@@ -347,6 +347,73 @@ mrb_file_s_ctime(mrb_state *mrb, mrb_value klass)
   return file_s_time(mrb, 'c');
 }
 
+/* Whether the process may access the named file in the way asked; false
+   for a file that is not there */
+static mrb_value
+filetest_access(mrb_state *mrb, int mode)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, mrb_io_path(mrb, obj)), -1);
+  int ret;
+
+  if (path == NULL) return mrb_false_value();
+  ret = mrb_hal_io_access(mrb, path, mode);
+  mrb_locale_free(path);
+  return mrb_bool_value(ret == 0);
+}
+
+/*
+ * call-seq:
+ *   File.readable?(file_name)   ->  true or false
+ *   FileTest.readable?(file_name)   ->  true or false
+ *
+ * Returns `true` if the named file is readable by the effective user and
+ * group of this process.
+ *
+ *   File.readable?("/etc/passwd")   #=> true
+ */
+
+static mrb_value
+mrb_filetest_s_readable_p(mrb_state *mrb, mrb_value klass)
+{
+  return filetest_access(mrb, MRB_IO_ACCESS_R);
+}
+
+/*
+ * call-seq:
+ *   File.writable?(file_name)   ->  true or false
+ *   FileTest.writable?(file_name)   ->  true or false
+ *
+ * Returns `true` if the named file is writable by the effective user and
+ * group of this process.
+ *
+ *   File.writable?("/etc/passwd")   #=> false
+ */
+
+static mrb_value
+mrb_filetest_s_writable_p(mrb_state *mrb, mrb_value klass)
+{
+  return filetest_access(mrb, MRB_IO_ACCESS_W);
+}
+
+/*
+ * call-seq:
+ *   File.executable?(file_name)   ->  true or false
+ *   FileTest.executable?(file_name)   ->  true or false
+ *
+ * Returns `true` if the named file is executable (or, for a directory,
+ * searchable) by the effective user and group of this process. On
+ * Windows a file is executable by its extension.
+ *
+ *   File.executable?("/bin/sh")   #=> true
+ */
+
+static mrb_value
+mrb_filetest_s_executable_p(mrb_state *mrb, mrb_value klass)
+{
+  return filetest_access(mrb, MRB_IO_ACCESS_X);
+}
+
 void
 mrb_init_file_test(mrb_state *mrb)
 {
@@ -364,6 +431,9 @@ mrb_init_file_test(mrb_state *mrb)
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(socket),    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(symlink),   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(zero),      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, f, MRB_SYM_Q(readable),   mrb_filetest_s_readable_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, f, MRB_SYM_Q(writable),   mrb_filetest_s_writable_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, f, MRB_SYM_Q(executable), mrb_filetest_s_executable_p, MRB_ARGS_REQ(1));
 
   // Also register the same methods on File class
   struct RClass *file = mrb_class_get_id(mrb, MRB_SYM(File));
@@ -377,6 +447,9 @@ mrb_init_file_test(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(socket),    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(symlink),   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(zero),      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(readable),   mrb_filetest_s_readable_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(writable),   mrb_filetest_s_writable_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(executable), mrb_filetest_s_executable_p, MRB_ARGS_REQ(1));
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(__atime),     mrb_file_s_atime,           MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(__mtime),     mrb_file_s_mtime,           MRB_ARGS_REQ(1));

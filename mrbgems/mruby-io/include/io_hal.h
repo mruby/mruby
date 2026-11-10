@@ -201,6 +201,21 @@ int mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st);
  */
 int mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode);
 
+/* What mrb_hal_io_access() is asked of a file, or'ed together */
+#define MRB_IO_ACCESS_R 4
+#define MRB_IO_ACCESS_W 2
+#define MRB_IO_ACCESS_X 1
+
+/**
+ * Check whether the process may read, write or execute a file
+ *
+ * @param mrb mruby state
+ * @param path File path (UTF-8)
+ * @param mode MRB_IO_ACCESS_R, MRB_IO_ACCESS_W and MRB_IO_ACCESS_X or'ed
+ * @return 0 if every access asked is allowed, -1 otherwise (sets errno)
+ */
+int mrb_hal_io_access(mrb_state *mrb, const char *path, int mode);
+
 /**
  * Set file access and modification times
  *
