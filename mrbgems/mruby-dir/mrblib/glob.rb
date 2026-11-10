@@ -205,7 +205,8 @@ class Dir
     # name without the backslashes that escape its characters
     def __glob_unescape(name)
       return name unless name.include?("\\")
-      out = ""
+      # String#<< comes with mruby-string-ext, which this gem goes without
+      out = []
       i = 0
       n = name.size
       while i < n
@@ -213,7 +214,7 @@ class Dir
         out << name[i]
         i += 1
       end
-      out
+      out.join
     end
 
     # The file that path names: path itself, or path under base

@@ -23,6 +23,7 @@ assert('Dir.glob') do
     assert_equal ["lib/a.rb"], Dir.glob("lib/[ax].rb")
     assert_equal ["lib/b.rb"], Dir.glob("lib/[!a].rb")
     assert_equal ["main.rb"], Dir.glob("main.rb")
+    assert_equal ["main.rb"], Dir.glob("m\\ain.rb")
     assert_equal [], Dir.glob("nothing.rb")
     assert_equal [], Dir.glob("main.rb/*")
     assert_equal [], Dir.glob("")
