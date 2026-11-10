@@ -628,6 +628,8 @@ module MRuby
       pop
       peek
       NUMERIC_SHIFT_WIDTH_MAX
+      numerator
+      denominator
     ].freeze
 
     # File-local names defined in a C source: static functions and tables,
