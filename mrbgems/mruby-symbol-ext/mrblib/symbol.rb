@@ -59,6 +59,22 @@ class Symbol
     return c == 0
   end
 
+  ##
+  # call-seq:
+  #   sym.succ  -> symbol
+  #   sym.next  -> symbol
+  #
+  # Same as `sym.to_s.succ.intern`.
+  #
+  #   :a.succ     #=> :b
+  #   :az.succ    #=> :ba
+  #   :a9.next    #=> :b0
+
+  def succ
+    self.to_s.succ.to_sym
+  end
+  alias next succ
+
   #
   # call-seq:
   #   sym.empty?   -> true or false

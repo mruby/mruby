@@ -46,6 +46,14 @@ assert("Symbol#casecmp") do
   assert_nil :HELLO.casecmp("hEllO")
 end
 
+assert("Symbol#succ") do
+  assert_equal :b, :a.succ
+  assert_equal :ba, :az.succ
+  assert_equal :b0, :a9.succ
+  assert_equal :Ab, :Aa.next
+  assert_equal :"", :"".succ
+end
+
 assert("Symbol#empty?") do
   assert_false :'a'.empty?
 end

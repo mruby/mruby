@@ -31,6 +31,13 @@ Here are the methods added to the `Symbol` class:
 - **call-seq:** `sym.casecmp?(other)  -> true, false, or nil`
 - Returns `true` if the receiver and `other_symbol` are equal after case folding, `false` if they are not equal. Returns `nil` if `other_symbol` is not a symbol.
 
+### `succ` / `next`
+
+- **call-seq:**
+  - `sym.succ  -> symbol`
+  - `sym.next  -> symbol`
+- Returns the successor of the symbol, as `String#succ` steps its name. Equivalent to `sym.to_s.succ.intern`. `next` is an alias for `succ`.
+
 ### `empty?`
 
 - **call-seq:** `sym.empty?   -> true or false`
