@@ -81,7 +81,8 @@ assert('Dir.glob - several patterns, base: and sort:') do
   assert_equal ["a.rb", "b.rb", "deep/c.rb"], Dir.glob("**/*.rb", base: "g/lib")
   assert_equal ["a.rb", "b.rb"], Dir["*.rb", base: "g/lib"]
   assert_equal ["a.rb", "b.rb", "deep"], Dir.glob("*", base: "g/lib", sort: false).sort
-  sandbox = DirTest.sandbox
+  # a backslash in a pattern escapes, so a Windows path is given with "/"
+  sandbox = DirTest.sandbox.split("\\").join("/")
   assert_equal [sandbox + "/g/main.rb"], Dir.glob(sandbox + "/g/*.rb")
   assert_raise(TypeError) { Dir.glob(1) }
 end
