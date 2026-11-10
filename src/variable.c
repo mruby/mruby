@@ -8,6 +8,7 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
+#include <mruby/error.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -1449,8 +1450,156 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
   }
 }
 
+/* A pending autoload, held behind a sentinel stored as the constant
+ * itself, the way a virtual global is: the name is defined and listed, it
+ * shadows the same name further out on the lookup path, and the first
+ * lookup that reaches it requires the file and reads the constant again.
+ * While the file is loading, and once it is in without defining the name,
+ * the constant is not there and the lookup goes on past it, as in CRuby.
+ * The sentinel never leaks into Ruby as the constant's value. */
+struct autoload {
+  mrb_bool loading;
+  mrb_int len;
+  char path[];
+};
+
+static void
+autoload_free(mrb_state *mrb, void *p)
+{
+  mrb_free(mrb, p);
+}
+
+static const mrb_data_type autoload_type = { "autoload", autoload_free };
+
+static struct autoload*
+autoload_check(mrb_value v)
+{
+  if (mrb_data_p(v) && DATA_TYPE(v) == &autoload_type) {
+    return (struct autoload*)DATA_PTR(v);
+  }
+  return NULL;
+}
+
 static mrb_value
-const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
+autoload_require(mrb_state *mrb, void *path)
+{
+  return mrb_funcall_argv(mrb, mrb_top_self(mrb), MRB_SYM(require), 1, (mrb_value*)path);
+}
+
+/* Require the file of the autoload `marker` for `c::sym`. The autoload is
+   spent once the file is in, defined or not; one whose file raised stays,
+   to be tried again. */
+static void
+autoload_load(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value marker)
+{
+  struct autoload *al = (struct autoload*)DATA_PTR(marker);
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_bool error;
+
+  /* the file may replace the constant, and with it the last reference */
+  mrb_gc_protect(mrb, marker);
+  mrb_value path = mrb_str_new(mrb, al->path, al->len);
+  al->loading = TRUE;
+  mrb_value result = mrb_protect_error(mrb, autoload_require, &path, &error);
+  al->loading = FALSE;
+  if (error) {
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_exc_raise(mrb, result);
+  }
+
+  /* straight from the table: `c` may be an iclass or frozen */
+  iv_tbl *t = class_iv_ptr(c);
+  mrb_value v;
+  if (iv_get(mrb, t, sym, &v) && mrb_obj_eq(mrb, v, marker)) {
+    iv_del(mrb, t, sym, NULL);
+    mrb_const_cache_clear(mrb);
+  }
+  mrb_gc_arena_restore(mrb, ai);
+}
+
+/* Look `sym` up in the table of `c` alone. With `load`, a pending autoload
+   is loaded and the constant read again; without, it is found as it is,
+   for `defined?` and const_defined?. An autoload whose file is loading is
+   not found either way, nor is a name the file only autoloads anew. */
+static mrb_bool
+const_lookup(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value *vp, mrb_bool load)
+{
+  mrb_value v;
+
+  if (!iv_get(mrb, class_iv_ptr(c), sym, &v)) return FALSE;
+  struct autoload *al = autoload_check(v);
+  if (al) {
+    if (al->loading) return FALSE;
+    if (load) {
+      autoload_load(mrb, c, sym, v);
+      if (!iv_get(mrb, class_iv_ptr(c), sym, &v)) return FALSE;
+      if (autoload_check(v)) return FALSE;
+    }
+  }
+  if (vp) *vp = v;
+  return TRUE;
+}
+
+mrb_bool
+mrb_const_lookup_at(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value *vp, mrb_bool load)
+{
+  return const_lookup(mrb, c, sym, vp, load);
+}
+
+/* Register `path` to be required the first time `c::sym` is looked up.
+   A constant already defined is left alone; a pending autoload is
+   replaced. */
+void
+mrb_autoload_define(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value path)
+{
+  mrb_value v;
+
+  if (iv_get(mrb, class_iv_ptr(c), sym, &v) && !autoload_check(v)) return;
+
+  mrb_int len = RSTRING_LEN(path);
+  /* classless, as the virtual global's sentinel is, for the same reason */
+  struct RData *d = mrb_data_object_alloc(mrb, NULL, NULL, &autoload_type);
+  struct autoload *al = (struct autoload*)mrb_malloc(mrb, sizeof(struct autoload) + len + 1);
+  al->loading = FALSE;
+  al->len = len;
+  memcpy(al->path, RSTRING_PTR(path), len);
+  al->path[len] = '\0';
+  d->data = al;
+  mrb_obj_iv_set(mrb, (struct RObject*)c, sym, mrb_obj_value(d));
+  mrb_const_cache_clear(mrb);
+
+  mrb_value name = mrb_symbol_value(sym);
+  mrb_funcall_argv(mrb, mrb_obj_value(c), MRB_SYM(const_added), 1, &name);
+}
+
+/* The path of the autoload pending for `sym` in `c`, or with `inherit` in
+   its ancestors too, as Module#autoload? answers: nil when the constant is
+   defined first, or its file is loading. */
+mrb_value
+mrb_autoload_path(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_bool inherit)
+{
+  mrb_value v;
+
+  for (; c; c = c->super) {
+    if (MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED)) continue;
+    if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
+      struct autoload *al = autoload_check(v);
+      if (!al || al->loading) break;
+      return mrb_str_new(mrb, al->path, al->len);
+    }
+    if (!inherit) break;
+  }
+  return mrb_nil_value();
+}
+
+mrb_bool
+mrb_autoload_p(mrb_value v)
+{
+  return autoload_check(v) != NULL;
+}
+
+static mrb_value
+const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_bool load)
 {
   struct RClass *c = base;
   mrb_value v;
@@ -1460,7 +1609,7 @@ const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip
   if (skip) c = c->super;
 L_RETRY:
   while (c) {
-    if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && iv_get(mrb, class_iv_ptr(c), sym, &v)) {
+    if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && const_lookup(mrb, c, sym, &v, load)) {
       return v;
     }
     c = c->super;
@@ -1477,7 +1626,7 @@ L_RETRY:
 static mrb_value
 const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
 {
-  mrb_value v = const_get_nohook(mrb, base, sym, skip);
+  mrb_value v = const_get_nohook(mrb, base, sym, skip, TRUE);
 
   /* call const_missing hook */
   if (mrb_undef_p(v)) {
@@ -1494,7 +1643,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
 mrb_value
 mrb_exc_const_get(mrb_state *mrb, mrb_sym sym)
 {
-  return const_get_nohook(mrb, mrb->object_class, sym, FALSE);
+  return const_get_nohook(mrb, mrb->object_class, sym, FALSE, TRUE);
 }
 
 /*
@@ -1561,18 +1710,18 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   if (!c) c = mrb->object_class;
   mrb_value v;
 
-  if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
+  if (const_lookup(mrb, c, sym, &v, TRUE)) {
     return v;
   }
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
     c2 = proc_class(mrb, proc);
-    if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) {
+    if (const_lookup(mrb, c2, sym, &v, TRUE)) {
       return v;
     }
   }
   if (c->tt == MRB_TT_SCLASS) {
-    v = const_get_nohook(mrb, c, sym, TRUE);
+    v = const_get_nohook(mrb, c, sym, TRUE, TRUE);
     if (!mrb_undef_p(v)) {
       return v;
     }
@@ -1592,9 +1741,11 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 /* Non-raising lexical constant lookup for `defined?`. Mirrors the search
    order of mrb_vm_const_get but takes the lexical scope's proc as an argument
    (the caller's, via ci[-1]) and returns the value or undef, without invoking
-   const_missing or raising. */
+   const_missing or raising. A pending autoload is loaded with `load`, and is
+   returned as it is without: `defined?(A)` is "constant" with A's file still
+   out, `defined?(A::B)` needs A itself. */
 mrb_value
-mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
+mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym, mrb_bool load)
 {
   const struct RProc *proc = ci->proc;
   struct RClass *c = mrb_vm_cref_class(mrb, ci), *c2;
@@ -1602,14 +1753,14 @@ mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
   if (!c) c = mrb->object_class;
   mrb_value v;
 
-  if (iv_get(mrb, class_iv_ptr(c), sym, &v)) return v;
+  if (const_lookup(mrb, c, sym, &v, load)) return v;
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
     c2 = proc_class(mrb, proc);
-    if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) return v;
+    if (const_lookup(mrb, c2, sym, &v, load)) return v;
   }
   if (c->tt == MRB_TT_SCLASS) {
-    v = const_get_nohook(mrb, c, sym, TRUE);
+    v = const_get_nohook(mrb, c, sym, TRUE, load);
     if (!mrb_undef_p(v)) return v;
 
     mrb_value klass;
@@ -1621,23 +1772,24 @@ mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
     }
     if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
   }
-  return const_get_nohook(mrb, c, sym, TRUE);
+  return const_get_nohook(mrb, c, sym, TRUE, load);
 }
 
 mrb_bool
 mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 {
-  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, ci, sym));
+  return !mrb_undef_p(mrb_vm_const_get_noraise(mrb, ci, sym, FALSE));
 }
 
 /* The lookup a constant path read makes from a module, `Mod::NAME`, without
    its hooks: the value, or undef where the name is missing, with no
    const_missing call and nothing raised.  A constant Object holds is out of
-   reach from any other module here, as it is for the read. */
+   reach from any other module here, as it is for the read. A pending
+   autoload is loaded with `load`, as for mrb_vm_const_get_noraise(). */
 mrb_value
-mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym)
+mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym, mrb_bool load)
 {
-  return const_get_nohook(mrb, mod, sym, FALSE);
+  return const_get_nohook(mrb, mod, sym, FALSE, load);
 }
 
 /*
@@ -2020,7 +2172,7 @@ const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude, mrb
   tmp = klass;
 retry:
   while (tmp) {
-    if (iv_get(mrb, class_iv_ptr(tmp), id, NULL)) {
+    if (const_lookup(mrb, tmp, id, NULL, FALSE)) {
       return TRUE;
     }
     if (!recurse && (klass != mrb->object_class)) break;
