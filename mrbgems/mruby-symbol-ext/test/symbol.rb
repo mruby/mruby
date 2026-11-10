@@ -54,6 +54,18 @@ assert("Symbol#succ") do
   assert_equal :"", :"".succ
 end
 
+assert("Range of symbols") do
+  assert_equal [:a, :b, :c], (:a..:c).to_a
+  assert_equal [:a, :b], (:a...:c).to_a
+  assert_equal [:a8, :a9, :b0], (:a8..:b0).to_a
+  assert_equal [], (:y..:ab).to_a
+  # :"".succ is :"", which must not loop
+  assert_equal [:""], (:"".. :a).to_a
+  a = []
+  (:a..).each { |s| a << s; break if a.size == 3 }
+  assert_equal [:a, :b, :c], a
+end
+
 assert("Symbol#empty?") do
   assert_false :'a'.empty?
 end
