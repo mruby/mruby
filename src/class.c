@@ -493,9 +493,9 @@ struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
   check_if_class_or_module(mrb, outer);
-  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(outer), id)) {
-    mrb_value old = mrb_const_get(mrb, outer, id);
-
+  /* `module X` with an autoload pending for X loads it first, as in CRuby */
+  mrb_value old;
+  if (mrb_const_lookup_at(mrb, mrb_class_ptr(outer), id, &old, TRUE)) {
     if (!mrb_module_p(old)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a module", old);
     }
@@ -652,9 +652,8 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     s = NULL;
   }
   check_if_class_or_module(mrb, outer);
-  if (mrb_obj_iv_defined(mrb, mrb_obj_ptr(outer), id)) {
-    mrb_value old = mrb_const_get(mrb, outer, id);
-
+  mrb_value old;
+  if (mrb_const_lookup_at(mrb, mrb_class_ptr(outer), id, &old, TRUE)) {
     if (!mrb_class_p(old)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a class", old);
     }
@@ -4654,7 +4653,7 @@ static mrb_bool
 const_defined_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit, mrb_bool top)
 {
   check_const_name_sym(mrb, id);
-  if (!inherit) return mrb_iv_defined(mrb, mod, id);
+  if (!inherit) return mrb_const_lookup_at(mrb, mrb_class_ptr(mod), id, NULL, FALSE);
   return mrb_const_defined(mrb, mod, id) || const_in_object_p(mrb, mod, id, top);
 }
 
@@ -4671,7 +4670,8 @@ const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool inherit, mrb_b
     }
     return mrb_const_get(mrb, mod, id);
   }
-  if (mrb_iv_defined(mrb, mod, id)) return mrb_iv_get(mrb, mod, id);
+  mrb_value v;
+  if (mrb_const_lookup_at(mrb, mrb_class_ptr(mod), id, &v, TRUE)) return v;
   mrb_value name = mrb_symbol_value(id);
   return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
@@ -4786,7 +4786,60 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, id, "constant %n not defined", id);
   }
+  /* a pending autoload goes with nothing to show for it */
+  if (mrb_autoload_p(val)) return mrb_nil_value();
   return val;
+}
+
+/*
+ *  call-seq:
+ *     mod.autoload(const, path)   -> nil
+ *
+ *  Registers `path` to be required, with Kernel#require, the first time
+ *  `const` is looked up in `mod`.  A constant already defined is left
+ *  alone.
+ *
+ *     module A
+ *       autoload :B, "a/b"
+ *     end
+ *     A::B   # requires "a/b" first
+ */
+static mrb_value
+mrb_mod_autoload(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym id;
+  mrb_value path;
+
+  mrb_get_args(mrb, "nS", &id, &path);
+  mrb_int len;
+  const char *name = mrb_sym_name_len(mrb, id, &len);
+  if (!mrb_const_name_p(mrb, name, len)) {
+    mrb_name_error(mrb, id, "autoload must be constant name: %n", id);
+  }
+  if (RSTRING_LEN(path) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "empty feature name");
+  }
+  mrb_check_frozen(mrb, mrb_obj_ptr(mod));
+  mrb_autoload_define(mrb, mrb_class_ptr(mod), id, path);
+  return mrb_nil_value();
+}
+
+/*
+ *  call-seq:
+ *     mod.autoload?(const, inherit = true)   -> String or nil
+ *
+ *  Returns the path registered with Module#autoload for `const` in `mod`,
+ *  or in its ancestors when `inherit`, while it is still to be loaded; nil
+ *  otherwise.
+ */
+static mrb_value
+mrb_mod_autoload_p(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym id;
+  mrb_bool inherit = TRUE;
+
+  mrb_get_args(mrb, "n|b", &id, &inherit);
+  return mrb_autoload_path(mrb, mrb_class_ptr(mod), id, inherit);
 }
 
 mrb_value
@@ -5455,6 +5508,8 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_attr_accessor,   MRB_SYM(attr_accessor),    MRB_ARGS_ANY()),                    /* 15.2.2.4.12 */
   MRB_MT_ENTRY(mrb_mod_attr_reader,     MRB_SYM(attr_reader),      MRB_ARGS_ANY()),                    /* 15.2.2.4.13 */
   MRB_MT_ENTRY(mrb_mod_attr_writer,     MRB_SYM(attr_writer),      MRB_ARGS_ANY()),                    /* 15.2.2.4.14 */
+  MRB_MT_ENTRY(mrb_mod_autoload,        MRB_SYM(autoload),         MRB_ARGS_REQ(2)),
+  MRB_MT_ENTRY(mrb_mod_autoload_p,      MRB_SYM_Q(autoload),       MRB_ARGS_ARG(1,1)),
   MRB_MT_ENTRY(mrb_mod_module_eval,     MRB_SYM(class_eval),       MRB_ARGS_ANY()),                    /* 15.2.2.4.15 */
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(const_added),      MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_const_defined,   MRB_SYM_Q(const_defined),  MRB_ARGS_ARG(1,1)),                 /* 15.2.2.4.20 */

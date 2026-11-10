@@ -860,13 +860,59 @@ mrb_f_defined_super(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/* The module Kernel#autoload registers on: the caller's cref, as in CRuby */
+static struct RClass*
+autoload_cref_class(mrb_state *mrb)
+{
+  mrb_callinfo *ci = &mrb->c->ci[-1];
+  struct RClass *c = NULL;
+
+  if (ci >= mrb->c->cibase && ci->proc) c = mrb_vm_cref_class(mrb, ci);
+  if (!c || c->tt == MRB_TT_SCLASS) c = mrb->object_class;
+  return c;
+}
+
+/*
+ *  call-seq:
+ *     autoload(const, path)   -> nil
+ *
+ *  Module#autoload on the module the call is written in, Object at the
+ *  top level.
+ */
+static mrb_value
+mrb_f_autoload(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return mrb_funcall_argv(mrb, mrb_obj_value(autoload_cref_class(mrb)), MRB_SYM(autoload), argc, argv);
+}
+
+/*
+ *  call-seq:
+ *     autoload?(const, inherit = true)   -> String or nil
+ *
+ *  Module#autoload? on the module the call is written in.
+ */
+static mrb_value
+mrb_f_autoload_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return mrb_funcall_argv(mrb, mrb_obj_value(autoload_cref_class(mrb)), MRB_SYM_Q(autoload), argc, argv);
+}
+
 /* `path` holds the names of a constant path from its root down, and `start`
    says where to look the first one up: nil for the caller's lexical scope
    (`A::B::C`), or the module the path is rooted at (`Object` for `::A::B`).
    Each name below the root resolves the way reading `outer::NAME` resolves
    it, so a constant Object holds is out of reach through any other module,
    and `const_missing` is not asked.  A name that is missing, or an outer
-   value that is not a module, ends the walk at nil rather than raising. */
+   value that is not a module, ends the walk at nil rather than raising.
+   A pending autoload is loaded for every name but the last, as in CRuby. */
 static mrb_value
 mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
 {
@@ -881,7 +927,7 @@ mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(start)) {
     mrb_callinfo *ci = &mrb->c->ci[-1];
     if (ci < mrb->c->cibase || ci->proc == NULL) return mrb_nil_value();
-    outer = mrb_vm_const_get_noraise(mrb, ci, mrb_symbol(RARRAY_PTR(path)[0]));
+    outer = mrb_vm_const_get_noraise(mrb, ci, mrb_symbol(RARRAY_PTR(path)[0]), len > 1);
     if (mrb_undef_p(outer)) return mrb_nil_value();
     i = 1;
   }
@@ -894,7 +940,7 @@ mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
       return mrb_nil_value();
     }
     if (!mrb_symbol_p(RARRAY_PTR(path)[i])) return mrb_nil_value();
-    outer = mrb_const_get_noraise(mrb, mrb_class_ptr(outer), mrb_symbol(RARRAY_PTR(path)[i]));
+    outer = mrb_const_get_noraise(mrb, mrb_class_ptr(outer), mrb_symbol(RARRAY_PTR(path)[i]), i < len - 1);
     if (mrb_undef_p(outer)) return mrb_nil_value();
   }
   return mrb_str_new_lit_frozen(mrb, "constant");
@@ -967,6 +1013,8 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
   MRB_MT_ENTRY(mrb_obj_not_match,                MRB_OPSYM(nmatch),      MRB_ARGS_REQ(1)),  /* 11.4.4 c) */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
+  MRB_MT_ENTRY(mrb_f_autoload,                   MRB_SYM(autoload),                  MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
+  MRB_MT_ENTRY(mrb_f_autoload_p,                 MRB_SYM_Q(autoload),                MRB_ARGS_ARG(1,1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_block_given_p_m,    MRB_SYM_Q(block_given),                           MRB_ARGS_NONE() | MRB_MT_PRIVATE),  /* 15.3.1.3.6  */
   MRB_MT_ENTRY(mrb_obj_class_m,                  MRB_SYM(class),                     MRB_ARGS_NONE()),  /* 15.3.1.3.7  */
   MRB_MT_ENTRY(mrb_obj_clone,                    MRB_SYM(clone),                     MRB_ARGS_NONE()),  /* 15.3.1.3.8  */
