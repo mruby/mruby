@@ -34,6 +34,12 @@ assert('Kernel.caller, Kernel#caller') do
   assert_raise(ArgumentError) { c.new.baz(-1, 1) }
   assert_raise(ArgumentError) { c.new.baz(1, -1) }
   assert_raise(TypeError) { c.new.baz(nil) }
+  assert_raise(TypeError) { c.new.baz(nil, nil) }
+  assert_raise(TypeError) { c.new.baz(1, "1") }
+  # a nil length is no length
+  assert_equal c.new.baz(1), c.new.baz(1, nil)
+  assert_equal c.new.baz(1..2), c.new.baz(1..2, nil)
+  assert_nil c.new.baz(10, nil)
 end
 
 assert('Kernel.caller_locations, Kernel#caller_locations') do
@@ -68,7 +74,7 @@ assert('Kernel.caller_locations, Kernel#caller_locations') do
   assert_equal strs[0].inspect, loc.inspect
   assert_equal strs, locs.map { |l| l.to_s }
 
-  [[], [1], [2], [0, 2], [1..2], [1, 0]].each do |args|
+  [[], [1], [2], [0, 2], [1..2], [1, 0], [1, nil], [1..2, nil]].each do |args|
     locs, strs = c.new.baz(*args)
     assert_equal strs, locs.map { |l| l.to_s }, "caller_locations(#{args.inspect[1..-2]})"
   end

@@ -17,10 +17,15 @@
 static mrb_bool
 caller_range(mrb_state *mrb, mrb_int bt_len, mrb_int *levp, mrb_int *np)
 {
-  mrb_value v;
+  mrb_value v, len;
   mrb_int argc, lev, n;
 
-  argc = mrb_get_args(mrb, "|oi", &v, &n);
+  argc = mrb_get_args(mrb, "|oo", &v, &len);
+  /* a nil length is no length, as in CRuby */
+  if (argc == 2) {
+    if (mrb_nil_p(len)) argc = 1;
+    else n = mrb_as_int(mrb, len);
+  }
 
   switch (argc) {
   case 0:
