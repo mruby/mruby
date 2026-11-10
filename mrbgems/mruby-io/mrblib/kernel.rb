@@ -67,6 +67,75 @@ module Kernel
 
   #
   # call-seq:
+  #   pp(obj)              -> obj
+  #   pp(obj1, obj2, ...)  -> [obj1, obj2, ...]
+  #   pp()                 -> nil
+  #
+  # Same as p: mruby has no pretty printer, so each object is written as
+  # its inspect.
+  #
+  module_function def pp(*a)
+    p(*a)
+  end
+
+  #
+  # call-seq:
+  #   warn(*msgs, uplevel: nil, category: nil)  -> nil
+  #
+  # Writes each message to $stderr, each followed by a newline unless it
+  # ends in one; an Array gives its elements. With uplevel: n the message
+  # starts with "file:line: warning: " of the caller n frames up, when
+  # Kernel#caller (mruby-kernel-ext) is there to tell it. category: is
+  # taken for CRuby compatibility; mruby has no Warning categories.
+  #
+  #   warn("disk is full")                  # disk is full
+  #   warn("use bar instead", uplevel: 0)   # app.rb:3: warning: use bar instead
+  #
+  module_function def warn(*msgs, uplevel: nil, category: nil)
+    out = ""
+    # the messages in turn, an Array giving its elements (Array#flatten
+    # and String#<< are mruby-array-ext's and mruby-string-ext's)
+    stack = [msgs]
+    pos = [0]
+    while (n = stack.size) > 0
+      a = stack[n - 1]
+      i = pos[n - 1]
+      if i == a.size
+        stack.pop
+        pos.pop
+        next
+      end
+      pos[n - 1] = i + 1
+      m = a[i]
+      if m.is_a?(Array)
+        stack << m
+        pos << 0
+        next
+      end
+      s = m.to_s
+      out += s
+      out += "\n" unless s[-1] == "\n"
+    end
+    return nil if out.empty?
+    if uplevel
+      uplevel = uplevel.to_int
+      raise ArgumentError, "negative level (#{uplevel})" if uplevel < 0
+      if respond_to?(:caller, true)
+        loc = caller(uplevel + 1, 1)
+        loc = loc && loc[0]
+        if loc
+          i = loc.index(":in ")
+          loc = loc[0, i] if i
+          out = "#{loc}: warning: #{out}"
+        end
+      end
+    end
+    $stderr.write(out)
+    nil
+  end
+
+  #
+  # call-seq:
   #   print(obj, ...)    -> nil
   #
   # Prints each object in turn to $stdout. If the output field separator
