@@ -1183,18 +1183,14 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   /* range check */
   if (head < 0) {
     head += alen;
-    if (head < 0) goto out_of_range;
+    if (head < 0) {
+    out_of_range:
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %i is out of array", head);
+    }
   }
-  if (head > ARY_MAX_SIZE - len) {
-  out_of_range:
-    mrb_raisef(mrb, E_INDEX_ERROR, "index %i is out of array", head);
-  }
-
+  /* only the elements up to the end can be replaced */
+  if (len > alen - head) len = head < alen ? alen - head : 0;
   mrb_int tail = head + len;
-  if (alen < len || alen < tail) {
-    len = alen - head;
-    tail = head + len;
-  }
 
   /* size check */
   if (mrb_array_p(rpl)) {
