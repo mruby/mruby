@@ -22,9 +22,16 @@ static mrc_sym_entry symTable[] = {
   {0, NULL} // sentinel
 };
 
+#ifndef MRC_THREAD_LOCAL
+/* a target that does not take it from mruby/common.h */
+# define MRC_THREAD_LOCAL
+#endif
+
 /* mrc_presym.inc numbers its literals from 1 in table order, which is what
-   lets the enum in mrc_presym.h index this array; slot 0 stays unused. */
-static mrc_sym presym_ids[sizeof(symTable) / sizeof(symTable[0])];
+   lets the enum in mrc_presym.h index this array; slot 0 stays unused.
+   Each parse records the ids its own constant pool gives, so it is per
+   thread under MRC_USE_THREAD_LOCAL, as the rest of the compiler state is. */
+static MRC_THREAD_LOCAL mrc_sym presym_ids[sizeof(symTable) / sizeof(symTable[0])];
 
 mrc_sym
 mrc_presym_id(mrc_sym sym)

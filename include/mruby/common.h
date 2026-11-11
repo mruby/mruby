@@ -123,15 +123,16 @@ MRB_BEGIN_DECL
 #endif
 
 /*
- * Storage class of the two variables mruby-compiler keeps for the whole
+ * Storage class of the variables mruby-compiler keeps for the whole
  * process: `global_mrb`, the state the Prism allocator allocates through,
- * and the Prism arena current for a parse.
+ * the Prism arena current for a parse, and the symbol ids that parse gives
+ * the compiler's preset symbols.
  *
  * By default it is empty, and a process compiles on one thread at a time:
- * two threads compiling at once, even on mrb_states of their own, share both
- * variables and allocate through each other's state and arena.  A host that
- * compiles on several threads defines MRC_USE_THREAD_LOCAL, and both become
- * per-thread.  It is a choice rather than the default because a target whose
+ * two threads compiling at once, even on mrb_states of their own, share
+ * these variables, allocate through each other's state and arena, and read
+ * each other's symbol ids.  A host that compiles on several threads defines
+ * MRC_USE_THREAD_LOCAL, and they all become per-thread.  It is a choice rather than the default because a target whose
  * runtime has no thread-local storage (a bare-metal toolchain may accept the
  * keyword and then fail to link) has to build as before.
  *
