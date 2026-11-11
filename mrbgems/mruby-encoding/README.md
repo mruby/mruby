@@ -21,6 +21,8 @@ A module (not a class, unlike standard Ruby) that holds encoding constants.
 - `Encoding::UTF_8`: Represents the UTF-8 encoding.
 - `Encoding::ASCII_8BIT`: Represents the ASCII-8BIT encoding.
 - `Encoding::BINARY`: An alias for `Encoding::ASCII_8BIT`.
+- `Encoding::US_ASCII`: Names US-ASCII, which every string of ASCII bytes also is; strings are never tagged with it.
+- `Encoding::ASCII`: An alias for `Encoding::US_ASCII`.
 
 ### `String` Methods
 
@@ -32,6 +34,11 @@ A module (not a class, unlike standard Ruby) that holds encoding constants.
   - Changes the string's reported encoding to the specified `encoding_name` (e.g., "UTF-8", "ASCII-8BIT", "BINARY").
   - The actual byte sequence of the string is not changed.
   - Raises an `ArgumentError` if an unsupported encoding name is provided.
+
+### `Symbol` Method
+
+- `symbol.encoding -> EncodingConstant`
+  - Returns the encoding of the symbol's name: `Encoding::US_ASCII` when it is all ASCII, `Encoding::UTF_8` when it is valid UTF-8, and `Encoding::BINARY` otherwise.
 
 ### `Integer` Method
 

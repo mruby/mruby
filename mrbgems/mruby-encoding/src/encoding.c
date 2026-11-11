@@ -84,6 +84,31 @@ str_force_encoding(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   symbol.encoding -> encoding
+ *
+ * Returns the encoding of the symbol's name: US-ASCII when it is all ASCII,
+ * UTF-8 when it is valid UTF-8, and ASCII-8BIT (BINARY) otherwise.
+ *
+ *   :abc.encoding    #=> Encoding::US_ASCII
+ *   :"日本".encoding  #=> Encoding::UTF_8
+ */
+static mrb_value
+sym_encoding(mrb_state *mrb, mrb_value self)
+{
+  mrb_int len;
+  const char *p = mrb_sym_name_len(mrb, mrb_symbol(self), &len);
+
+  for (mrb_int i = 0; i < len; i++) {
+    if ((unsigned char)p[i] >= 0x80) {
+      mrb_value str = mrb_str_new(mrb, p, len);
+      return get_encoding(mrb, mrb_str_valid_encoding_p(mrb, str) ? MRB_SYM(UTF_8) : MRB_SYM(BINARY));
+    }
+  }
+  return get_encoding(mrb, MRB_SYM(US_ASCII));
+}
+
 void
 mrb_mruby_encoding_gem_init(mrb_state* mrb)
 {
@@ -107,7 +132,11 @@ mrb_mruby_encoding_gem_init(mrb_state* mrb)
   mrb_define_const_id(mrb, e, MRB_SYM(UTF_8), mrb_str_new_lit_frozen(mrb, ENC_UTF8));
   /* every string of ASCII bytes is also US-ASCII; the constant lets code
      name the encoding (Active Support lists it) */
-  mrb_define_const_id(mrb, e, MRB_SYM(US_ASCII), mrb_str_new_lit_frozen(mrb, "US-ASCII"));
+  mrb_value ascii = mrb_str_new_lit_frozen(mrb, "US-ASCII");
+  mrb_define_const_id(mrb, e, MRB_SYM(US_ASCII), ascii);
+  mrb_define_const_id(mrb, e, MRB_SYM(ASCII), ascii);
+
+  mrb_define_method_id(mrb, mrb->symbol_class, MRB_SYM(encoding), sym_encoding, MRB_ARGS_NONE());
 }
 
 void
