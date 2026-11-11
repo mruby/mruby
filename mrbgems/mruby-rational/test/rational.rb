@@ -63,6 +63,14 @@ assert 'Kernel#Rational' do
   assert_raise(ArgumentError) { Rational(1,2,3) }
 end
 
+assert 'Kernel#Rational with a Float operand and a zero denominator' do
+  skip 'no Float in this build' unless RATIONAL_FLOAT
+  assert_raise(ZeroDivisionError) { Rational(1, 0) }
+  assert_raise(ZeroDivisionError) { Rational(3.6, 0) }
+  assert_raise(ZeroDivisionError) { Rational(3, 0.0) }
+  assert_raise(ZeroDivisionError) { Rational(3, -0.0) }
+end
+
 assert 'Rational#to_f' do
   skip 'no Float in this build' unless RATIONAL_FLOAT
   assert_float(2.0, Rational(2).to_f)

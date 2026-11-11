@@ -600,6 +600,9 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
   else {
     mrb_float x = mrb_as_float(mrb, a);
     mrb_float y = mrb_as_float(mrb, b);
+    /* a zero denominator is a ZeroDivisionError, as with Integers, and
+       never reaches the division */
+    if (y == 0.0) rat_zerodiv(mrb);
     return rational_new_f(mrb, x/y);
   }
 #endif
