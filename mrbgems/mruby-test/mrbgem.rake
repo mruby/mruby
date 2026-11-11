@@ -75,7 +75,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       f.puts %Q[void mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose);]
       f.puts %Q[void mrb_t_pass_result(mrb_state *dst, mrb_state *src);]
       f.puts %Q[#if defined(MRBTEST_COMPILER_PRISM)]
-      f.puts %Q[extern mrb_state *global_mrb;]
+      f.puts %Q[extern MRC_THREAD_LOCAL mrb_state *global_mrb;]
       f.puts %Q[#endif]
       f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb) {]
       unless g.test_rbfiles.empty?
