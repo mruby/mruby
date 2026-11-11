@@ -571,9 +571,9 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   }
 
   if (end < 0) end += len;
-  if (!excl && (!trunc || end < len)) end++;  /* include end point */
-  len = end - beg;
-  if (len < 0) len = 0;
+  /* include end point; an end of MRB_INT_MAX already covers any sequence */
+  if (!excl && (!trunc || end < len) && end < MRB_INT_MAX) end++;
+  len = end > beg ? end - beg : 0;
 
   *begp = beg;
   *lenp = len;

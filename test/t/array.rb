@@ -850,3 +850,24 @@ assert('Array#== and #eql? with recursive elements') do
   g = [1]; h = [1]; g << h; h << g
   assert_true e == g
 end
+
+assert('Array#[]= with a length or range end at the Integer limit') do
+  # the largest Integer an index may be, 64 or 32 bits
+  max = 0x7fffffff
+  begin
+    m = 0x7fffffffffffffff
+    [][m, 0]
+    max = m
+  rescue RangeError
+  end
+  a = [1,2,3]
+  a[1, max] = 9
+  assert_equal([1,9], a)
+  a = [1,2,3]
+  a[..max] = 9
+  assert_equal([9], a)
+  a = [1,2,3]
+  a[1..max] = []
+  assert_equal([1], a)
+  assert_raise(IndexError) { [1][max..-max-1] = 2 }
+end
