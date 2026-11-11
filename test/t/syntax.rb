@@ -415,6 +415,17 @@ assert('redo', '11.5.2.4.5') do
     end
   end
   assert_equal [1, 2, 3, 4, 1, 2, 3, 4, 1, 4], a
+
+  # redo restarts the block body, so the arguments are taken only once and
+  # keep the values the body gave them
+  n = 0
+  r = Proc.new { |x, (z, w), o = 5, *rest, y, k: 1|
+    x += 10; o += 1; k += 1; z += 1
+    n += 1
+    redo if n < 3
+    [x, rest, y, z, w, o, k]
+  }.call(1, [5, 6], 7, 2, 3, 4)
+  assert_equal [31, [2, 3], 4, 8, 6, 10, 4], r
 end
 
 assert('Abbreviated variable assignment', '11.4.2.3.2') do

@@ -4310,6 +4310,11 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
     }
   }
 
+  if (blk) {
+    /* `redo` restarts the body, not OP_ENTER: entering twice would take the
+       already rearranged registers for the arguments again */
+    s->loop->pc1 = new_label(s);
+  }
   codegen(s, body, VAL);
   pop();
   if (s->pc > 0) {
