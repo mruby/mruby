@@ -45,3 +45,9 @@ assert('SystemExit#success?') do
     assert_true e.success?
   end
 end
+
+assert('Kernel#at_exit') do
+  blk = Proc.new { }
+  assert_same blk, at_exit(&blk)
+  assert_raise(ArgumentError) { at_exit }
+end

@@ -230,6 +230,25 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrb_args *args)
   return EXIT_SUCCESS;
 }
 
+/* The program has ended, raising `mrb->exc` if it is set: run what
+   Kernel#at_exit registered, then report the exception, in CRuby's order,
+   and answer the exit status. `v` is undef when the loader has already
+   reported the error (a syntax error, as it is parsed). */
+static int
+program_end(mrb_state *mrb, mrb_value v, int status)
+{
+  struct RObject *exc = mrb->exc;
+
+  if (exc) {
+    status = MRB_EXC_EXIT_P(exc) ? MRB_EXC_EXIT_STATUS(mrb, exc) : EXIT_FAILURE;
+  }
+  status = mrb_run_at_exit(mrb, status);
+  if (exc && !MRB_EXC_EXIT_P(exc) && !mrb_undef_p(v)) {
+    mrb_print_error(mrb);
+  }
+  return status;
+}
+
 static void
 cleanup(mrb_state *mrb, struct mrb_args *args)
 {
@@ -300,12 +319,9 @@ main(int argc, char **argv)
          ordinary non-irep file all reach this the same way.  Reported the way
          the program's own failure is below, then fatal: a program whose
          library is missing is not one to run. */
-      MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-      if (!mrb_undef_p(v)) {
-        mrb_print_error(mrb);
-      }
+      n = program_end(mrb, v, EXIT_FAILURE);
       cleanup(mrb, &args);
-      return EXIT_FAILURE;
+      return n;
     }
   }
 
@@ -313,13 +329,7 @@ main(int argc, char **argv)
   v = mrb_load_irep_file(mrb, args.rfp);
 
   mrb_gc_arena_restore(mrb, ai);
-  if (mrb->exc) {
-    MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-    if (!mrb_undef_p(v)) {
-      mrb_print_error(mrb);
-    }
-    n = EXIT_FAILURE;
-  }
+  n = program_end(mrb, v, n);
 
   cleanup(mrb, &args);
   return n;
