@@ -1281,6 +1281,91 @@ assert('IO.write, IO.binread and IO.binwrite') do
   File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
 end
 
+assert('IO.read, IO.write and File.open take an encoding') do
+  path = $mrbtest_io_wfname
+  assert_equal 5, File.write(path, "hello", encoding: "UTF-8")
+  assert_equal 5, File.write(path, "hello", mode: "w:UTF-8")
+  assert_equal "hello", File.read(path, encoding: "UTF-8")
+  assert_equal "hello", File.read(path, mode: "r:UTF-8")
+  assert_equal "hello", File.read(path, external_encoding: "UTF-8")
+  assert_equal ["hello"], File.readlines(path, encoding: "UTF-8")
+  lines = []
+  File.foreach(path, encoding: "UTF-8") { |l| lines << l }
+  assert_equal ["hello"], lines
+  assert_equal "hello", File.open(path, "r:UTF-8") { |f| f.read }
+  assert_equal "hello", File.open(path, "r:UTF-8:UTF-8") { |f| f.read }
+  # an encoding mruby does not have reads as it is
+  assert_equal "hello", File.open(path, "r:ISO-8859-1") { |f| f.read }
+
+  # a binary encoding reads bytes
+  File.write(path, "\xC3\xA9")
+  assert_equal 2, File.open(path, "r:BINARY") { |f| f.read.size }
+  assert_equal 2, File.read(path, encoding: "ASCII-8BIT").size
+  File.open(path, "w") {}  # other tests expect it empty
+end
+
+assert('BOM| skips a byte order mark') do
+  path = $mrbtest_io_wfname
+  File.write(path, "\xEF\xBB\xBFhello")
+  assert_equal 8, File.read(path, mode: "rb").bytesize
+  assert_equal "hello", File.read(path, mode: "r:BOM|UTF-8")
+  assert_equal "hello", File.read(path, encoding: "BOM|UTF-8")
+  assert_equal "hello", File.open(path, "rb:BOM|UTF-8") { |f| f.read }
+  # a file that does not start with one, or is shorter than one
+  File.write(path, "hi")
+  assert_equal "hi", File.read(path, mode: "r:BOM|UTF-8")
+  File.write(path, "")
+  assert_equal "", File.read(path, mode: "r:BOM|UTF-8")
+  File.open(path, "w") {}  # other tests expect it empty
+end
+
+assert('File.foreach and IO#each take a separator') do
+  path = $mrbtest_io_wfname
+  File.write(path, "a|b|c")
+  lines = []
+  File.foreach(path, "|") { |l| lines << l }
+  assert_equal ["a|", "b|", "c"], lines
+  File.open(path) { |f| assert_equal ["a|", "b|", "c"], f.each("|").to_a } if Object.const_defined?(:Enumerator)
+  File.open(path, "w") {}  # other tests expect it empty
+end
+
+assert('BOM| skips a byte order mark that comes in pieces') do
+  skip "no popen" unless IO.respond_to?(:_popen) && !MRubyIOTestUtil.win?
+  io = IO.popen("printf '\\357'; sleep 0.2; printf '\\273\\277hi'")
+  begin
+    r = IO.new(io.fileno, "r:BOM|UTF-8", autoclose: false)
+    assert_equal "hi", r.read
+  ensure
+    io.close
+  end
+end
+
+# opens a stream that cannot read its byte order mark, in a method of its own
+# so that no register here holds the stream that did not open
+def io_test_open_bom(dir, how)
+  how == :read ? IO.read(dir, mode: "r:BOM|UTF-8") : File.open(dir, "r:BOM|UTF-8")
+rescue SystemCallError
+  :raised
+end
+
+assert('a stream that cannot read its byte order mark leaves the descriptor to its opener') do
+  skip "a directory reads on Windows" if MRubyIOTestUtil.win?
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    [:read, :open].each do |how|
+      assert_equal :raised, io_test_open_bom(dir, how)
+      # the descriptor the opener closed is the one the next open is handed;
+      # a stream that still held it would close it again when collected
+      File.open($mrbtest_io_rfname) do |f|
+        GC.start
+        assert_equal $mrbtest_io_msg, f.read, how.to_s
+      end
+    end
+  ensure
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
 assert('IO.read and IO.write with an offset that cannot be sought') do
   IO.write($mrbtest_io_wfname, "abc")
   assert_raise(Errno::EINVAL) { IO.write($mrbtest_io_wfname, "Z", -1) }

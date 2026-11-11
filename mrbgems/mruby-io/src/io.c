@@ -57,6 +57,8 @@ struct mrb_data_type mrb_io_type = { "IO", io_free };
 
 static int io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int io_mode_to_flags(mrb_state *mrb, mrb_value mode);
+static int io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr);
+static void io_buf_shift(struct mrb_io_buf *buf, mrb_int n);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
 /* Every method that touches the stream starts here; only the ones that give a
@@ -153,7 +155,8 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
         flags = (flags & ~OPEN_ACCESS_MODE_FLAGS) | O_RDWR;
         break;
       case ':':
-        /* XXX: PASSTHROUGH*/
+        /* the encoding follows ("r:UTF-8"); io_mode_binary_p() reads it */
+        return flags;
       default:
         mode_error(mrb, mode);
     }
@@ -162,22 +165,75 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
   return flags;
 }
 
-/* Does the mode ("rb", "wb+", ... or File::BINARY) or the binmode: option
-   open the stream in binary mode? */
+/* whether `p` (`len` bytes) spells `name`, letter case aside */
 static mrb_bool
-io_mode_binary_p(mrb_state *mrb, mrb_value mode, mrb_value opt)
+io_enc_name_p(const char *p, mrb_int len, const char *name)
 {
-  if (!mrb_nil_p(opt)) {
-    mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(binmode)));
-    if (mrb_test(v)) return TRUE;
+  mrb_int i;
+
+  for (i = 0; i < len && name[i]; i++) {
+    if (TOLOWER(p[i]) != TOLOWER(name[i])) return FALSE;
   }
+  return i == len && name[i] == '\0';
+}
+
+/* An encoding, as a mode names it after its ':' ("r:UTF-8",
+   "rb:BOM|UTF-8:UTF-8") or the encoding: and external_encoding: options do.
+   mruby reads UTF-8 and binary only: ASCII-8BIT and BINARY make the stream
+   binary, and "BOM|" has a UTF-8 byte order mark at the start skipped. Any
+   other name reads as UTF-8; CRuby too ignores a name it does not know. The
+   part after a second ':', the internal encoding, is mruby's own anyway.
+   `*named` is set, since a named encoding decides what a read answers. */
+static void
+io_enc_parse(const char *p, mrb_int len, mrb_bool *named, mrb_bool *binary, mrb_bool *bom)
+{
+  const char *colon = (const char*)memchr(p, ':', len);
+  if (colon) len = colon - p;
+  if (len >= 4 && io_enc_name_p(p, 4, "BOM|")) {
+    *bom = TRUE;
+    p += 4;
+    len -= 4;
+  }
+  if (len == 0) return;
+  *named = TRUE;
+  *binary = io_enc_name_p(p, len, "BINARY") || io_enc_name_p(p, len, "ASCII-8BIT");
+}
+
+/* Does the stream read binary strings? The mode ("rb", "wb+", ... or
+   File::BINARY) or the binmode: option says so, unless an encoding is named
+   ("r:BINARY", "rb:UTF-8", or the encoding: or external_encoding: option),
+   which decides, as in CRuby. `*fd_binary` tells whether the descriptor
+   itself is put in binary mode (no newline conversion), which "b" and a
+   binary encoding do, and `*bom` whether a byte order mark is skipped. */
+static mrb_bool
+io_mode_binary_p(mrb_state *mrb, mrb_value mode, mrb_value opt, mrb_bool *fd_binary, mrb_bool *bom)
+{
+  mrb_bool binary = FALSE, named = FALSE, enc_binary = FALSE;
+
+  *bom = FALSE;
   if (mrb_string_p(mode)) {
-    return memchr(RSTRING_PTR(mode), 'b', RSTRING_LEN(mode)) != NULL;
+    const char *p = RSTRING_PTR(mode);
+    mrb_int len = RSTRING_LEN(mode);
+    const char *colon = (const char*)memchr(p, ':', len);
+    mrb_int flen = colon ? colon - p : len;
+
+    binary = memchr(p, 'b', flen) != NULL;
+    if (colon) io_enc_parse(colon + 1, len - flen - 1, &named, &enc_binary, bom);
   }
-  if (mrb_integer_p(mode)) {
-    return (mrb_integer(mode) & MRB_O_BINARY) != 0;
+  else if (mrb_integer_p(mode)) {
+    binary = (mrb_integer(mode) & MRB_O_BINARY) != 0;
   }
-  return FALSE;
+  if (!mrb_nil_p(opt)) {
+    static const mrb_sym keys[] = { MRB_SYM(encoding), MRB_SYM(external_encoding) };
+    mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(binmode)));
+    if (mrb_test(v)) binary = TRUE;
+    for (int i = 0; i < 2; i++) {
+      v = mrb_hash_get(mrb, opt, mrb_symbol_value(keys[i]));
+      if (mrb_string_p(v)) io_enc_parse(RSTRING_PTR(v), RSTRING_LEN(v), &named, &enc_binary, bom);
+    }
+  }
+  *fd_binary = binary || enc_binary;
+  return named ? enc_binary : binary;
 }
 
 /* On Windows the CRT turns CRLF into LF on a descriptor left in text mode,
@@ -624,6 +680,26 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
   if (errno == EBADF) badfd_error(mrb);
 }
 
+/* "BOM|UTF-8": a UTF-8 byte order mark at the start is no text, and is
+   skipped as the stream opens, as CRuby does. A read may hand over less than
+   the whole mark, as a pipe's may, so reading goes on while what is there
+   could still be one. */
+static mrb_value
+io_skip_bom(mrb_state *mrb, void *p)
+{
+  static const char bom[] = "\xEF\xBB\xBF";
+  struct mrb_io *fptr = (struct mrb_io*)p;
+  struct mrb_io_buf *buf = fptr->buf;
+
+  while (buf->len < 3 && memcmp(buf->mem + buf->start, bom, buf->len) == 0) {
+    if (io_fill_buf_comp(mrb, fptr) == 0) break;  /* the end, or no room */
+  }
+  if (buf->len >= 3 && memcmp(buf->mem + buf->start, bom, 3) == 0) {
+    io_buf_shift(buf, 3);
+  }
+  return mrb_nil_value();
+}
+
 static mrb_value
 io_init(mrb_state *mrb, mrb_value io)
 {
@@ -677,9 +753,21 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->writable = OPEN_WRITABLE_P(flags);
   fptr->close_fd = autoclose;
   fptr->close_fd2 = autoclose;
-  fptr->binmode = io_mode_binary_p(mrb, mode, opt);
-  if (fptr->binmode) io_fd_binmode(fptr);
+  mrb_bool fd_binary, bom;
+  fptr->binmode = io_mode_binary_p(mrb, mode, opt, &fd_binary, &bom);
+  if (fd_binary) io_fd_binmode(fptr);
   io_init_buf(mrb, fptr);
+  if (bom && fptr->readable) {
+    mrb_bool error;
+    mrb_value exc = mrb_protect_error(mrb, io_skip_bom, fptr, &error);
+    if (error) {
+      /* the stream did not open: the descriptor stays the caller's to
+         close, as it is when IO.new raises before taking it */
+      fptr->fd = -1;
+      fptr->fd2 = -1;
+      mrb_exc_raise(mrb, exc);
+    }
+  }
   return io;
 }
 
