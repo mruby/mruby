@@ -971,3 +971,19 @@ assert('Kernel#raise with cause: leaves a frozen exception as it is') do
   assert_same f, e
   assert_nil e.cause
 end
+
+assert('Exception#dup and #clone keep the message and the backtrace') do
+  e = begin
+    raise "msg"
+  rescue => x
+    x
+  end
+  [e.dup, e.clone].each do |c|
+    assert_equal "msg", c.message
+    assert_equal e.backtrace, c.backtrace
+  end
+  e2 = RuntimeError.new("set")
+  e2.set_backtrace(["a:1"])
+  assert_equal "set", e2.dup.message
+  assert_equal ["a:1"], e2.dup.backtrace
+end

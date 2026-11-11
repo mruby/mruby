@@ -5185,8 +5185,20 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_SCLASS:
     case MRB_TT_HASH:
     case MRB_TT_CDATA:
-    case MRB_TT_EXCEPTION:
       mrb_iv_copy(mrb, dest, obj);
+      break;
+    case MRB_TT_EXCEPTION:
+      {
+        struct RException *d = mrb_exc_ptr(dest);
+        struct RException *s = mrb_exc_ptr(obj);
+
+        mrb_iv_copy(mrb, dest, obj);
+        /* the message and the backtrace live outside the instance variables */
+        d->mesg = s->mesg;
+        d->backtrace = s->backtrace;
+        if (d->mesg) mrb_field_write_barrier(mrb, (struct RBasic*)d, d->mesg);
+        if (d->backtrace) mrb_field_write_barrier(mrb, (struct RBasic*)d, d->backtrace);
+      }
       break;
     case MRB_TT_ISTRUCT:
       mrb_istruct_copy(dest, obj);
