@@ -175,6 +175,17 @@ backslash has the same effect on Windows. A regular file followed by either
 applicable separator is reported as absent by `File.exist?` and as not a file
 by `File.file?`.
 
+## Encodings
+
+mruby reads UTF-8 and binary only, so an encoding a mode names after its
+`:` (`"r:UTF-8"`, `"rb:BOM|UTF-8"`, `"w:UTF-8:UTF-8"`), or the `encoding:` and
+`external_encoding:` options give, is read for what mruby can do with it:
+`BINARY` and `ASCII-8BIT` read binary strings, `BOM|` skips a UTF-8 byte
+order mark at the start, and any other name reads as UTF-8. A named
+encoding decides what a read answers, so `"rb:UTF-8"` reads UTF-8 strings.
+`IO.read`, `IO.write`, `IO.readlines` and `File.foreach` hand these options
+to the open.
+
 ## Porting Note
 
 If your (non Windows) platform does not support `getpwnam(3)` for some reason, define `MRB_IO_NO_PWNAM`.

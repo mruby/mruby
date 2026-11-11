@@ -48,7 +48,13 @@ class File < IO
       fd_or_path = fd_or_path.to_path if !(String === fd_or_path) && fd_or_path.respond_to?(:to_path)
       @path = fd_or_path
       fd = IO.sysopen(@path, mode, perm)
-      super(fd, mode, opts)
+      begin
+        super(fd, mode, opts)
+      rescue Exception
+        # the stream did not open on the descriptor, which is ours to close
+        IO._sysclose(fd)
+        raise
+      end
     end
   end
 
@@ -161,13 +167,13 @@ class File < IO
   #   GOT This is line three
   #   GOT And so on...
   #
-  def self.foreach(file)
+  def self.foreach(file, *args, **opts)
     if block_given?
-      self.open(file) do |f|
-        f.each {|l| yield l}
+      self.open(file, **opts) do |f|
+        f.each(*args) {|l| yield l}
       end
     else
-      return self.new(file)
+      return self.new(file, **opts)
     end
   end
 

@@ -113,6 +113,8 @@ class IO
   #   IO.read(name, [length [, offset]] )   -> string
   #   IO.read(name, [length [, offset]], mode: mode)   -> string
   #
+  # The other keyword options (encoding:, binmode:, ...) are IO.open's.
+  #
   # Opens the file, optionally seeks to the given offset, then returns length
   # bytes (defaulting to the rest of the file). read ensures the file is
   # closed before returning.
@@ -121,13 +123,13 @@ class IO
   #   IO.read("testfile", 20)       #=> "This is line one\nTh"
   #   IO.read("testfile", 20, 10)   #=> "ne one\nThis is line "
   #
-  def self.read(path, length=nil, offset=0, mode: "r")
+  def self.read(path, length=nil, offset=0, mode: "r", **opts)
     str = ""
     fd = -1
     io = nil
     begin
       fd = IO.sysopen(path, mode)
-      io = IO.open(fd, mode)
+      io = IO.open(fd, mode, **opts)
       io.seek(offset) if offset && offset != 0
       str = io.read(length)
     ensure
@@ -151,13 +153,13 @@ class IO
   #   IO.readlines("testfile")               #=> ["This is line one\n", "This is line two\n"]
   #   IO.readlines("testfile", chomp: true)  #=> ["This is line one", "This is line two"]
   #
-  def self.readlines(path, *args, chomp: false, mode: "r")
+  def self.readlines(path, *args, chomp: false, mode: "r", **opts)
     lines = nil
     fd = -1
     io = nil
     begin
       fd = IO.sysopen(path, mode)
-      io = IO.open(fd, mode)
+      io = IO.open(fd, mode, **opts)
       lines = io.readlines(*args)
     ensure
       if io
@@ -204,14 +206,14 @@ class IO
   #   IO.write("testfile", "abc")      #=> 3
   #   IO.write("testfile", "Z", 1)     #=> 1, the file holds "aZc"
   #
-  def self.write(path, string, offset=nil, mode: nil)
+  def self.write(path, string, offset=nil, mode: nil, **opts)
     mode ||= offset ? File::WRONLY | File::CREAT : "w"
     fd = -1
     io = nil
     n = 0
     begin
       fd = IO.sysopen(path, mode)
-      io = IO.open(fd, mode)
+      io = IO.open(fd, mode, **opts)
       io.seek(offset) if offset
       n = io.write(string.to_s)
     ensure
@@ -303,10 +305,10 @@ class IO
   #   f.each {|line| puts "#{f.lineno}: #{line}" }
   #
   # 15.2.20.5.3
-  def each(&block)
-    return to_enum(:each) unless block
+  def each(*args, &block)
+    return to_enum(:each, *args) unless block
 
-    while line = self.gets
+    while line = self.gets(*args)
       block.call(line)
     end
     self
