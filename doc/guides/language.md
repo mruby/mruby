@@ -230,6 +230,10 @@ With word boxing on 64-bit, many float values are stored inline
 - **Complex** (`mruby-complex`): complex number support
 - **Bigint** (`mruby-bigint`): arbitrary-precision integers
 
+Integer and Float operators do not call an operand's `coerce` unless the
+`mruby-coerce` gem is in the build; without it, the cost of the check is
+not paid at all.
+
 ## Core Classes
 
 These classes are always available in mruby (no gem required):

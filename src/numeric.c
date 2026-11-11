@@ -20,6 +20,21 @@
 #endif
 #endif
 
+#ifdef MRB_USE_COERCE
+/* `x op y` for a `y` of no numeric type of mruby's own that answers coerce,
+   as `a op b` from `y.coerce(x)`; an operator asks it only where it would
+   give up on `y` otherwise, so the numbers mruby knows never get here */
+#define NUM_COERCE(mrb, x, y, op) do {\
+  mrb_value operand_ = (y);\
+  if (!mrb_integer_p(operand_) && !mrb_float_p(operand_)) {\
+    mrb_value coerced_ = mrb_num_coerce_bin(mrb, x, operand_, op);\
+    if (!mrb_undef_p(coerced_)) return coerced_;\
+  }\
+} while (0)
+#else
+#define NUM_COERCE(mrb, x, y, op) (void)0
+#endif
+
 /**
  * This function is called to raise a RangeError when an integer operation
  * results in an overflow. It's marked mrb_noreturn as it always raises an
@@ -209,6 +224,7 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
       return mrb_float_value(mrb, pow(mrb_bint_as_float(mrb, x), mrb_float(y)));
     }
 #endif
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(pow));
     return mrb_bint_pow(mrb, x, y);
   }
 #endif
@@ -226,6 +242,7 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   else
 #endif
   {
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(pow));
     exp = mrb_as_int(mrb, y);
   }
   if (exp < 0) {
@@ -369,6 +386,7 @@ int_div(mrb_state *mrb, mrb_value x)
     return mrb_float_value(mrb, mrb_div_float(mrb_as_float(mrb, x), mrb_as_float(mrb, y)));
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(div));
     mrb_int_noconv(mrb, y);
   }
 }
@@ -413,6 +431,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
     return flo_floor_div(mrb, mrb_as_float(mrb, x), mrb_float(mrb_get_arg1(mrb)));
   }
 #endif
+  NUM_COERCE(mrb, x, mrb_get_arg1(mrb), MRB_SYM(div));
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     return mrb_bint_div(mrb, x, mrb_get_arg1(mrb));
@@ -429,7 +448,9 @@ int_idiv(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_fdiv(mrb_state *mrb, mrb_value x)
 {
-  mrb_float y = mrb_as_float(mrb,  mrb_get_arg1(mrb));
+  mrb_value other = mrb_get_arg1(mrb);
+  NUM_COERCE(mrb, x, other, MRB_SYM(fdiv));
+  mrb_float y = mrb_as_float(mrb, other);
 
   if (y == 0) {
     mrb_int_zerodiv(mrb);
@@ -446,6 +467,7 @@ int_fdiv(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_quo(mrb_state *mrb, mrb_value x)
 {
+  NUM_COERCE(mrb, x, mrb_get_arg1(mrb), MRB_SYM(quo));
 #ifndef MRB_USE_RATIONAL
 
 #ifdef MRB_NO_FLOAT
@@ -506,6 +528,7 @@ static mrb_value
 flo_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+  NUM_COERCE(mrb, x, y, MRB_OPSYM(pow));
   mrb_float d = pow(mrb_as_float(mrb, x), mrb_as_float(mrb, y));
   return mrb_float_value(mrb, d);
 }
@@ -513,6 +536,7 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
+  NUM_COERCE(mrb, xv, mrb_get_arg1(mrb), MRB_SYM(div));
   return flo_floor_div(mrb, mrb_float(xv), mrb_as_float(mrb, mrb_get_arg1(mrb)));
 }
 
@@ -552,6 +576,7 @@ flo_div(mrb_state *mrb, mrb_value x)
     a = mrb_div_float(a, mrb_float(y));
     return mrb_float_value(mrb, a);
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(div));
     a = mrb_div_float(a, mrb_as_float(mrb, y));
     return mrb_float_value(mrb, a);
   }
@@ -655,6 +680,7 @@ flo_add(mrb_state *mrb, mrb_value x)
     return mrb_complex_add(mrb, y, x);
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(add));
     return mrb_float_value(mrb, a + mrb_as_float(mrb, y));
   }
 }
@@ -682,6 +708,7 @@ flo_sub(mrb_state *mrb, mrb_value x)
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, a, 0), y);
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(sub));
     return mrb_float_value(mrb, a - mrb_as_float(mrb, y));
   }
 }
@@ -709,6 +736,7 @@ flo_mul(mrb_state *mrb, mrb_value x)
     return mrb_complex_mul(mrb, y, x);
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(mul));
     return mrb_float_value(mrb, a * mrb_as_float(mrb, y));
   }
 }
@@ -768,6 +796,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_float mod;
 
+  NUM_COERCE(mrb, x, y, MRB_OPSYM(mod));
   flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), NULL, &mod);
   return mrb_float_value(mrb, mod);
 }
@@ -1336,6 +1365,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb, (mrb_float)a * mrb_as_float(mrb, y));
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(mul));
     mrb_int_noconv(mrb, y);
   }
 }
@@ -1357,6 +1387,7 @@ int_mul(mrb_state *mrb, mrb_value x)
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(mul));
     return mrb_bint_mul(mrb, x, y);
   }
 #endif
@@ -1410,6 +1441,7 @@ int_mod(mrb_state *mrb, mrb_value x)
       return mrb_float_value(mrb, mod);
     }
 #endif
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(mod));
     return mrb_bint_mod(mrb, x, y);
   }
   if (mrb_bigint_p(y)) {
@@ -1427,6 +1459,7 @@ int_mod(mrb_state *mrb, mrb_value x)
     }
     return mrb_int_value(mrb, mod);
   }
+  NUM_COERCE(mrb, x, y, MRB_OPSYM(mod));
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer modulo");
 #else
@@ -1460,6 +1493,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
       return flo_divmod(mrb, mrb_float_value(mrb, f));
     }
 #endif
+    NUM_COERCE(mrb, x, y, MRB_SYM(divmod));
     return mrb_bint_divmod(mrb, x, y);
   }
   if (mrb_bigint_p(y)) {
@@ -1472,6 +1506,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
     intdivmod(mrb, mrb_integer(x), mrb_integer(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_int_value(mrb, div), mrb_int_value(mrb, mod));
   }
+  NUM_COERCE(mrb, x, y, MRB_SYM(divmod));
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer divmod");
 #else
@@ -1487,6 +1522,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
   mrb_float div, mod;
   mrb_value a, b;
 
+  NUM_COERCE(mrb, x, y, MRB_SYM(divmod));
   flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), &div, &mod);
   mrb_check_num_exact(mrb, div);
   a = flo_rounding_int(mrb, div);
@@ -2150,6 +2186,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_complex_add(mrb, y, x);
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(add));
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer addition");
 #else
@@ -2174,6 +2211,7 @@ int_add(mrb_state *mrb, mrb_value self)
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
+    NUM_COERCE(mrb, self, other, MRB_OPSYM(add));
     return mrb_bint_add(mrb, self, other);
   }
 #endif
@@ -2233,6 +2271,7 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #endif
   default:
+    NUM_COERCE(mrb, x, y, MRB_OPSYM(sub));
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer subtraction");
 #else
@@ -2257,6 +2296,7 @@ int_sub(mrb_state *mrb, mrb_value self)
 
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
+    NUM_COERCE(mrb, self, other, MRB_OPSYM(sub));
     return mrb_bint_sub(mrb, self, other);
   }
 #endif
@@ -2572,6 +2612,7 @@ num_cmp(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_int n = cmpnum(mrb, self, other);
 
+  if (n == -2) NUM_COERCE(mrb, self, other, MRB_OPSYM(cmp));
   if (n == -2 || n == CMP_UNORDERED) return mrb_nil_value();
   return mrb_fixnum_value(n);
 }
@@ -2582,6 +2623,19 @@ cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %t with %t failed", v1, v2);
 }
 
+#ifdef MRB_USE_COERCE
+/* a comparison through coerce that answers nil has failed, as in CRuby */
+#define NUM_COERCE_RELOP(mrb, x, y, op) do {\
+  mrb_value coerced_ = mrb_num_coerce_bin(mrb, x, y, op);\
+  if (!mrb_undef_p(coerced_)) {\
+    if (mrb_nil_p(coerced_)) cmperr(mrb, x, y);\
+    return coerced_;\
+  }\
+} while (0)
+#else
+#define NUM_COERCE_RELOP(mrb, x, y, op) (void)0
+#endif
+
 static mrb_value
 num_lt(mrb_state *mrb, mrb_value self)
 {
@@ -2591,7 +2645,10 @@ num_lt(mrb_state *mrb, mrb_value self)
   /* A NaN stands in no order with anything, so every comparison against one is
      false; an exception is not an answer CRuby gives here either. */
   if (n == CMP_UNORDERED) return mrb_false_value();
-  if (n == -2) cmperr(mrb, self, other);
+  if (n == -2) {
+    NUM_COERCE_RELOP(mrb, self, other, MRB_OPSYM(lt));
+    cmperr(mrb, self, other);
+  }
   if (n < 0) return mrb_true_value();
   return mrb_false_value();
 }
@@ -2603,7 +2660,10 @@ num_le(mrb_state *mrb, mrb_value self)
   mrb_int n = cmpnum(mrb, self, other);
 
   if (n == CMP_UNORDERED) return mrb_false_value();
-  if (n == -2) cmperr(mrb, self, other);
+  if (n == -2) {
+    NUM_COERCE_RELOP(mrb, self, other, MRB_OPSYM(le));
+    cmperr(mrb, self, other);
+  }
   if (n <= 0) return mrb_true_value();
   return mrb_false_value();
 }
@@ -2615,7 +2675,10 @@ num_gt(mrb_state *mrb, mrb_value self)
   mrb_int n = cmpnum(mrb, self, other);
 
   if (n == CMP_UNORDERED) return mrb_false_value();
-  if (n == -2) cmperr(mrb, self, other);
+  if (n == -2) {
+    NUM_COERCE_RELOP(mrb, self, other, MRB_OPSYM(gt));
+    cmperr(mrb, self, other);
+  }
   if (n > 0) return mrb_true_value();
   return mrb_false_value();
 }
@@ -2627,7 +2690,10 @@ num_ge(mrb_state *mrb, mrb_value self)
   mrb_int n = cmpnum(mrb, self, other);
 
   if (n == CMP_UNORDERED) return mrb_false_value();
-  if (n == -2) cmperr(mrb, self, other);
+  if (n == -2) {
+    NUM_COERCE_RELOP(mrb, self, other, MRB_OPSYM(ge));
+    cmperr(mrb, self, other);
+  }
   if (n >= 0) return mrb_true_value();
   return mrb_false_value();
 }

@@ -225,6 +225,9 @@ mrb_value mrb_rational_hash(mrb_state *mrb, mrb_value rat);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif
+#ifdef MRB_USE_COERCE
+mrb_value mrb_num_coerce_bin(mrb_state *mrb, mrb_value x, mrb_value y, mrb_sym op);
+#endif
 #ifdef MRB_USE_SET
 size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
 void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
