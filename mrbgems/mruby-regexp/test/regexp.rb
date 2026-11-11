@@ -603,3 +603,47 @@ assert('Regexp - a literal is found wherever the scan on its ends leaves it') do
   assert_equal 512, (weave + 'ab').index(/ab/)
   assert_equal 513, (weave + 'zab').index(/ab/)
 end
+
+assert("Regexp#=~ binds named captures to locals") do
+  a = :old
+  assert_equal 1, /(?<a>x)(?<b>y)?/ =~ "zx"
+  assert_equal "x", a
+  # a group that took no part in the match binds nil
+  assert_nil b
+
+  # a failed match binds every name to nil
+  a = :old
+  assert_nil(/(?<a>x)/ =~ "q")
+  assert_nil a
+  assert_nil(/(?<n>\d+)/ =~ nil)
+  assert_nil n
+
+  # a name given to several groups binds the one that matched
+  /(?<d>x)|(?<d>y)/ =~ "y"
+  assert_equal "y", d
+
+  # as a statement too, and in a block, to a local of the scope around it
+  s = nil
+  [1].each { /(?<s>.)/ =~ "k" }
+  assert_equal "k", s
+  [1].each { /(?<inner>.)/ =~ "j"; assert_equal "j", inner }
+end
+
+assert("Regexp#=~ binds named captures by $~, not by what =~ answers") do
+  /q/ =~ "z"  # leaves $~ nil
+  class Regexp
+    alias_method :__named_capture_test_match, :=~
+    def =~(str); 1; end
+  end
+  begin
+    x = :old
+    r = /(?<x>a)/ =~ "a"
+  ensure
+    class Regexp
+      alias_method :=~, :__named_capture_test_match
+      remove_method :__named_capture_test_match
+    end
+  end
+  assert_equal 1, r
+  assert_nil x
+end
