@@ -167,6 +167,14 @@ assert('Kernel#local_variables', '15.3.1.3.28') do
   k = Class.new
   local_var_dm_maker(k)
   assert_equal [:b, :kl], k.new.dm_list
+
+  # a pattern nested in a destructured parameter adds no name of its own
+  def local_var_nested((((a, b)), c), d) local_variables end
+  assert_equal [:a, :b, :c, :d], local_var_nested([[[1, 2]], 3], 4).sort
+  def local_var_nested_blk
+    Proc.new { |((x, y)), z| local_variables }.call([[1, 2]], 3)
+  end
+  assert_equal [:x, :y, :z], local_var_nested_blk.sort
 end
 
 # Kernel.local_variables is not provided by mruby. '15.3.1.2.7'

@@ -4131,6 +4131,9 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
       if (nint(parameters->requireds.nodes[i]) == PM_MULTI_TARGET_NODE) {
         CAST3(multi_target, parameters->requireds.nodes[i], m);
         for (size_t j = 0; j < m->lefts.size; j++) {
+          /* a nested pattern or a splat has no name of its own; the names
+             inside it come in with Prism's locals below */
+          if (nint(m->lefts.nodes[j]) != PM_REQUIRED_PARAMETER_NODE) continue;
           mrc_constant_id_list_append(s, lv, ((pm_required_parameter_node_t *)m->lefts.nodes[j])->name);
         }
       }
@@ -4139,6 +4142,9 @@ lambda_body(mrc_codegen_scope *s, mrc_node *tree, mrc_node *body, pm_constant_id
       if (nint(parameters->posts.nodes[i]) == PM_MULTI_TARGET_NODE) {
         CAST3(multi_target, parameters->posts.nodes[i], m);
         for (size_t j = 0; j < m->lefts.size; j++) {
+          /* a nested pattern or a splat has no name of its own; the names
+             inside it come in with Prism's locals below */
+          if (nint(m->lefts.nodes[j]) != PM_REQUIRED_PARAMETER_NODE) continue;
           mrc_constant_id_list_append(s, lv, ((pm_required_parameter_node_t *)m->lefts.nodes[j])->name);
         }
       }
