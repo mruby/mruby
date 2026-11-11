@@ -213,3 +213,62 @@ assert('Module#< and friends with singleton classes') do
   assert_true string_sc < object_sc
   assert_nil Comparable <=> string_sc
 end
+
+assert 'Module#set_temporary_name' do
+  m = Module.new
+  assert_same m, m.set_temporary_name("fake_name")
+  assert_equal "fake_name", m.name
+  assert_equal "fake_name", m.to_s
+  assert_equal "fake_name", m.inspect
+  assert_true m.name.frozen?
+
+  c = Class.new
+  c.set_temporary_name("<tmp>")
+  assert_equal "#<<tmp>:", c.new.inspect[0, 8]
+  c.set_temporary_name("again")
+  assert_equal "again", c.name
+  c.set_temporary_name(nil)
+  assert_nil c.name
+end
+
+assert 'Module#set_temporary_name names what is nested in it' do
+  m = Module.new
+  m.set_temporary_name("fake_outer")
+  m::Inner = Class.new
+  assert_equal "fake_outer::Inner", m::Inner.name
+
+  # a constant gives the module and what is in it permanent names
+  ModuleTestTemporaryName = m
+  assert_equal "ModuleTestTemporaryName", m.name
+  assert_equal "ModuleTestTemporaryName::Inner", m::Inner.name
+  assert_raise(RuntimeError) { m.set_temporary_name("other") }
+end
+
+assert 'Module#set_temporary_name checks the name' do
+  m = Module.new
+  assert_raise(ArgumentError) { m.set_temporary_name("") }
+  assert_raise(ArgumentError) { m.set_temporary_name("Foo") }
+  assert_raise(ArgumentError) { m.set_temporary_name("Foo::Bar") }
+  assert_raise(TypeError) { m.set_temporary_name(:sym) }
+  assert_equal "foo::Bar", m.set_temporary_name("foo::Bar").name
+  assert_raise(RuntimeError) { String.set_temporary_name("str") }
+end
+
+assert 'Module#set_temporary_name of a module nested in one with a temporary name' do
+  m = Module.new
+  m.set_temporary_name("fake_top")
+  m::Inner = Class.new
+  # its own temporary name wins over the one through the module around it
+  m::Inner.set_temporary_name("custom")
+  assert_equal "custom", m::Inner.name
+  class m::Inner::Grandchild; end
+  m::Inner::Assigned = Class.new
+  assert_equal "custom::Grandchild", m::Inner::Grandchild.name
+  assert_equal "custom::Assigned", m::Inner::Assigned.name
+
+  # a constant names them all for good, however deep
+  ModuleTestTemporaryNameDeep = m
+  assert_equal "ModuleTestTemporaryNameDeep::Inner", m::Inner.name
+  assert_equal "ModuleTestTemporaryNameDeep::Inner::Grandchild", m::Inner::Grandchild.name
+  assert_equal "ModuleTestTemporaryNameDeep::Inner::Assigned", m::Inner::Assigned.name
+end

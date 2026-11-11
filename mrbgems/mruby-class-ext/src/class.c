@@ -30,6 +30,64 @@ mod_name(mrb_state *mrb, mrb_value self)
   return name;
 }
 
+/* whether `p` reads as a constant path such as "Foo" or "Foo::Bar" */
+static mrb_bool
+const_path_p(const char *p, mrb_int len)
+{
+  const char *e = p + len;
+
+  for (;;) {
+    if (p == e || !ISUPPER(*p)) return FALSE;
+    p++;
+    while (p < e && (ISALNUM(*p) || *p == '_' || (unsigned char)*p >= 0x80)) p++;
+    if (p == e) return TRUE;
+    if (e - p < 2 || p[0] != ':' || p[1] != ':') return FALSE;
+    p += 2;
+  }
+}
+
+/*
+ * call-seq:
+ *   mod.set_temporary_name(string) -> self
+ *   mod.set_temporary_name(nil)    -> self
+ *
+ * Gives an anonymous module or class a name to show (Module#name,
+ * Module#to_s, the inspect of its instances) until a constant gives it one
+ * of its own; nil takes the temporary name away again. The name may not
+ * read as a constant path, and a module with a permanent name keeps it.
+ *
+ *   m = Module.new
+ *   m.set_temporary_name("fake_name")
+ *   m.name          #=> "fake_name"
+ *   M = m
+ *   m.name          #=> "M"
+ */
+static mrb_value
+mod_set_temporary_name(mrb_state *mrb, mrb_value self)
+{
+  struct RClass *c = mrb_class_ptr(self);
+  mrb_value name;
+
+  mrb_get_args(mrb, "S!", &name);
+  /* settle a permanent name a constant already gives it */
+  mrb_class_path(mrb, c);
+  if (mrb_obj_iv_defined(mrb, (struct RObject*)c, MRB_SYM(__classname__))) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "can't change permanent name");
+  }
+  if (!mrb_nil_p(name)) {
+    if (RSTRING_LEN(name) == 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "empty class/module name");
+    }
+    if (const_path_p(RSTRING_PTR(name), RSTRING_LEN(name))) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "the temporary name must not be a constant path to avoid confusion");
+    }
+    name = mrb_str_dup(mrb, name);
+    mrb_basic_ptr(name)->frozen = 1;
+  }
+  mrb_obj_iv_set_force(mrb, (struct RObject*)c, MRB_SYM(__tmpname__), name);
+  return self;
+}
+
 /*
  * Check if a module/class is a singleton class.
  *
@@ -350,6 +408,7 @@ static const mrb_mt_entry mod_ext_rom_entries[] = {
   MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(class_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
   MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(module_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
   MRB_MT_ENTRY(mod_name,              MRB_SYM(name),           MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mod_set_temporary_name, MRB_SYM(set_temporary_name), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mod_singleton_class_p, MRB_SYM_Q(singleton_class), MRB_ARGS_NONE()),
 };
 
