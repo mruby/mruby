@@ -23,11 +23,12 @@ assert('at_exit blocks registered while they run run too') do
   assert_equal "outer\nnested\n", out
 end
 
-assert('at_exit sees the exception the program ended with, before it is reported') do
+assert('at_exit sees the exception the program ended with') do
   skip "no mruby command" unless at_exit_mruby?
   _, err, status = at_exit_run('at_exit { $stderr.puts "h #{$!.message}" }; raise "boom"')
-  assert_true err.start_with?("h boom\n"), err
+  # the blocks run as the state is closed, after the exception is reported
   assert_true err.include?("boom (RuntimeError)"), err
+  assert_true err.end_with?("h boom\n"), err
   assert_equal 1, status
 end
 
@@ -67,7 +68,7 @@ end
 assert('the exception the program ended with outlives a block that lets go of it') do
   skip "no mruby command" unless at_exit_mruby?
   _, err, status = at_exit_run('at_exit { GC.start; $stderr.puts "sees #{$!.message}" }; at_exit { $! = nil; GC.start }; raise "boom"')
-  assert_true err.start_with?("sees boom\n"), err
   assert_true err.include?("boom (RuntimeError)"), err
+  assert_true err.end_with?("sees boom\n"), err
   assert_equal 1, status
 end

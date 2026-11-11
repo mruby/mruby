@@ -1887,11 +1887,6 @@ MRB_API void* mrb_temp_alloc(mrb_state *mrb, size_t);
 
 MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
-/* Kernel#at_exit: register a proc to call when the program ends, and run
-   them (the last first), answering the exit status the program ends with */
-MRB_API void mrb_at_exit(mrb_state *mrb, mrb_value proc);
-MRB_API int mrb_run_at_exit(mrb_state *mrb, int status);
-
 MRB_API void mrb_show_version(mrb_state *mrb);
 MRB_API void mrb_show_copyright(mrb_state *mrb);
 

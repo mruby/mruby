@@ -230,10 +230,11 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrb_args *args)
   return EXIT_SUCCESS;
 }
 
-/* The program has ended, raising `mrb->exc` if it is set: run what
-   Kernel#at_exit registered, then report the exception, in CRuby's order,
-   and answer the exit status. `v` is undef when the loader has already
-   reported the error (a syntax error, as it is parsed). */
+/* The program has ended, raising `mrb->exc` if it is set: report the
+   exception and answer the exit status. `v` is undef when the loader has
+   already reported the error (a syntax error, as it is parsed). Even on
+   SystemExit the state is closed on the way out, which runs what
+   Kernel#at_exit registered. */
 static int
 program_end(mrb_state *mrb, mrb_value v, int status)
 {
@@ -242,7 +243,6 @@ program_end(mrb_state *mrb, mrb_value v, int status)
   if (exc) {
     status = MRB_EXC_EXIT_P(exc) ? MRB_EXC_EXIT_STATUS(mrb, exc) : EXIT_FAILURE;
   }
-  status = mrb_run_at_exit(mrb, status);
   if (exc && !MRB_EXC_EXIT_P(exc) && !mrb_undef_p(v)) {
     mrb_print_error(mrb);
   }
