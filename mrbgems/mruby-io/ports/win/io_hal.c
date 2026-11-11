@@ -64,8 +64,8 @@ perm_from_hal(mrb_int m)
 static void
 convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
 {
-  dst->st_dev = (mrb_int)src->st_dev;
-  dst->st_ino = (mrb_int)src->st_ino;
+  dst->st_dev = (uint64_t)src->st_dev;
+  dst->st_ino = (uint64_t)src->st_ino;
   /* The kind is tested with the runtime's own names and written in the
      HAL's terms; _stat64() names a regular file, a directory and a
      character device and nothing else, and a kind it cannot name leaves

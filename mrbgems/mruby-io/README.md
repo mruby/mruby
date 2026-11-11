@@ -106,24 +106,25 @@ Add the line below to your build configuration.
 | File.absolute_path          |          |          |
 | File.atime                  | o        |          |
 | File.basename               | o        |          |
-| File.blockdev?              |          | FileTest |
-| File.chardev?               |          | FileTest |
+| File.blockdev?              | o        | FileTest |
+| File.chardev?               | o        | FileTest |
 | File.chmod                  | o        |          |
 | File.chown                  |          |          |
 | File.ctime                  | o        |          |
 | File.delete, File.unlink    | o        |          |
 | File.directory?             | o        | FileTest |
 | File.dirname                | o        |          |
+| File.empty?                 | o        | FileTest |
 | File.executable?            | o        | FileTest |
-| File.executable_real?       |          | FileTest |
+| File.executable_real?       | o        | FileTest |
 | File.exist?, exists?        | o        | FileTest |
 | File.expand_path            | o        |          |
 | File.extname                | o        |          |
 | File.file?                  | o        | FileTest |
 | File.fnmatch, File.fnmatch? | o        |          |
-| File.ftype                  |          |          |
-| File.grpowned?              |          | FileTest |
-| File.identical?             |          | FileTest |
+| File.ftype                  | o        |          |
+| File.grpowned?              | o        | FileTest |
+| File.identical?             | o        | FileTest |
 | File.join                   | o        |          |
 | File.lchmod                 |          |          |
 | File.lchown                 |          |          |
@@ -131,32 +132,32 @@ Add the line below to your build configuration.
 | File.lstat                  |          |          |
 | File.mtime                  | o        |          |
 | File.new, File.open         | o        |          |
-| File.owned?                 |          | FileTest |
+| File.owned?                 | o        | FileTest |
 | File.path                   |          |          |
 | File.pipe?                  | o        | FileTest |
 | File.readable?              | o        | FileTest |
-| File.readable_real?         |          | FileTest |
+| File.readable_real?         | o        | FileTest |
 | File.readlink               | o        |          |
 | File.realdirpath            |          |          |
 | File.realpath               | o        |          |
 | File.rename                 | o        |          |
-| File.setgid?                |          | FileTest |
-| File.setuid?                |          | FileTest |
+| File.setgid?                | o        | FileTest |
+| File.setuid?                | o        | FileTest |
 | File.size                   | o        |          |
 | File.size?                  | o        | FileTest |
 | File.socket?                | o        | FileTest |
 | File.split                  |          |          |
 | File.stat                   |          |          |
-| File.sticky?                |          | FileTest |
+| File.sticky?                | o        | FileTest |
 | File.symlink                |          |          |
 | File.symlink?               | o        | FileTest |
 | File.truncate               |          |          |
 | File.umask                  | o        |          |
 | File.utime                  | o        |          |
-| File.world_readable?        |          |          |
-| File.world_writable?        |          |          |
+| File.world_readable?        | o        |          |
+| File.world_writable?        | o        |          |
 | File.writable?              | o        | FileTest |
-| File.writable_real?         |          | FileTest |
+| File.writable_real?         | o        | FileTest |
 | File.zero?                  | o        | FileTest |
 | File#atime                  | o        |          |
 | File#chmod                  |          |          |
@@ -198,11 +199,19 @@ implement fails to link.
 | `MRB_HAL_IO_HAS_STAT_FIFO`     | `FileTest.pipe?`                | o                 |     |
 | `MRB_HAL_IO_HAS_STAT_SYMLINK`  | `FileTest.symlink?`             | o                 |     |
 | `MRB_HAL_IO_HAS_STAT_SOCKET`   | `FileTest.socket?`              | o                 |     |
+| `MRB_HAL_IO_HAS_STAT_INODE`    | `FileTest.identical?`           | o                 |     |
+| `MRB_HAL_IO_HAS_OWNER`         | `FileTest.owned?`, `grpowned?`  | o                 |     |
 | `MRB_HAL_IO_HAS_SPAWN_PROCESS` | `IO.popen`                      | o, not on iOS     | o   |
 
-The three `STAT` macros name no port function. They say which file kinds the
+`MRB_HAL_IO_HAS_OWNER` guards `mrb_hal_io_owner()`, which answers whether
+the process owns a file by its user and by its group. `MRB_IO_ACCESS_REAL`
+asks `mrb_hal_io_access()` by the real IDs rather than the effective ones,
+for the `_real?` predicates; a port where the two are one ignores it.
+
+The `STAT` macros name no port function. They say which file kinds the
 `st_mode` from `mrb_hal_io_stat()` can hold, and the predicate each guards
-reads that kind through the `MRB_IO_S_IS*` macros of `io_hal.h`.
+reads that kind through the `MRB_IO_S_IS*` macros of `io_hal.h`;
+`MRB_HAL_IO_HAS_STAT_INODE` says that its `st_dev` and `st_ino` name a file.
 
 `MRB_NO_IO_POPEN` is a build's veto: a configuration that defines it gets the
 gem without `IO.popen` whatever the port could do, `io_hal.h` undefining

@@ -125,8 +125,8 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
 #undef st_mtime
 #undef st_ctime
 
-  dst->st_dev = (mrb_int)src->st_dev;
-  dst->st_ino = (mrb_int)src->st_ino;
+  dst->st_dev = (uint64_t)src->st_dev;
+  dst->st_ino = (uint64_t)src->st_ino;
   /* The kind is written in the HAL's terms.  What the gem may read of it
      is the port's declaration; where the kinds are mapped one by one, a
      kind the port does not declare is not written either. */
@@ -243,11 +243,42 @@ mrb_hal_io_access(mrb_state *mrb, const char *path, int mode)
   if (mode & MRB_IO_ACCESS_W) amode |= W_OK;
   if (mode & MRB_IO_ACCESS_X) amode |= X_OK;
 #ifdef AT_EACCESS
-  /* by the effective IDs, as CRuby's File.readable? and the rest ask */
-  return faccessat(AT_FDCWD, path, amode, AT_EACCESS);
-#else
-  return access(path, amode);
+  /* by the effective IDs, as CRuby's File.readable? and the rest ask;
+     access(2) asks by the real ones, for File.readable_real? and the rest */
+  if (!(mode & MRB_IO_ACCESS_REAL)) {
+    return faccessat(AT_FDCWD, path, amode, AT_EACCESS);
+  }
 #endif
+  return access(path, amode);
+}
+
+int
+mrb_hal_io_owner(mrb_state *mrb, const mrb_io_stat *st)
+{
+  int owner = 0;
+
+  (void)mrb;
+  if ((uid_t)st->st_uid == geteuid()) owner |= MRB_IO_OWNER_USER;
+  if ((gid_t)st->st_gid == getegid()) {
+    owner |= MRB_IO_OWNER_GROUP;
+  }
+  else {
+    int n = getgroups(0, NULL);
+    if (n > 0) {
+      gid_t *groups = (gid_t*)malloc(sizeof(gid_t) * n);
+      if (groups) {
+        n = getgroups(n, groups);
+        for (int i = 0; i < n; i++) {
+          if (groups[i] == (gid_t)st->st_gid) {
+            owner |= MRB_IO_OWNER_GROUP;
+            break;
+          }
+        }
+        free(groups);
+      }
+    }
+  }
+  return owner;
 }
 
 int

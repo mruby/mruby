@@ -215,4 +215,86 @@ assert("FileTest.zero?") do
   assert_true fp2.closed?
 end
 
+assert("File.ftype") do
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  f = "#{dir}/f"
+  l = "#{dir}/l"
+  begin
+    File.open(f, "w") { |io| io.write "x" }
+    assert_equal "file", File.ftype(f)
+    assert_equal "directory", File.ftype(dir)
+    File.open(f) { |io| assert_equal "file", File.ftype(io) }
+    if File.respond_to?(:symlink)
+      File.symlink(f, l)
+      assert_equal "link", File.ftype(l)
+    end
+    assert_equal "characterSpecial", File.ftype("/dev/null") if File.exist?("/dev/null")
+    assert_raise(SystemCallError) { File.ftype("#{dir}/none") }
+  ensure
+    File.delete(l) rescue nil
+    File.delete(f) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
+assert("FileTest.blockdev?, chardev?, setuid?, setgid?, sticky?") do
+  assert_false FileTest.blockdev?($mrbtest_io_rfname)
+  assert_false FileTest.chardev?($mrbtest_io_rfname)
+  assert_true FileTest.chardev?("/dev/null") if File.exist?("/dev/null")
+  assert_false FileTest.setuid?($mrbtest_io_rfname)
+  assert_false FileTest.setgid?($mrbtest_io_rfname)
+  assert_false FileTest.sticky?($mrbtest_io_rfname)
+  assert_false FileTest.chardev?("/no/such/file")
+  assert_false FileTest.sticky?("/no/such/file")
+end
+
+assert("FileTest.world_readable? and world_writable?") do
+  skip "no permission bits for others" if MRubyIOTestUtil.win?
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  f = "#{dir}/f"
+  begin
+    File.open(f, "w") {}
+    File.chmod(0644, f)
+    assert_equal 0644, FileTest.world_readable?(f)
+    assert_nil FileTest.world_writable?(f)
+    File.chmod(0600, f)
+    assert_nil FileTest.world_readable?(f)
+    assert_nil FileTest.world_readable?("#{dir}/none")
+  ensure
+    File.delete(f) rescue nil
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
+assert("FileTest.empty?") do
+  assert_false FileTest.empty?($mrbtest_io_rfname)
+  assert_false FileTest.empty?("/no/such/file")
+end
+
+assert("FileTest.readable_real?, writable_real?, executable_real?") do
+  assert_true FileTest.readable_real?($mrbtest_io_rfname)
+  assert_true FileTest.writable_real?($mrbtest_io_wfname)
+  assert_false FileTest.readable_real?("/no/such/file")
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    assert_true FileTest.executable_real?(dir)
+  ensure
+    MRubyIOTestUtil.rmdir dir
+  end
+end
+
+assert("FileTest.owned? and grpowned?") do
+  skip "the port has no owner" unless FileTest.respond_to?(:owned?)
+  assert_true FileTest.owned?($mrbtest_io_wfname)
+  assert_false FileTest.owned?("/no/such/file")
+  assert_false FileTest.grpowned?("/no/such/file")
+end
+
+assert("FileTest.identical?") do
+  skip "the port has no inode" unless FileTest.respond_to?(:identical?)
+  assert_true FileTest.identical?($mrbtest_io_rfname, $mrbtest_io_rfname)
+  assert_false FileTest.identical?($mrbtest_io_rfname, $mrbtest_io_wfname)
+  assert_false FileTest.identical?($mrbtest_io_rfname, "/no/such/file")
+end
+
 MRubyIOTestUtil.io_test_cleanup

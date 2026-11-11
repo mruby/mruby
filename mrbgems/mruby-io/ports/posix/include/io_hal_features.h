@@ -29,6 +29,11 @@
 #define MRB_HAL_IO_HAS_STAT_FIFO
 #define MRB_HAL_IO_HAS_STAT_SYMLINK
 #define MRB_HAL_IO_HAS_STAT_SOCKET
+/* st_dev and st_ino from mrb_hal_io_stat() name a file: `File.identical?`. */
+#define MRB_HAL_IO_HAS_STAT_INODE
+/* geteuid(2), getegid(2) and getgroups(2): mrb_hal_io_owner(), for
+   `File.owned?` and `File.grpowned?`. */
+#define MRB_HAL_IO_HAS_OWNER
 
 /* fork(2) and execl(3), and waitpid(2) for the child: `IO.popen`.  iOS
    lets no process run another, whatever the configuration asks for. */
