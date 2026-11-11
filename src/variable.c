@@ -2335,7 +2335,9 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   mrb_int len;
   const char *str = mrb_sym_name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
-  if (RSTRING_PTR(path)[0] != '#') {
+  /* the path is kept only once the outer one has a name of its own, which
+     an anonymous outer or one with a temporary name does not */
+  if (mrb_obj_iv_defined(mrb, (struct RObject*)outer, MRB_SYM(__classname__))) {
     iv_del(mrb, c->iv, MRB_SYM(__outer__), NULL);
     iv_put(mrb, c->iv, MRB_SYM(__classname__), path);
     mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
