@@ -673,10 +673,14 @@ module MRuby
       return [] if collisions.empty?
 
       f.puts "\n/* Rename #{gem.name} static symbols colliding with earlier ones */"
-      collisions.sort.each do |sym|
+      write_rename_defines(f, gem, collisions)
+      collisions
+    end
+
+    def write_rename_defines(f, gem, syms)
+      syms.sort.each do |sym|
         f.puts "#define #{sym} #{gem.name.tr('-', '_')}_amalg_#{sym}"
       end
-      collisions
     end
 
     def write_static_rename_cleanup(f, collisions)
@@ -753,7 +757,11 @@ module MRuby
             write_static_rename_cleanup(f, local)
             # Clear macros between source files to avoid conflicts
             # (e.g., mrb_stat macro in file.c vs function in file_test.c)
-            write_macro_cleanup(f, "#{gem.name}/#{File.basename(path)}") if idx < sources.size - 1
+            next if idx == sources.size - 1
+            write_macro_cleanup(f, "#{gem.name}/#{File.basename(path)}")
+            # the cleanup also drops a rename whose name is in the list
+            # (prism's static peek), which the gem's later sources still need
+            write_rename_defines(f, gem, renamed & CONFLICTING_MACROS)
           end
           write_static_rename_cleanup(f, renamed)
         end
