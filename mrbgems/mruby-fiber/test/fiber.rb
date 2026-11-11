@@ -239,3 +239,44 @@ assert('Fiber instance variables') do
   assert_equal 2, f.resume
   assert_equal "tag", f.tag
 end
+
+assert('Fiber[] and Fiber[]=') do
+  Fiber[:fiber_test_key] = 1
+  assert_equal 1, Fiber[:fiber_test_key]
+  assert_equal 1, Fiber["fiber_test_key"]
+  GC.start
+  assert_equal 1, Fiber[:fiber_test_key]
+  assert_raise(TypeError) { Fiber[1] }
+
+  # a new fiber starts from a copy of the storage of the one that makes it
+  seen = Fiber.new do
+    s = Fiber[:fiber_test_key]
+    Fiber[:fiber_test_key] = 2
+    Fiber[:fiber_test_child] = 3
+    s
+  end.resume
+  assert_equal 1, seen
+  assert_equal 1, Fiber[:fiber_test_key]
+  assert_nil Fiber[:fiber_test_child]
+
+  Fiber[:fiber_test_key] = nil
+  assert_false Fiber.current.storage.key?(:fiber_test_key)
+end
+
+assert('Fiber.new(storage:)') do
+  assert_equal({a: 1}, Fiber.new(storage: {a: 1}) { Fiber.current.storage }.resume)
+  assert_nil Fiber.new(storage: nil) { Fiber.current.storage }.resume
+  assert_raise(TypeError) { Fiber.new(storage: 1) { } }
+  assert_raise(TypeError) { Fiber.new(storage: {"a" => 1}) { } }
+end
+
+assert('Fiber#storage and Fiber#storage=') do
+  f = Fiber.current
+  saved = f.storage
+  f.storage = {fiber_test_s: 1}
+  copy = f.storage
+  copy[:fiber_test_s] = 2
+  assert_equal 1, Fiber[:fiber_test_s]
+  assert_raise(ArgumentError) { Fiber.new { }.storage }
+  f.storage = saved
+end

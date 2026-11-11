@@ -6,6 +6,8 @@
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
+#include <mruby/hash.h>
+#include <mruby/variable.h>
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
 
@@ -125,12 +127,31 @@ init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
  *    resuming dead fiber (FiberError)
  *
  */
+static mrb_value fiber_storage_check(mrb_state *mrb, mrb_value storage);
+static mrb_value fiber_storage_of(mrb_state *mrb, mrb_value fib);
+
 static mrb_value
 fiber_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
-  mrb_get_args(mrb, "&!", &blk);
-  return init_fiber(mrb, fiber_ptr(self), mrb_proc_ptr(blk));
+  mrb_value storage;
+  const mrb_sym kw_names[1] = { MRB_SYM(storage) };
+  const mrb_kwargs kwargs = { 1, 0, kw_names, &storage, NULL };
+
+  mrb_get_args(mrb, ":&!", &kwargs, &blk);
+  if (mrb_undef_p(storage) || mrb_true_p(storage)) {
+    /* a copy of the storage of the fiber that makes it, as in CRuby */
+    storage = mrb->c->fib ? fiber_storage_of(mrb, mrb_obj_value(mrb->c->fib)) : mrb_nil_value();
+    if (!mrb_nil_p(storage)) storage = mrb_hash_dup(mrb, storage);
+  }
+  else {
+    storage = fiber_storage_check(mrb, storage);
+  }
+  mrb_value fib = init_fiber(mrb, fiber_ptr(self), mrb_proc_ptr(blk));
+  if (!mrb_nil_p(storage)) {
+    mrb_iv_set(mrb, fib, MRB_SYM(__storage__), storage);
+  }
+  return fib;
 }
 
 static struct mrb_context*
@@ -545,6 +566,134 @@ fiber_current(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb->c->fib);
 }
 
+/*
+ * Fiber storage (Ruby 3.2): a Hash of Symbol keys each fiber holds, which a
+ * new fiber starts from a copy of. It is a hidden instance variable of the
+ * Fiber object, so a fiber that never uses it pays nothing.
+ */
+static mrb_value
+fiber_storage_of(mrb_state *mrb, mrb_value fib)
+{
+  mrb_value storage = mrb_iv_get(mrb, fib, MRB_SYM(__storage__));
+  return mrb_hash_p(storage) ? storage : mrb_nil_value();
+}
+
+/* nil, or a copy of a Hash whose keys are all Symbols */
+static mrb_value
+fiber_storage_check(mrb_state *mrb, mrb_value storage)
+{
+  if (mrb_nil_p(storage)) return storage;
+  if (!mrb_hash_p(storage)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "storage must be a hash");
+  }
+  mrb_value keys = mrb_hash_keys(mrb, storage);
+  for (mrb_int i = 0; i < RARRAY_LEN(keys); i++) {
+    mrb_value k = RARRAY_PTR(keys)[i];
+    if (!mrb_symbol_p(k)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %T (expected Symbol)", k);
+    }
+  }
+  return mrb_hash_dup(mrb, storage);
+}
+
+static mrb_sym
+fiber_storage_key(mrb_state *mrb, mrb_value key)
+{
+  if (mrb_symbol_p(key)) return mrb_symbol(key);
+  if (mrb_string_p(key)) return mrb_intern_str(mrb, key);
+  mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a symbol nor a string", key);
+  return 0; /* not reached */
+}
+
+static void
+fiber_storage_access_check(mrb_state *mrb, mrb_value self)
+{
+  if (!mrb->c->fib || mrb_obj_ptr(self) != (struct RObject*)mrb->c->fib) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Fiber storage can only be accessed from the Fiber it belongs to");
+  }
+}
+
+/*
+ *  call-seq:
+ *     Fiber[key] -> value
+ *
+ *  Returns the value the storage of the current fiber holds for `key`, a
+ *  Symbol (or a String, taken as one), or nil.
+ *
+ *     Fiber[:request_id] = 1
+ *     Fiber.new { Fiber[:request_id] }.resume  #=> 1
+ */
+static mrb_value
+fiber_s_aref(mrb_state *mrb, mrb_value self)
+{
+  mrb_value key = mrb_get_arg1(mrb);
+  mrb_sym k = fiber_storage_key(mrb, key);
+
+  if (!mrb->c->fib) return mrb_nil_value();
+  mrb_value storage = fiber_storage_of(mrb, mrb_obj_value(mrb->c->fib));
+  if (mrb_nil_p(storage)) return storage;
+  return mrb_hash_get(mrb, storage, mrb_symbol_value(k));
+}
+
+/*
+ *  call-seq:
+ *     Fiber[key] = value -> value
+ *
+ *  Sets `key` in the storage of the current fiber; nil removes it. Fibers
+ *  this one makes from now on start from a copy that has it.
+ */
+static mrb_value
+fiber_s_aset(mrb_state *mrb, mrb_value self)
+{
+  mrb_value key, val;
+  mrb_get_args(mrb, "oo", &key, &val);
+  mrb_sym k = fiber_storage_key(mrb, key);
+  mrb_value fib = fiber_current(mrb, self);
+  mrb_value storage = fiber_storage_of(mrb, fib);
+
+  if (mrb_nil_p(val)) {
+    if (!mrb_nil_p(storage)) mrb_hash_delete_key(mrb, storage, mrb_symbol_value(k));
+    return val;
+  }
+  if (mrb_nil_p(storage)) {
+    storage = mrb_hash_new(mrb);
+    mrb_iv_set(mrb, fib, MRB_SYM(__storage__), storage);
+  }
+  mrb_hash_set(mrb, storage, mrb_symbol_value(k), val);
+  return val;
+}
+
+/*
+ *  call-seq:
+ *     fiber.storage -> hash or nil
+ *
+ *  Returns a copy of the storage of the fiber, which only the fiber itself
+ *  may ask for.
+ */
+static mrb_value
+fiber_storage(mrb_state *mrb, mrb_value self)
+{
+  fiber_storage_access_check(mrb, self);
+  mrb_value storage = fiber_storage_of(mrb, self);
+  return mrb_nil_p(storage) ? storage : mrb_hash_dup(mrb, storage);
+}
+
+/*
+ *  call-seq:
+ *     fiber.storage = hash or nil
+ *
+ *  Replaces the storage of the fiber, which only the fiber itself may do.
+ */
+static mrb_value
+fiber_storage_set(mrb_state *mrb, mrb_value self)
+{
+  mrb_value storage = mrb_get_arg1(mrb);
+
+  fiber_storage_access_check(mrb, self);
+  mrb_iv_set(mrb, self, MRB_SYM(__storage__), fiber_storage_check(mrb, storage));
+  return storage;
+}
+
 MRB_API mrb_value
 mrb_fiber_new(mrb_state *mrb, const struct RProc *p)
 {
@@ -563,7 +712,7 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   struct RClass *c = mrb_define_class_id(mrb, MRB_SYM(Fiber), mrb->object_class);
   MRB_SET_INSTANCE_TT(c, MRB_TT_FIBER);
 
-  mrb_define_method_id(mrb, c, MRB_SYM(initialize), fiber_init,     MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, c, MRB_SYM(initialize), fiber_init,     MRB_ARGS_KEY(1,0)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, c, MRB_SYM(resume),     fiber_resume,   MRB_ARGS_ANY());
   mrb_define_method_id(mrb, c, MRB_SYM(transfer),   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, c, MRB_SYM_Q(alive),    fiber_alive_p,  MRB_ARGS_NONE());
@@ -573,6 +722,10 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
 
   mrb_define_class_method_id(mrb, c, MRB_SYM(yield), fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_SYM(current), fiber_current, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), fiber_s_aref, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aset), fiber_s_aset, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, c, MRB_SYM(storage), fiber_storage, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, c, MRB_SYM_E(storage), fiber_storage_set, MRB_ARGS_REQ(1));
 
   mrb_define_class_id(mrb, MRB_SYM(FiberError), E_STANDARD_ERROR);
 }
