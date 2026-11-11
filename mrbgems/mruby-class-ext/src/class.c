@@ -7,6 +7,19 @@
 #include <mruby/internal.h>
 
 /*
+ * The name Module#set_temporary_name gave a module, or nil. It holds only
+ * until a constant gives the module a name of its own; call it after
+ * mrb_class_path(), which settles that name.
+ */
+static mrb_value
+mod_tmpname(mrb_state *mrb, mrb_value self)
+{
+  struct RObject *o = mrb_obj_ptr(self);
+  if (mrb_obj_iv_defined(mrb, o, MRB_SYM(__classname__))) return mrb_nil_value();
+  return mrb_obj_iv_get(mrb, o, MRB_SYM(__tmpname__));
+}
+
+/*
  * Get the name of a module/class.
  *
  * Returns the fully qualified name of the module/class as a frozen string.
@@ -24,10 +37,25 @@ static mrb_value
 mod_name(mrb_state *mrb, mrb_value self)
 {
   mrb_value name =  mrb_class_path(mrb, mrb_class_ptr(self));
+  mrb_value tmp = mod_tmpname(mrb, self);
+  if (mrb_string_p(tmp)) return tmp;
   if (mrb_string_p(name)) {
     mrb_basic_ptr(name)->frozen = 1;
   }
   return name;
+}
+
+/*
+ * Module#to_s and Module#inspect: the temporary name, if any, else the
+ * name the core gives.
+ */
+static mrb_value
+mod_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb_class_path(mrb, mrb_class_ptr(self));
+  mrb_value tmp = mod_tmpname(mrb, self);
+  if (mrb_string_p(tmp)) return mrb_str_dup(mrb, tmp);
+  return mrb_mod_to_s(mrb, self);
 }
 
 /* whether `p` reads as a constant path such as "Foo" or "Foo::Bar" */
@@ -52,8 +80,8 @@ const_path_p(const char *p, mrb_int len)
  *   mod.set_temporary_name(nil)    -> self
  *
  * Gives an anonymous module or class a name to show (Module#name,
- * Module#to_s, the inspect of its instances) until a constant gives it one
- * of its own; nil takes the temporary name away again. The name may not
+ * Module#to_s, Module#inspect) until a constant gives it one of its own;
+ * nil takes the temporary name away again. The name may not
  * read as a constant path, and a module with a permanent name keeps it.
  *
  *   m = Module.new
@@ -408,6 +436,8 @@ static const mrb_mt_entry mod_ext_rom_entries[] = {
   MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(class_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
   MRB_MT_ENTRY(mod_module_exec,       MRB_SYM(module_exec), MRB_ARGS_ANY()|MRB_ARGS_BLOCK()),
   MRB_MT_ENTRY(mod_name,              MRB_SYM(name),           MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mod_to_s,              MRB_SYM(to_s),           MRB_ARGS_NONE()),
+  MRB_MT_ENTRY(mod_to_s,              MRB_SYM(inspect),        MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mod_set_temporary_name, MRB_SYM(set_temporary_name), MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mod_singleton_class_p, MRB_SYM_Q(singleton_class), MRB_ARGS_NONE()),
 };

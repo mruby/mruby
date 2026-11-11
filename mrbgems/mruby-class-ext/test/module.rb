@@ -223,25 +223,28 @@ assert 'Module#set_temporary_name' do
   assert_true m.name.frozen?
 
   c = Class.new
-  c.set_temporary_name("<tmp>")
-  assert_equal "#<<tmp>:", c.new.inspect[0, 8]
   c.set_temporary_name("again")
   assert_equal "again", c.name
   c.set_temporary_name(nil)
   assert_nil c.name
+  assert_equal "#<Class:", c.to_s[0, 8]
 end
 
-assert 'Module#set_temporary_name names what is nested in it' do
+assert 'Module#set_temporary_name gives way to a constant' do
   m = Module.new
   m.set_temporary_name("fake_outer")
   m::Inner = Class.new
-  assert_equal "fake_outer::Inner", m::Inner.name
+  m::Inner.set_temporary_name("fake_inner")
+  assert_equal "fake_inner", m::Inner.name
 
   # a constant gives the module and what is in it permanent names
   ModuleTestTemporaryName = m
   assert_equal "ModuleTestTemporaryName", m.name
+  assert_equal "ModuleTestTemporaryName", m.to_s
   assert_equal "ModuleTestTemporaryName::Inner", m::Inner.name
+  assert_equal "ModuleTestTemporaryName::Inner", m::Inner.inspect
   assert_raise(RuntimeError) { m.set_temporary_name("other") }
+  assert_raise(RuntimeError) { m::Inner.set_temporary_name("other") }
 end
 
 assert 'Module#set_temporary_name checks the name' do
@@ -252,23 +255,4 @@ assert 'Module#set_temporary_name checks the name' do
   assert_raise(TypeError) { m.set_temporary_name(:sym) }
   assert_equal "foo::Bar", m.set_temporary_name("foo::Bar").name
   assert_raise(RuntimeError) { String.set_temporary_name("str") }
-end
-
-assert 'Module#set_temporary_name of a module nested in one with a temporary name' do
-  m = Module.new
-  m.set_temporary_name("fake_top")
-  m::Inner = Class.new
-  # its own temporary name wins over the one through the module around it
-  m::Inner.set_temporary_name("custom")
-  assert_equal "custom", m::Inner.name
-  class m::Inner::Grandchild; end
-  m::Inner::Assigned = Class.new
-  assert_equal "custom::Grandchild", m::Inner::Grandchild.name
-  assert_equal "custom::Assigned", m::Inner::Assigned.name
-
-  # a constant names them all for good, however deep
-  ModuleTestTemporaryNameDeep = m
-  assert_equal "ModuleTestTemporaryNameDeep::Inner", m::Inner.name
-  assert_equal "ModuleTestTemporaryNameDeep::Inner::Grandchild", m::Inner::Grandchild.name
-  assert_equal "ModuleTestTemporaryNameDeep::Inner::Assigned", m::Inner::Assigned.name
 end

@@ -316,9 +316,7 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
   }
   else {
     name = mrb_class_path(mrb, outer);
-    /* an outer class with no name of its own yet, anonymous or with a
-       temporary one: find the path through it once it has one */
-    if (mrb_nil_p(name) || !mrb_obj_iv_defined(mrb, (struct RObject*)outer, nsym)) {
+    if (mrb_nil_p(name)) {      /* unnamed outer class */
       if (outer != mrb->object_class && outer != c) {
         mrb_obj_iv_set_force(mrb, (struct RObject*)c, MRB_SYM(__outer__),
                              mrb_obj_value(outer));
@@ -4038,14 +4036,8 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   mrb_value path = mrb_obj_iv_get(mrb, (struct RObject*)c, nsym);
 
   if (mrb_nil_p(path)) {
-    /* no name (yet): one through an outer class, which is for good once that
-       class has one of its own, else the temporary one
-       Module#set_temporary_name gave it, else the one through the outer */
-    path = mrb_class_find_path(mrb, c);
-    if (mrb_obj_iv_defined(mrb, (struct RObject*)c, nsym)) return path;
-    mrb_value tmp = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__tmpname__));
-    if (mrb_string_p(tmp)) return mrb_str_dup(mrb, tmp);
-    return path;
+    /* no name (yet) */
+    return mrb_class_find_path(mrb, c);
   }
   else if (mrb_symbol_p(path)) {
     /* toplevel class/module */
