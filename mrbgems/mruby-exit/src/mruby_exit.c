@@ -74,12 +74,43 @@ f_exit_bang(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ *  call-seq:
+ *     at_exit { block } -> proc
+ *
+ *  Registers the block to be called when the program ends; blocks run in
+ *  reverse order of registration. While they run, `$!` is the exception
+ *  the program ended with, if any; a block that calls `exit` sets the exit
+ *  status. `exit!` ends the program without running them.
+ *
+ *     at_exit { puts "goodbye" }
+ *     at_exit { puts "see you" }
+ *
+ *  <em>produces:</em>
+ *
+ *     see you
+ *     goodbye
+ */
+static mrb_value
+f_at_exit(mrb_state *mrb, mrb_value self)
+{
+  mrb_value blk;
+
+  mrb_get_args(mrb, "&", &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "called without a block");
+  }
+  mrb_at_exit(mrb, blk);
+  return blk;
+}
+
 void
 mrb_mruby_exit_gem_init(mrb_state* mrb)
 {
   mrb_define_class_id(mrb, MRB_SYM(SystemExit), E_EXCEPTION);
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(exit), f_exit, MRB_ARGS_OPT(1));
   mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM_B(exit), f_exit_bang, MRB_ARGS_OPT(1));
+  mrb_define_module_function_id(mrb, mrb->kernel_module, MRB_SYM(at_exit), f_at_exit, MRB_ARGS_BLOCK());
 }
 
 void

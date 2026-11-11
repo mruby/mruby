@@ -265,6 +265,25 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   return EXIT_SUCCESS;
 }
 
+/* The program has ended, raising `mrb->exc` if it is set: run what
+   Kernel#at_exit registered, then report the exception, in CRuby's order,
+   and answer the exit status. `v` is undef when the loader has already
+   reported the error (a syntax error, as it is parsed). */
+static int
+program_end(mrb_state *mrb, mrb_value v, int status)
+{
+  struct RObject *exc = mrb->exc;
+
+  if (exc) {
+    status = MRB_EXC_EXIT_P(exc) ? MRB_EXC_EXIT_STATUS(mrb, exc) : EXIT_FAILURE;
+  }
+  status = mrb_run_at_exit(mrb, status);
+  if (exc && !MRB_EXC_EXIT_P(exc) && !mrb_undef_p(v)) {
+    mrb_print_error(mrb);
+  }
+  return status;
+}
+
 static void
 cleanup(mrb_state *mrb, struct _args *args)
 {
@@ -366,15 +385,10 @@ main(int argc, char **argv)
            carried on, a library that raised said nothing at all, and both
            exited 0.  Reported the way the program's own failure is below,
            then fatal, matching `ruby -r`. */
-        MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-        if (!mrb_undef_p(v)) {
-          /* undef means the loader already reported it: a syntax error goes
-             to stderr as it is parsed. */
-          mrb_print_error(mrb);
-        }
+        n = program_end(mrb, v, EXIT_FAILURE);
         mrb_ccontext_free(mrb, c);
         cleanup(mrb, &args);
-        return EXIT_FAILURE;
+        return n;
       }
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
       mrb_ccontext_cleanup_local_variables(c);
@@ -400,16 +414,10 @@ main(int argc, char **argv)
 
     mrb_gc_arena_restore(mrb, ai);
     mrb_ccontext_free(mrb, c);
-    if (mrb->exc) {
-      MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
-      if (!mrb_undef_p(v)) {
-        mrb_print_error(mrb);
-      }
-      n = EXIT_FAILURE;
-    }
-    else if (args.check_syntax) {
+    if (args.check_syntax && !mrb->exc) {
       puts("Syntax OK");
     }
+    n = program_end(mrb, v, n);
   }
   cleanup(mrb, &args);
 
