@@ -1599,6 +1599,8 @@ get_args_fast(mrb_state *mrb, const char *format, void** ptr, va_list *ap)
     case 'f': {
       mrb_float *fp = GET_ARG(mrb_float*);
       *fp = mrb_as_float(mrb, argv[i++]);
+      /* the to_f of a Numeric runs Ruby, which may move the stack */
+      argv = mrb->c->ci->stack + 1;
       break;
     }
 #endif
@@ -1884,6 +1886,9 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
         p = GET_ARG(mrb_float*);
         if (pickarg) {
           *p = mrb_as_float(mrb, *pickarg);
+          /* the to_f of a Numeric runs Ruby, which may move the stack */
+          ci = mrb->c->ci;
+          if (argv_on_stack) argv = ci->stack + 1;
         }
       }
       break;

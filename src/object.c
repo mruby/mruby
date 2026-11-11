@@ -724,6 +724,15 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 }
 
 #ifndef MRB_NO_FLOAT
+/* whether a Numeric answers to_f, its respond_to_missing? having a say */
+static mrb_bool
+numeric_to_f_p(mrb_state *mrb, mrb_value val)
+{
+  if (mrb_respond_to(mrb, val, MRB_SYM(to_f))) return TRUE;
+  return mrb_test(mrb_funcall_id(mrb, val, MRB_SYM_Q(respond_to_missing), 2,
+                                 mrb_symbol_value(MRB_SYM(to_f)), mrb_true_value()));
+}
+
 /*
  * Ensures that the given mruby value `val` is a Float.
  *
@@ -740,6 +749,9 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
  *   using `mrb_complex_to_f` (typically requires the imaginary part to be zero).
  * - `MRB_TT_BIGINT` (if `MRB_USE_BIGINT` is defined): Converted to Float
  *   using `mrb_bint_as_float`.
+ *
+ * Another Numeric is converted with its `to_f`, as in CRuby, which must
+ * answer a Float.
  *
  * If `val` cannot be converted to a Float (e.g., it's a String, Array, or
  * an incompatible Complex number), a `TypeError` is raised.
@@ -775,6 +787,14 @@ mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 #endif
 
     default:
+      if (mrb_obj_is_kind_of(mrb, val, mrb_class_get_id(mrb, MRB_SYM(Numeric))) &&
+          numeric_to_f_p(mrb, val)) {
+        mrb_value f = mrb_funcall_argv(mrb, val, MRB_SYM(to_f), 0, NULL);
+        if (!mrb_float_p(f)) {
+          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %T into Float (%T#to_f gives %T)", val, val, f);
+        }
+        return f;
+      }
       mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Float", val);
       /* not reached */
       return val;
