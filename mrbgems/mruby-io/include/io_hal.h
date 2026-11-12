@@ -61,8 +61,8 @@ MRB_BEGIN_DECL
 
 /* File status structure - platform-independent representation */
 typedef struct mrb_io_stat {
-  mrb_int st_dev;       /* Device ID */
-  mrb_int st_ino;       /* Inode number */
+  uint64_t st_dev;      /* Device ID, whole: it names the file with st_ino */
+  uint64_t st_ino;      /* Inode number, whole, even where mrb_int is narrower */
   mrb_int st_mode;      /* File mode/permissions */
   mrb_int st_nlink;     /* Number of hard links */
   mrb_int st_uid;       /* User ID */
@@ -205,6 +205,10 @@ int mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode);
 #define MRB_IO_ACCESS_R 4
 #define MRB_IO_ACCESS_W 2
 #define MRB_IO_ACCESS_X 1
+/* by the real user and group IDs rather than the effective ones, for
+   File.readable_real? and the rest; a port where the two are one ignores
+   it */
+#define MRB_IO_ACCESS_REAL 8
 
 /**
  * Check whether the process may read, write or execute a file
@@ -215,6 +219,22 @@ int mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode);
  * @return 0 if every access asked is allowed, -1 otherwise (sets errno)
  */
 int mrb_hal_io_access(mrb_state *mrb, const char *path, int mode);
+
+#ifdef MRB_HAL_IO_HAS_OWNER
+/* What mrb_hal_io_owner() answers, or'ed together */
+#define MRB_IO_OWNER_USER  1  /* the effective user owns the file */
+#define MRB_IO_OWNER_GROUP 2  /* its group is the effective group or one of
+                                 the process's supplementary groups */
+
+/**
+ * Whether the process owns a file, as `File.owned?` and `File.grpowned?` ask
+ *
+ * @param mrb mruby state
+ * @param st The file's status, from mrb_hal_io_stat()
+ * @return MRB_IO_OWNER_USER and MRB_IO_OWNER_GROUP or'ed
+ */
+int mrb_hal_io_owner(mrb_state *mrb, const mrb_io_stat *st);
+#endif
 
 /**
  * Set file access and modification times
