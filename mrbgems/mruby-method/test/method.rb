@@ -793,3 +793,20 @@ assert('Module#define_method with a Proc still works through mruby-method') do
   assert_false a.new.respond_to?(:three)
   assert_raise(ArgumentError) { Class.new { define_method(:x) } }
 end
+
+assert('UnboundMethod#bind_call of a module method goes on from where it was taken') do
+  # [Bug #22505]
+  m = Module.new { def m; [:m, *super]; end }
+  c = Class.new { prepend m; def m; [:c]; end }
+  sc = Class.new(c) { prepend m; def m; [:sc, *super]; end }
+  assert_equal [:m, :c], c.instance_method(:m).bind_call(sc.new)
+  assert_equal [:m, :c], c.instance_method(:m).bind(sc.new).call
+  assert_equal [:m, :sc, :m, :c], sc.instance_method(:m).bind_call(sc.new)
+  assert_equal [:m, :sc, :m, :c], m.instance_method(:m).bind_call(sc.new)
+
+  n = Module.new { def n; [:n, *super]; end }
+  d = Class.new { def n; [:d]; end }
+  e = Class.new(d) { include n }
+  assert_equal [:n, :d], e.instance_method(:n).bind_call(e.new)
+  assert_equal [:n, :d], n.instance_method(:n).bind_call(e.new)
+end

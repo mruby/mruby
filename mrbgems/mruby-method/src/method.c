@@ -255,6 +255,16 @@ method_eql(mrb_state *mrb, mrb_value self)
 
 #undef IV_GET
 
+/* the first ICLASS of module `m` among `c` and its ancestors */
+static struct RClass*
+module_iclass(struct RClass *c, struct RClass *m)
+{
+  for (; c; c = c->super) {
+    if (c->tt == MRB_TT_ICLASS && c->c == m) return c;
+  }
+  return NULL;
+}
+
 static mrb_value
 mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
 {
@@ -271,6 +281,16 @@ mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
 
   if (!proc) {
     proc = method_missing_prepare(mrb, &mid, recv, &tc);
+  }
+  else if (tc->tt == MRB_TT_MODULE) {
+    /* a `super` in a module method goes on from where the module was
+       found: the class the method was taken from, else the receiver's */
+    mrb_value klass = mrb_iv_get(mrb, self, MRB_SYM(_klass));
+    struct RClass *ic = mrb_class_p(klass) || mrb_sclass_p(klass) ? module_iclass(mrb_class_ptr(klass), tc) : NULL;
+    if (!ic || !mrb_obj_is_kind_of(mrb, recv, ic)) {
+      ic = module_iclass(mrb_class(mrb, recv), tc);
+    }
+    if (ic) tc = ic;
   }
   mrb->c->ci->mid = mid;
   mrb->c->ci->u.target_class = tc;
