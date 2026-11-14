@@ -4694,8 +4694,9 @@ mrb_mod_const_defined(mrb_state *mrb, mrb_value mod)
 
   /* class path string: "A::B::C", or "::A::B" from Object */
   mrb_ensure_string_type(mrb, path);
-  /* const_missing can change the string under ptr: walk a copy */
-  path = mrb_str_dup(mrb, path);
+  /* const_missing and autoload run Ruby, which can change the string under
+     ptr, and reach a copy through ObjectSpace: walk a frozen copy */
+  path = mrb_str_dup_frozen(mrb, path);
 
   char *ptr = RSTRING_PTR(path);
   mrb_int len = RSTRING_LEN(path);
@@ -4739,8 +4740,9 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 
   /* const get with class path string */
   mrb_ensure_string_type(mrb, path);
-  /* const_missing can change the string under ptr: walk a copy */
-  path = mrb_str_dup(mrb, path);
+  /* const_missing and autoload run Ruby, which can change the string under
+     ptr, and reach a copy through ObjectSpace: walk a frozen copy */
+  path = mrb_str_dup_frozen(mrb, path);
 
   char *ptr = RSTRING_PTR(path);
   mrb_int len = RSTRING_LEN(path);
