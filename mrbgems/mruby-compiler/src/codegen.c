@@ -4749,6 +4749,7 @@ defined_answer_for(mrc_node *value, struct defined_answer *a)
   case PM_INDEX_OR_WRITE_NODE: case PM_INDEX_AND_WRITE_NODE:
   case PM_CALL_OPERATOR_WRITE_NODE:
   case PM_CALL_OR_WRITE_NODE: case PM_CALL_AND_WRITE_NODE:
+  case PM_SHAREABLE_CONSTANT_NODE:
     a->type = "assignment";
     break;
   case PM_INSTANCE_VARIABLE_READ_NODE:
@@ -6402,6 +6403,15 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
     {
       CAST(parentheses);
       codegen(s, cast->body, val);
+      break;
+    }
+    case PM_SHAREABLE_CONSTANT_NODE:
+    {
+      /* a constant written under `# shareable_constant_value:`, which asks
+         for a value Ractors can share; mruby has no Ractor, so the
+         constant is written as it is */
+      CAST(shareable_constant);
+      codegen(s, cast->write, val);
       break;
     }
     case PM_WHILE_NODE:
