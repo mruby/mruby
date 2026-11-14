@@ -569,13 +569,79 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   return blk;
 }
 
+/* the instruction at pc, past an OP_EXT1/2/3 prefix, and in ext the prefix */
+static const mrb_code*
+insn_ext(const mrb_code *pc, const mrb_code *end, int *ext)
+{
+  *ext = 0;
+  if (pc < end && (*pc == OP_EXT1 || *pc == OP_EXT2 || *pc == OP_EXT3)) {
+    *ext = *pc++;
+  }
+  return pc < end ? pc : NULL;
+}
+
+/* the size of the operands of a BB instruction under the prefix ext */
+static int
+bb_size(int ext)
+{
+  switch (ext) {
+  case OP_EXT1: case OP_EXT2: return 3;
+  case OP_EXT3: return 4;
+  default: return 2;
+  }
+}
+
+/*
+ * Whether any keyword parameter of the irep is required. OP_ENTER's aspec
+ * counts the keywords, not which of them are, so this reads the code that
+ * follows it, where the compiler sets each keyword in turn: a required one
+ * with OP_KARG, an optional one with OP_KEY_P, an OP_JMPIF to its OP_KARG,
+ * and its default between them. The optional positional parameters come
+ * first, with a jump table whose last OP_JMP, taken when every one of them
+ * is given, goes past their defaults to the keywords.
+ */
+static mrb_bool
+irep_keyreq_p(const mrb_irep *irep, mrb_aspec aspec)
+{
+  const mrb_code *pc = irep->iseq + 4;  /* past OP_ENTER W */
+  const mrb_code *end = irep->iseq + irep->ilen;
+  int op = MRB_ASPEC_OPT(aspec);
+  int ext;
+
+  if (op > 0) {
+    pc += op * 3;
+    if (pc + 3 > end || *pc != OP_JMP) return FALSE;
+    pc += 3 + (int16_t)PEEK_S(pc+1);
+  }
+  for (int i = 0; i < MRB_ASPEC_KEY(aspec); i++) {
+    if (pc < irep->iseq || !(pc = insn_ext(pc, end, &ext))) return FALSE;
+    if (*pc == OP_KARG) return TRUE;
+    if (*pc != OP_KEY_P) return FALSE;
+    pc += 1 + bb_size(ext);
+    /* OP_JMPIF a S, to the keyword's OP_KARG */
+    if (!(pc = insn_ext(pc, end, &ext)) || *pc != OP_JMPIF) return FALSE;
+    pc += (ext == OP_EXT1 || ext == OP_EXT3) ? 3 : 2;
+    if (pc + 2 > end) return FALSE;
+    pc += 2 + (int16_t)PEEK_S(pc);
+    if (pc < irep->iseq || !(pc = insn_ext(pc, end, &ext)) || *pc != OP_KARG) return FALSE;
+    pc += 1 + bb_size(ext);
+  }
+  return FALSE;
+}
+
+/*
+ * As CRuby counts: the parameters a call must give, and one more for the
+ * keywords when any of them is required. That is the arity of a lambda or
+ * method that takes no more than these, and of a proc that does not take
+ * any number; otherwise it is -(that + 1).
+ */
 mrb_int
 mrb_proc_arity(const struct RProc *p)
 {
   const mrb_irep *irep;
   const mrb_code *pc;
   mrb_aspec aspec;
-  int ma, op, ra, pa, arity;
+  int ma, op, ra, pa, kw, min;
 
   /* Resolve alias procs first: an alias carries body.mid (a symbol), not an
      irep, with `upper` pointing at the original proc. Without this the irep
@@ -618,9 +684,12 @@ mrb_proc_arity(const struct RProc *p)
   op = MRB_ASPEC_OPT(aspec);
   ra = MRB_ASPEC_REST(aspec);
   pa = MRB_ASPEC_POST(aspec);
-  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
-
-  return arity;
+  kw = MRB_ASPEC_KEY(aspec) > 0 || MRB_ASPEC_KDICT(aspec);
+  min = ma + pa;
+  if (MRB_ASPEC_KEY(aspec) > 0 && irep_keyreq_p(irep, aspec)) min++;
+  if (ra) return -(min + 1);
+  if (MRB_PROC_STRICT_P(p) && ma + op + pa + kw != min) return -(min + 1);
+  return min;
 }
 
 mrb_value
