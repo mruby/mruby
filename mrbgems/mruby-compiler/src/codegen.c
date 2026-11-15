@@ -6412,12 +6412,8 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
         /* do-while: `begin ... end while/until cond` runs the body once
            before testing the condition (mirrors codegen_loop_mod). */
         mrc_bool is_until = (nt == PM_UNTIL_NODE);
-        if (is_until ? true_always(cast->predicate) : false_always(cast->predicate)) {
-          /* execute body once then exit */
-          codegen(s, (mrc_node *)cast->statements, val);
-          if (val) push();
-          goto exit;
-        }
+        /* a condition known to end the loop still makes one: break, next
+           and redo in the body need it */
         if (is_until ? false_always(cast->predicate) : true_always(cast->predicate)) {
           /* infinite loop after first execution */
           struct loopinfo *lp = loop_push(s, LOOP_NORMAL);

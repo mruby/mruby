@@ -1326,6 +1326,55 @@ assert('at-least-once loop') do
   assert_equal 12, count  # 1, then 2+10=12
 end
 
+# in methods, where a break with no loop to leave raises
+def at_least_once_break_test(x)
+  begin
+    break if x
+    x = 1
+  end until true
+  x
+end
+
+def at_least_once_ended_test
+  r = []
+  a = []
+  begin
+    a << 1
+    break if true
+    a << 2
+  end while false
+  r << a
+
+  a = []
+  begin
+    a << 1
+    next
+    a << 2
+  end until true
+  r << a
+
+  count = 0
+  begin
+    count += 1
+    redo if count < 3
+  end while false
+  r << count
+
+  r << (begin; 1; end while false)
+  r << (begin; break 5 if true; end until true)
+  r
+end
+
+assert('at-least-once loop whose condition ends it') do
+  # break, next and redo work when the condition is known to end the loop,
+  # and its value is nil, as any loop's
+  assert_equal [[1], [1], 3, nil, 5], at_least_once_ended_test
+  assert_equal 1, at_least_once_break_test(nil)
+  assert_equal 2, at_least_once_break_test(2)
+  # next leaves the loop, not the block
+  assert_equal [1, 2], [1, 2].map { |i| begin; next i * 10; end while false; i }
+end
+
 assert('pattern matching - basic case/in') do
   # literal patterns
   result = case 1
