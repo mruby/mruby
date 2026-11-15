@@ -718,4 +718,32 @@ assert('File.chmod, File.rename and File.delete take an object with to_path') do
   assert_false File.exist?(moved)
 end
 
+# a path whose to_path runs a block first
+class MRubyIOTestPathHook < MRubyIOTestPath
+  def initialize(path, &hook)
+    super(path)
+    @hook = hook
+  end
+
+  def to_path
+    @hook.call
+    super
+  end
+end
+
+assert('File.expand_path, File.absolute_path and File.basename read a string argument after to_path') do
+  # to_path moves the other argument out of its embedded buffer, so a pointer
+  # taken before it no longer points at the string's bytes
+  long = "/" + "b" * 100
+  dir = "/a"
+  assert_equal File.expand_path("x", long),
+               File.expand_path(MRubyIOTestPathHook.new("x") { dir.replace(long) }, dir)
+  dir = "/a"
+  assert_equal File.absolute_path("x", long),
+               File.absolute_path(MRubyIOTestPathHook.new("x") { dir.replace(long) }, dir)
+  sfx = ".rb"
+  ext = "g" * 100
+  assert_equal "foo", File.basename(MRubyIOTestPathHook.new("d/foo" + ext) { sfx.replace(ext) }, sfx)
+end
+
 MRubyIOTestUtil.io_test_cleanup
