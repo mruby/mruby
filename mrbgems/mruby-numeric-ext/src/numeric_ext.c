@@ -471,7 +471,8 @@ isqrt(mrb_int n)
   if (n < 2) return n;
 
   mrb_int x = n;
-  mrb_int y = (x + 1) / 2;
+  /* (x + 1) / 2, without the x + 1 that overflows at MRB_INT_MAX */
+  mrb_int y = x - x / 2;
 
   // Babylonian method (integer version)
   while (y < x) {
