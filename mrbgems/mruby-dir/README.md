@@ -4,6 +4,7 @@ Dir class for mruby. Supported methods are:
 
 `.[]`
 `.chdir`
+`.children`
 `.chroot`
 `.delete`
 `.each_child`
@@ -22,6 +23,11 @@ Dir class for mruby. Supported methods are:
 `#tell`
 
 `Dir.glob` matches with `File.fnmatch`, so mruby-dir depends on mruby-io.
+
+`Dir.new`, `.open`, `.entries`, `.children`, `.each_child` and `.foreach` take
+`encoding:`, as in CRuby. mruby's names are UTF-8 or binary: `ASCII-8BIT` and
+`BINARY` give binary strings, and any other name UTF-8 ones, as mruby-io reads
+a named encoding.
 
 ## What the port declares
 

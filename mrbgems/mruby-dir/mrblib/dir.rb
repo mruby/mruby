@@ -47,34 +47,36 @@ class Dir
 
     #
     # call-seq:
-    #   Dir.foreach(dirname) { |filename| block } -> nil
-    #   Dir.foreach(dirname)                      -> enumerator
+    #   Dir.foreach(dirname, encoding: nil) { |filename| block } -> nil
+    #   Dir.foreach(dirname, encoding: nil)                      -> enumerator
     #
     # Calls the block once for each entry in the named directory, passing
-    # the filename of each entry as a parameter to the block.
+    # the filename of each entry as a parameter to the block. encoding: is
+    # as for Dir.new.
     #
     #   Dir.foreach("testdir") { |x| puts "Got #{x}" }
     #
-    def foreach(path, &block)
-      return to_enum(:foreach, path) unless block
-      self.open(path) do |d|
+    def foreach(path, encoding: nil, &block)
+      return to_enum(:foreach, path, encoding: encoding) unless block
+      self.open(path, encoding: encoding) do |d|
         d.each(&block)
       end
     end
 
     #
     # call-seq:
-    #   Dir.each_child(dirname) { |filename| block } -> nil
-    #   Dir.each_child(dirname)                      -> enumerator
+    #   Dir.each_child(dirname, encoding: nil) { |filename| block } -> nil
+    #   Dir.each_child(dirname, encoding: nil)                      -> enumerator
     #
     # Calls the block once for each entry in the named directory except for
     # "." and "..", passing the filename of each entry to the block.
+    # encoding: is as for Dir.new.
     #
     #   Dir.each_child("testdir") { |x| puts "Got #{x}" }
     #
-    def each_child(path, &block)
-      return to_enum(:each_child, path) unless block
-      self.open(path) do |d|
+    def each_child(path, encoding: nil, &block)
+      return to_enum(:each_child, path, encoding: encoding) unless block
+      self.open(path, encoding: encoding) do |d|
         d.each_child(&block)
       end
       nil
@@ -82,8 +84,8 @@ class Dir
 
     #
     # call-seq:
-    #   Dir.open(string) -> aDir
-    #   Dir.open(string) { |aDir| block } -> obj
+    #   Dir.open(string, encoding: nil) -> aDir
+    #   Dir.open(string, encoding: nil) { |aDir| block } -> obj
     #
     # With no block, open is a synonym for Dir.new. If a block is present, it is
     # passed aDir as a parameter. The directory is closed at the end of the block,
@@ -91,9 +93,9 @@ class Dir
     #
     #   Dir.open("testdir") { |d| d.each { |x| puts "Got #{x}" } }
     #
-    def open(path, &block)
+    def open(path, encoding: nil, &block)
       if block
-        d = self.new(path)
+        d = self.new(path, encoding: encoding)
         begin
           block.call(d)
         ensure
@@ -103,7 +105,7 @@ class Dir
           end
         end
       else
-        self.new(path)
+        self.new(path, encoding: encoding)
       end
     end
 

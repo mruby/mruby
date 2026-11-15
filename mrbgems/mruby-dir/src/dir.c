@@ -10,6 +10,7 @@
 #include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 #include "dir_hal.h"
 
 #include <string.h>
@@ -23,7 +24,57 @@
 
 struct mrb_dir {
   mrb_dir_handle *handle;
+  mrb_bool binary;              /* names are binary strings (encoding:) */
 };
+
+/* whether `p` (`len` bytes) spells `name`, letter case aside */
+static mrb_bool
+dir_enc_name_p(const char *p, mrb_int len, const char *name)
+{
+  mrb_int i;
+
+  for (i = 0; i < len && name[i]; i++) {
+    if (TOLOWER(p[i]) != TOLOWER(name[i])) return FALSE;
+  }
+  return i == len && name[i] == '\0';
+}
+
+/* Whether the encoding: option asks for binary names. mruby's names are
+   UTF-8 or binary: ASCII-8BIT and BINARY give binary strings, and any other
+   name UTF-8 ones, as mruby-io reads a named encoding. */
+static mrb_bool
+dir_enc_binary_p(mrb_state *mrb, mrb_value enc)
+{
+  if (mrb_nil_p(enc)) return FALSE;
+  enc = mrb_ensure_string_type(mrb, enc);
+  const char *p = RSTRING_PTR(enc);
+  mrb_int len = RSTRING_LEN(enc);
+  return dir_enc_name_p(p, len, "BINARY") || dir_enc_name_p(p, len, "ASCII-8BIT");
+}
+
+/* the path argument and whether its encoding: option asks for binary names */
+static mrb_value
+dir_get_args(mrb_state *mrb, mrb_bool *binary)
+{
+  static const mrb_sym knames[] = { MRB_SYM(encoding) };
+  mrb_value path, enc = mrb_nil_value();
+  const mrb_kwargs kw = { 1, 0, knames, &enc, NULL };
+
+  mrb_get_args(mrb, "o:", &path, &kw);
+  if (mrb_undef_p(enc)) enc = mrb_nil_value();
+  *binary = dir_enc_binary_p(mrb, enc);
+  return path;
+}
+
+static mrb_value
+dir_name_str(mrb_state *mrb, const char *name, mrb_bool binary)
+{
+  mrb_value str = mrb_str_new_cstr(mrb, name);
+  if (binary) {
+    RSTR_ENCODING_SET(mrb_str_ptr(str), MRB_STR_ENCODING_BINARY);
+  }
+  return str;
+}
 
 /* A path argument as a C string: a String, or what the object's to_path
    answers, as a Pathname stands for its path. */
@@ -78,9 +129,11 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *   Dir.new(string) -> aDir
+ *   Dir.new(string, encoding: nil) -> aDir
  *
  * Returns a new directory object for the named directory.
+ * encoding: names the encoding of the names: ASCII-8BIT or BINARY gives
+ * binary strings, and any other name UTF-8 ones, as by default.
  *
  *   d = Dir.new("testdir")
  */
@@ -100,9 +153,10 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
 
   mdir = (struct mrb_dir*)mrb_malloc(mrb, sizeof(*mdir));
   mdir->handle = NULL;
+  mdir->binary = FALSE;
   DATA_PTR(self) = mdir;
 
-  path = dir_path(mrb, mrb_get_arg1(mrb));
+  path = dir_path(mrb, dir_get_args(mrb, &mdir->binary));
   if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }
@@ -265,6 +319,7 @@ skip_name_p(const char *name)
 struct mrb_dir_iteration {
   mrb_dir_handle *handle;
   mrb_bool skip_special;
+  mrb_bool binary;
 };
 
 static mrb_value
@@ -290,7 +345,7 @@ mrb_dir_collect_body(mrb_state *mrb, void *ptr)
 
   while ((name = mrb_hal_dir_read(mrb, ctx->handle)) != NULL) {
     if (!ctx->skip_special || !skip_name_p(name)) {
-      mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, name));
+      mrb_ary_push(mrb, ary, dir_name_str(mrb, name, ctx->binary));
     }
   }
   return ary;
@@ -349,7 +404,7 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   }
   name = mrb_hal_dir_read(mrb, mdir->handle);
   if (name != NULL) {
-    return mrb_str_new_cstr(mrb, name);
+    return dir_name_str(mrb, name, mdir->binary);
   }
   else {
     return mrb_nil_value();
@@ -454,10 +509,11 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *   Dir.entries(dirname) -> array
+ *   Dir.entries(dirname, encoding: nil) -> array
  *
  * Returns an array containing all of the filenames in the given directory.
  * Will raise a SystemCallError if the named directory doesn't exist.
+ * encoding: is as for Dir.new.
  */
 static mrb_value
 mrb_dir_entries(mrb_state *mrb, mrb_value klass)
@@ -465,14 +521,15 @@ mrb_dir_entries(mrb_state *mrb, mrb_value klass)
   const char *path;
   mrb_value result;
 
-  path = dir_path(mrb, mrb_get_arg1(mrb));
+  mrb_bool binary;
+  path = dir_path(mrb, dir_get_args(mrb, &binary));
 
   mrb_dir_handle *handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
-  struct mrb_dir_iteration ctx = { handle, FALSE };
+  struct mrb_dir_iteration ctx = { handle, FALSE, binary };
   MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
     mrb_hal_dir_close(mrb, handle);
   }
@@ -481,11 +538,11 @@ mrb_dir_entries(mrb_state *mrb, mrb_value klass)
 
 /*
  * call-seq:
- *   Dir.children(dirname) -> array
+ *   Dir.children(dirname, encoding: nil) -> array
  *
  * Returns an array containing all of the filenames except for "." and ".."
  * in the given directory. Will raise a SystemCallError if the named
- * directory doesn't exist.
+ * directory doesn't exist. encoding: is as for Dir.new.
  */
 static mrb_value
 mrb_dir_children(mrb_state *mrb, mrb_value klass)
@@ -493,14 +550,15 @@ mrb_dir_children(mrb_state *mrb, mrb_value klass)
   const char *path;
   mrb_value result;
 
-  path = dir_path(mrb, mrb_get_arg1(mrb));
+  mrb_bool binary;
+  path = dir_path(mrb, dir_get_args(mrb, &binary));
 
   mrb_dir_handle *handle = mrb_hal_dir_open(mrb, path);
   if (handle == NULL) {
     mrb_sys_fail(mrb, path);
   }
 
-  struct mrb_dir_iteration ctx = { handle, TRUE };
+  struct mrb_dir_iteration ctx = { handle, TRUE, binary };
   MRB_ENSURE(mrb, result, mrb_dir_collect_body, &ctx) {
     mrb_hal_dir_close(mrb, handle);
   }
@@ -523,11 +581,11 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, d, MRB_SYM(_chdir),  mrb_dir_chdir,  MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, d, MRB_SYM(chroot),  mrb_dir_chroot, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, d, MRB_SYM_Q(empty), mrb_dir_empty, MRB_ARGS_REQ(1));
-  mrb_define_class_method_id(mrb, d, MRB_SYM(entries), mrb_dir_entries, MRB_ARGS_REQ(1));
-  mrb_define_class_method_id(mrb, d, MRB_SYM(children), mrb_dir_children, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, d, MRB_SYM(entries), mrb_dir_entries, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
+  mrb_define_class_method_id(mrb, d, MRB_SYM(children), mrb_dir_children, MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
 
   mrb_define_method_id(mrb, d, MRB_SYM(close),      mrb_dir_close,  MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, d, MRB_SYM(initialize), mrb_dir_init,   MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, d, MRB_SYM(initialize), mrb_dir_init,   MRB_ARGS_REQ(1)|MRB_ARGS_KEY(1, 0));
   mrb_define_method_id(mrb, d, MRB_SYM(read),       mrb_dir_read,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(rewind),     mrb_dir_rewind, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(seek),       mrb_dir_seek,   MRB_ARGS_REQ(1));
