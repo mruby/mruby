@@ -50,6 +50,28 @@ assert('Proc#arity', '15.2.17.4.2') do
   assert_equal(-1, g)
 end
 
+assert('Proc#arity with keyword parameters') do
+  # a required keyword counts one; an optional one or **, in a lambda, makes
+  # the count open
+  assert_equal(1, Proc.new {|x, k: 1|}.arity)
+  assert_equal(2, Proc.new {|x, k:|}.arity)
+  assert_equal(1, Proc.new {|k:|}.arity)
+  assert_equal(0, Proc.new {|**k|}.arity)
+  assert_equal(2, Proc.new {|x, y=1, k:|}.arity)
+  assert_equal(-2, Proc.new {|*r, k:|}.arity)
+
+  assert_equal(-2, ->(x, k: 1){}.arity)
+  assert_equal(2, ->(x, k:){}.arity)
+  assert_equal(1, ->(k:){}.arity)
+  assert_equal(-1, ->(**k){}.arity)
+  assert_equal(-2, ->(x, **k){}.arity)
+  assert_equal(-3, ->(x, y=1, k:){}.arity)
+  assert_equal(-2, ->(*r, k:){}.arity)
+  assert_equal(2, ->(x, j: 1, k:, l: 2){}.arity)
+  assert_equal(-2, ->(x, j: 1, l: 2){}.arity)
+  assert_equal(-3, ->(x, y=(1 if x), k: (y if x), l:){}.arity)
+end
+
 assert('Proc#call', '15.2.17.4.3') do
   a = 0
   b = Proc.new { a += 1 }

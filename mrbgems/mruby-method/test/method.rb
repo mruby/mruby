@@ -46,6 +46,12 @@ assert 'Method#arity' do
     def mo6(a, *b, c, &d) end
     def mo7(a, b = nil, *c, d, &e) end
     def ma1((a), &b) nil && a end
+    def mk1(a, k: nil) end
+    def mk2(a, k:) end
+    def mk3(a, **k) end
+    def mk4(*a, k:) end
+    def mk5(k: 1) end
+    def mk6(a, b = 1, k:, j: 2) end
 
     def run
       assert_equal(0, method(:m0).arity)
@@ -59,6 +65,12 @@ assert 'Method#arity' do
       assert_equal(-3, method(:mo6).arity)
       assert_equal(-3, method(:mo7).arity)
       assert_equal(1, method(:ma1).arity)
+      assert_equal(-2, method(:mk1).arity)
+      assert_equal(2, method(:mk2).arity)
+      assert_equal(-2, method(:mk3).arity)
+      assert_equal(-2, method(:mk4).arity)
+      assert_equal(-1, method(:mk5).arity)
+      assert_equal(-3, method(:mk6).arity)
 
       assert_equal(-2, method(:__send__).arity)
       assert_equal(-1, method(:nothing).arity)
