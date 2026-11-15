@@ -89,8 +89,10 @@ module Kernel
   #
   # When the Warning module (mruby-warning) is there, a warning in a
   # category that Warning[] says is off is dropped, and the message goes
-  # to Warning.warn, with category: when there is one, rather than
-  # straight to $stderr. Without it, category: is taken and ignored.
+  # to Warning.warn rather than straight to $stderr: with category:, unless
+  # Warning.warn takes the message alone, as Method#arity (mruby-method)
+  # tells, or, without Method#arity, the warning has no category. Without
+  # the Warning module, category: is taken and ignored.
   #
   #   warn("disk is full")                  # disk is full
   #   warn("use bar instead", uplevel: 0)   # app.rb:3: warning: use bar instead
@@ -141,10 +143,10 @@ module Kernel
     end
     if !warning
       $stderr.write(out)
-    elsif !category.nil?
-      Warning.warn(out, category: category)
-    else
+    elsif Warning.respond_to?(:method) ? Warning.method(:warn).arity == 1 : category.nil?
       Warning.warn(out)
+    else
+      Warning.warn(out, category: category)
     end
     nil
   end

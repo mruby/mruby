@@ -32,12 +32,18 @@ def warning_test_with(category, flag)
 end
 
 # the calls to Warning.warn while the block runs, as [message, category],
-# Warning.warn redefined for the while; one_arg, it takes the message alone
-def warning_test_calls(one_arg = false)
+# Warning.warn redefined for the while; :one_arg, it takes the message
+# alone, and :kwrest, any keywords (as [message, keywords])
+def warning_test_calls(form = nil)
   $warning_test_calls = []
-  if one_arg
+  if form == :one_arg
     def Warning.warn(message)
       $warning_test_calls << [message]
+      nil
+    end
+  elsif form == :kwrest
+    def Warning.warn(message, **kw)
+      $warning_test_calls << [message, kw]
       nil
     end
   else
@@ -119,6 +125,16 @@ assert('Kernel#warn drops a warning in a category that is off') do
   assert_raise(TypeError) { warn("d", category: false) }
 end
 
-assert('Kernel#warn calls Warning.warn without category: when there is none') do
-  assert_equal [["a\n"]], warning_test_calls(true) { warn("a") }
+assert('Kernel#warn calls a Warning.warn that takes the message alone without category:') do
+  assert_equal [["a\n"]], warning_test_calls(:one_arg) { warn("a") }
+  warning_test_with(:experimental, true) do
+    assert_equal [["b\n"]], warning_test_calls(:one_arg) { warn("b", category: :experimental) }
+  end
+end
+
+assert('Kernel#warn passes category: nil for a warning with none') do
+  assert_equal [["a\n", {category: nil}]], warning_test_calls(:kwrest) { warn("a") }
+  warning_test_with(:experimental, true) do
+    assert_equal [["b\n", {category: :experimental}]], warning_test_calls(:kwrest) { warn("b", category: :experimental) }
+  end
 end
