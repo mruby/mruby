@@ -1857,7 +1857,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
 
   struct RClass *c = mrb_class(mrb, self);
 #ifdef MRB_USE_REFINEMENTS
-  struct RClass *scope = mrb_vm_caller_refinements(mrb);
+  struct RArray *scope = mrb_vm_caller_refinements(mrb);
   m = mrb_vm_find_method_in_scope(mrb, scope, c, &c, name);
 #else
   m = mrb_vm_find_method(mrb, c, &c, name);
