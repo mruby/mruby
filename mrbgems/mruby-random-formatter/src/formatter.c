@@ -146,7 +146,9 @@ fmt_rand(mrb_state *mrb, mrb_value self, mrb_value arg)
       mrb_float f = fmt_real(mrb, self);
       mrb_float span = e - b;
       /* a span past the largest Float, as -1e308..1e308, weighs the ends */
-      mrb_float v = isinf(span) ? b * (1 - f) + e * f : b + f * span;
+      /* volatile, so that an x87 compares the value it returns rather than
+         the wider one in its register */
+      volatile mrb_float v = isinf(span) ? b * (1 - f) + e * f : b + f * span;
       /* rounding can land on an excluded end */
       if (excl && v >= e) v = fmt_nextafter(e, b);
       return mrb_float_value(mrb, v);
