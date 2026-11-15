@@ -206,6 +206,44 @@ assert('ObjectSpace.each_object does not reach the string Range#inspect builds')
   assert_false(w.seen?(s))
 end
 
+assert('ObjectSpace.each_object does not change a constant path under its walk') do
+  # const_missing and an autoload's require run Ruby in the middle of a
+  # constant path walk; finding the path through ObjectSpace and emptying
+  # it must not change the names the walk goes on to read.
+  $os_path_mod = m = Module.new
+  (1..5).each { |i| m.const_set(:"OsPathN#{i}", m) }
+  $os_path_names = []
+  def m.const_missing(name)
+    $os_path_names << name
+    ObjectSpace.each_object(String) do |s|
+      s.replace("") if s[0, 6] == "OsPath" && s.include?("::") && !s.frozen?
+    end
+    self
+  end
+  def self.require(path)
+    ObjectSpace.each_object(String) do |s|
+      s.replace("") if s[0, 6] == "OsPath" && s.include?("::") && !s.frozen?
+    end
+    ObjectSpace.each_object(Array) do |a|
+      if a.size == 6 && a[0] == :OsPathRoot2
+        a[2, 4] = [0, 0, 0, 0]
+        4.times { a.pop }
+      end
+    end
+    Object.const_set(path == "os/path1" ? :OsPathRoot1 : :OsPathRoot2, $os_path_mod)
+    true
+  end
+
+  assert_equal(m, m.const_get("OsPathMissingA::OsPathMissingB::OsPathMissingC"))
+  assert_equal([:OsPathMissingA, :OsPathMissingB, :OsPathMissingC], $os_path_names)
+
+  Object.autoload(:OsPathRoot1, "os/path1")
+  assert_true(Object.const_defined?("OsPathRoot1::OsPathN1::OsPathN2"))
+
+  Object.autoload(:OsPathRoot2, "os/path2")
+  assert_equal("constant", defined?(OsPathRoot2::OsPathN1::OsPathN2::OsPathN3::OsPathN4::OsPathN5))
+end
+
 assert('mrb_gc_register counts its registrations') do
   # One mrb_gc_unregister() undoes one mrb_gc_register(). Two owners of the
   # same object each hold it, so the first to let go leaves the second's hold

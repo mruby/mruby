@@ -934,13 +934,15 @@ mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
   else {
     outer = start;
   }
-  for (; i < len; i++) {
+  /* An autoload runs Ruby, which can reach `path` through ObjectSpace and
+     shrink it, so its length is read afresh each turn. */
+  for (; i < RARRAY_LEN(path); i++) {
     enum mrb_vtype t = mrb_type(outer);
     if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
       return mrb_nil_value();
     }
     if (!mrb_symbol_p(RARRAY_PTR(path)[i])) return mrb_nil_value();
-    outer = mrb_const_get_noraise(mrb, mrb_class_ptr(outer), mrb_symbol(RARRAY_PTR(path)[i]), i < len - 1);
+    outer = mrb_const_get_noraise(mrb, mrb_class_ptr(outer), mrb_symbol(RARRAY_PTR(path)[i]), i < RARRAY_LEN(path) - 1);
     if (mrb_undef_p(outer)) return mrb_nil_value();
   }
   return mrb_str_new_lit_frozen(mrb, "constant");
