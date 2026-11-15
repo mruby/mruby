@@ -30,9 +30,10 @@ def Warning.warn(message, category: nil)
 end
 ```
 
-`Kernel#warn` passes `category:` only for a warning that has one, so a
-`Warning.warn` that takes the message alone sees every warning with no
-category.
+As in CRuby, `Kernel#warn` passes `category:`, `nil` for a warning with
+none, unless `Warning.warn` takes the message alone. It tells by
+`Method#arity`, which is mruby-method's; in a build without it, `category:` is
+passed only for a warning that has one.
 
 Warnings that mruby writes from C, with `mrb_warn()`, go to stderr as they
 did.

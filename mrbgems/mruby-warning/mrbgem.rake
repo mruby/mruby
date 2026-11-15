@@ -6,4 +6,6 @@ MRuby::Gem::Specification.new('mruby-warning') do |spec|
   # Warning.warn writes to $stderr, and Kernel#warn goes through Warning
   spec.add_dependency 'mruby-io', core: 'mruby-io'
   spec.add_test_dependency 'mruby-metaprog', core: 'mruby-metaprog'
+  # Kernel#warn reads Warning.warn's arity with Method#arity
+  spec.add_test_dependency 'mruby-method', core: 'mruby-method'
 end
