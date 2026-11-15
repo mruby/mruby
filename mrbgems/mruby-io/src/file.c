@@ -270,11 +270,13 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value pathv;
+  mrb_value pathv, suffixv = mrb_nil_value();
   const char *suffix = NULL;
 
-  mrb_get_args(mrb, "o|z", &pathv, &suffix);
+  mrb_get_args(mrb, "o|S", &pathv, &suffixv);
   const char *path = RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv));
+  /* after to_path, which can change the suffix string */
+  if (!mrb_nil_p(suffixv)) suffix = RSTRING_CSTR(mrb, suffixv);
 
   const char *endp = path + strlen(path);
   if (path == endp) {
@@ -601,10 +603,14 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
 {
   mrb_value pathv, dirv;
   const char *default_dir = ".";
-  if (mrb_get_args(mrb, "o|o", &pathv, &dirv) == 2) {
+  mrb_int argc = mrb_get_args(mrb, "o|o", &pathv, &dirv);
+  /* both to_path calls run before either string is read: one can change
+     the other */
+  pathv = mrb_io_path(mrb, pathv);
+  if (argc == 2) {
     default_dir = RSTRING_CSTR(mrb, mrb_io_path(mrb, dirv));
   }
-  return path_expand(mrb, RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv)), default_dir, TRUE);
+  return path_expand(mrb, RSTRING_CSTR(mrb, pathv), default_dir, TRUE);
 }
 
 /*
@@ -620,10 +626,13 @@ mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
 {
   mrb_value pathv, dirv;
   const char *default_dir = ".";
-  if (mrb_get_args(mrb, "o|o", &pathv, &dirv) == 2) {
+  mrb_int argc = mrb_get_args(mrb, "o|o", &pathv, &dirv);
+  /* as in File.expand_path */
+  pathv = mrb_io_path(mrb, pathv);
+  if (argc == 2) {
     default_dir = RSTRING_CSTR(mrb, mrb_io_path(mrb, dirv));
   }
-  return path_expand(mrb, RSTRING_CSTR(mrb, mrb_io_path(mrb, pathv)), default_dir, FALSE);
+  return path_expand(mrb, RSTRING_CSTR(mrb, pathv), default_dir, FALSE);
 }
 
 /*
