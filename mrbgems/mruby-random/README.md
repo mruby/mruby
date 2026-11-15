@@ -124,6 +124,9 @@ rng = Random.new
 p rng.bytes(5) # => "\xAB\xCD\xEF\x12\x34" (example output)
 ```
 
+These come from the seeded generator. For bytes from the platform, to make
+keys and nonces from, the `mruby-random-urandom` gem adds `Random.urandom`.
+
 ### Class Methods (Using the Default Generator)
 
 The `Random` class also provides class methods that operate on a global, default random number generator. This is the same generator used by `Kernel#rand` and `Kernel#srand`.
