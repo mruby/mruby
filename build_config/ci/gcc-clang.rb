@@ -84,6 +84,8 @@ MRuby::Build.new('byte-string') do |conf|
   # above already covers.
   conf.gembox 'full-core'
   conf.gems.delete 'mruby-encoding'
+  # depends on mruby-encoding, and would bring it back
+  conf.gems.delete 'mruby-encoding-transcode'
 
   conf.enable_test
 end
