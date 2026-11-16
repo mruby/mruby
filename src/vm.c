@@ -3738,7 +3738,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETMCNST, BB) {
-      mrb_value v = mrb_const_get(mrb, regs[a], irep->syms[b]);
+      mrb_value v = mrb_vm_const_get_path(mrb, regs[a], irep->syms[b]);
       ci = mrb->c->ci;
       regs[a] = v;
       NEXT;

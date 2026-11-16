@@ -8,7 +8,9 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
+#include <mruby/debug.h>
 #include <mruby/error.h>
+#include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -1608,8 +1610,106 @@ mrb_autoload_p(mrb_value v)
   return autoload_check(v) != NULL;
 }
 
+/* Module#private_constant and #deprecate_constant mark a constant in a
+   Hash its module keeps under a name no Ruby code reaches, and
+   MRB_FL_CLASS_CONST_FLAGS on the module tells a lookup to look there. */
+
+/* the module that holds the constants `c` is searched for */
+static struct RClass*
+const_owner(struct RClass *c)
+{
+  return c->tt == MRB_TT_ICLASS ? c->c : c;
+}
+
+int
+mrb_const_flags(mrb_state *mrb, struct RClass *c, mrb_sym sym)
+{
+  mrb_value h;
+
+  c = const_owner(c);
+  if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_CONST_FLAGS)) return 0;
+  if (!iv_get(mrb, c->iv, MRB_SYM(__const_flags__), &h) || !mrb_hash_p(h)) return 0;
+  mrb_value v = mrb_hash_fetch(mrb, h, mrb_symbol_value(sym), mrb_fixnum_value(0));
+  return mrb_integer_p(v) ? (int)mrb_integer(v) : 0;
+}
+
+/* turns `flag` of the constant `sym` of `c` on or off */
+void
+mrb_const_flags_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, int flag, mrb_bool on)
+{
+  mrb_value h;
+  int fl = mrb_const_flags(mrb, c, sym);
+
+  if (on ? (fl & flag) == flag : (fl & flag) == 0) return;
+  if (!iv_get(mrb, c->iv, MRB_SYM(__const_flags__), &h) || !mrb_hash_p(h)) {
+    h = mrb_hash_new(mrb);
+    mrb_obj_iv_set(mrb, (struct RObject*)c, MRB_SYM(__const_flags__), h);
+  }
+  fl = on ? fl | flag : fl & ~flag;
+  if (fl) mrb_hash_set(mrb, h, mrb_symbol_value(sym), mrb_fixnum_value(fl));
+  else mrb_hash_delete_key(mrb, h, mrb_symbol_value(sym));
+  c->flags |= MRB_FL_CLASS_CONST_FLAGS;
+  /* a constant read through the cache would not be warned of */
+  mrb_const_cache_clear(mrb);
+}
+
+/* a copy of a module takes its own copy of the marks */
+void
+mrb_const_flags_copy(mrb_state *mrb, struct RClass *dst, struct RClass *src)
+{
+  mrb_value h;
+
+  if (!MRB_FLAG_TEST(src, MRB_FL_CLASS_CONST_FLAGS)) return;
+  if (!iv_get(mrb, src->iv, MRB_SYM(__const_flags__), &h) || !mrb_hash_p(h)) return;
+  mrb_obj_iv_set(mrb, (struct RObject*)dst, MRB_SYM(__const_flags__), mrb_hash_dup(mrb, h));
+  dst->flags |= MRB_FL_CLASS_CONST_FLAGS;
+}
+
+/* The file and line of the Ruby code running, as a warning starts with */
 static mrb_value
-const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_bool load)
+const_warn_location(mrb_state *mrb)
+{
+  for (mrb_callinfo *ci = mrb->c->ci; ci >= mrb->c->cibase; ci--) {
+    if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc) || !ci->pc) continue;
+    const mrb_irep *irep = ci->proc->body.irep;
+    if (!irep || !irep->debug_info) continue;
+    uint32_t idx = (uint32_t)(ci->pc - irep->iseq - 1);
+    const char *file = mrb_debug_get_filename(mrb, irep, idx);
+    int32_t line = mrb_debug_get_line(mrb, irep, idx);
+    if (file && line >= 0) return mrb_format(mrb, "%s:%d: ", file, (int)line);
+  }
+  return mrb_str_new(mrb, NULL, 0);
+}
+
+/* A deprecated constant `c::sym` has been read: warn, when Warning (from
+   mruby-warning) says to for :deprecated, as CRuby does. funcall takes no
+   keyword arguments, so Warning.warn is not given `category:`. */
+static void
+const_warn_deprecated(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
+{
+  c = const_owner(c);
+  if (!(mrb_const_flags(mrb, c, sym) & MRB_CONST_DEPRECATED)) return;
+  /* Warning may remove the constant, and v is then the caller's alone */
+  mrb_gc_protect(mrb, v);
+  mrb_value w;
+  /* a read does not load Warning, nor see an autoload of it */
+  if (!const_lookup(mrb, mrb->object_class, MRB_SYM(Warning), &w, FALSE) || autoload_check(w)) return;
+  mrb_value cat = mrb_symbol_value(MRB_SYM(deprecated));
+  if (!mrb_respond_to(mrb, w, MRB_OPSYM(aref))) return;
+  if (!mrb_test(mrb_funcall_argv(mrb, w, MRB_OPSYM(aref), 1, &cat))) return;
+
+  mrb_value msg = const_warn_location(mrb);
+  if (c == mrb->object_class) {
+    mrb_str_cat_str(mrb, msg, mrb_format(mrb, "warning: constant ::%n is deprecated\n", sym));
+  }
+  else {
+    mrb_str_cat_str(mrb, msg, mrb_format(mrb, "warning: constant %C::%n is deprecated\n", c, sym));
+  }
+  mrb_funcall_argv(mrb, w, MRB_SYM(warn), 1, &msg);
+}
+
+static mrb_value
+const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_bool load, struct RClass **ownerp)
 {
   struct RClass *c = base;
   mrb_value v;
@@ -1620,6 +1720,7 @@ const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip
 L_RETRY:
   while (c) {
     if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && const_lookup(mrb, c, sym, &v, load)) {
+      if (ownerp) *ownerp = c;
       return v;
     }
     c = c->super;
@@ -1634,26 +1735,54 @@ L_RETRY:
 }
 
 static mrb_value
+const_missing(mrb_state *mrb, struct RClass *base, mrb_sym sym)
+{
+  mrb_value mod = mrb_obj_value(base);
+  if (mrb_func_basic_p(mrb, mod, MRB_SYM(const_missing), mrb_mod_const_missing)) {
+    return mrb_const_missing(mrb, mod, sym);
+  }
+  mrb_value name = mrb_symbol_value(sym);
+  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
+}
+
+static mrb_value
 const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
 {
-  mrb_value v = const_get_nohook(mrb, base, sym, skip, TRUE);
+  struct RClass *owner;
+  mrb_value v = const_get_nohook(mrb, base, sym, skip, TRUE, &owner);
 
   /* call const_missing hook */
-  if (mrb_undef_p(v)) {
-    mrb_value mod = mrb_obj_value(base);
+  if (mrb_undef_p(v)) return const_missing(mrb, base, sym);
+  const_warn_deprecated(mrb, owner, sym, v);
+  return v;
+}
+
+/* `mod::sym`, a constant path read: a private constant is not there to it,
+   and const_missing is called as for one missing; the default one says it
+   is private. */
+mrb_value
+mrb_vm_const_get_path(mrb_state *mrb, mrb_value mod, mrb_sym sym)
+{
+  struct RClass *owner;
+
+  mod_const_check(mrb, mod);
+  struct RClass *base = mrb_class_ptr(mod);
+  mrb_value v = const_get_nohook(mrb, base, sym, FALSE, TRUE, &owner);
+  if (mrb_undef_p(v)) return const_missing(mrb, base, sym);
+  if (mrb_const_flags(mrb, owner, sym) & MRB_CONST_PRIVATE) {
     if (mrb_func_basic_p(mrb, mod, MRB_SYM(const_missing), mrb_mod_const_missing)) {
-      return mrb_const_missing(mrb, mod, sym);
+      mrb_name_error(mrb, sym, "private constant %C::%n referenced", const_owner(owner), sym);
     }
-    mrb_value name = mrb_symbol_value(sym);
-    return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
+    return const_missing(mrb, base, sym);
   }
+  const_warn_deprecated(mrb, owner, sym, v);
   return v;
 }
 
 mrb_value
 mrb_exc_const_get(mrb_state *mrb, mrb_sym sym)
 {
-  return const_get_nohook(mrb, mrb->object_class, sym, FALSE, TRUE);
+  return const_get_nohook(mrb, mrb->object_class, sym, FALSE, TRUE, NULL);
 }
 
 /*
@@ -1721,18 +1850,21 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   mrb_value v;
 
   if (const_lookup(mrb, c, sym, &v, TRUE)) {
+    const_warn_deprecated(mrb, c, sym, v);
     return v;
   }
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
     c2 = proc_class(mrb, proc);
     if (const_lookup(mrb, c2, sym, &v, TRUE)) {
+      const_warn_deprecated(mrb, c2, sym, v);
       return v;
     }
   }
   if (c->tt == MRB_TT_SCLASS) {
-    v = const_get_nohook(mrb, c, sym, TRUE, TRUE);
+    v = const_get_nohook(mrb, c, sym, TRUE, TRUE, &c2);
     if (!mrb_undef_p(v)) {
+      const_warn_deprecated(mrb, c2, sym, v);
       return v;
     }
 
@@ -1770,7 +1902,7 @@ mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym, mrb_bool
     if (const_lookup(mrb, c2, sym, &v, load)) return v;
   }
   if (c->tt == MRB_TT_SCLASS) {
-    v = const_get_nohook(mrb, c, sym, TRUE, load);
+    v = const_get_nohook(mrb, c, sym, TRUE, load, NULL);
     if (!mrb_undef_p(v)) return v;
 
     mrb_value klass;
@@ -1782,7 +1914,7 @@ mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym, mrb_bool
     }
     if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
   }
-  return const_get_nohook(mrb, c, sym, TRUE, load);
+  return const_get_nohook(mrb, c, sym, TRUE, load, NULL);
 }
 
 mrb_bool
@@ -1794,12 +1926,18 @@ mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym)
 /* The lookup a constant path read makes from a module, `Mod::NAME`, without
    its hooks: the value, or undef where the name is missing, with no
    const_missing call and nothing raised.  A constant Object holds is out of
-   reach from any other module here, as it is for the read. A pending
-   autoload is loaded with `load`, as for mrb_vm_const_get_noraise(). */
+   reach from any other module here, as it is for the read, and so is a
+   private constant. A pending autoload is loaded with `load`, as for
+   mrb_vm_const_get_noraise(). */
 mrb_value
 mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym, mrb_bool load)
 {
-  return const_get_nohook(mrb, mod, sym, FALSE, load);
+  struct RClass *owner;
+  mrb_value v = const_get_nohook(mrb, mod, sym, FALSE, load, &owner);
+  if (!mrb_undef_p(v) && (mrb_const_flags(mrb, owner, sym) & MRB_CONST_PRIVATE)) {
+    return mrb_undef_value();
+  }
+  return v;
 }
 
 /*
@@ -1880,6 +2018,7 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   mod_const_check(mrb, mod);
   mrb_iv_remove(mrb, mod, sym);
+  mrb_const_flags_set(mrb, mrb_class_ptr(mod), sym, MRB_CONST_PRIVATE|MRB_CONST_DEPRECATED, FALSE);
   mrb_const_cache_clear(mrb);
 }
 
@@ -1936,14 +2075,21 @@ mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
   mrb_define_const(mrb, mrb->object_class, name, val);
 }
 
+struct const_i_arg {
+  struct RClass *c;
+  mrb_value ary;
+};
+
+/* a private constant is not listed */
 static int
 const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
-  mrb_value ary = *(mrb_value*)p;
+  struct const_i_arg *arg = (struct const_i_arg*)p;
+  mrb_value ary = arg->ary;
   mrb_int len;
   const char* s = mrb_sym_name_len(mrb, sym, &len);
 
-  if (len >= 1 && ISUPPER(s[0])) {
+  if (len >= 1 && ISUPPER(s[0]) && !(mrb_const_flags(mrb, arg->c, sym) & MRB_CONST_PRIVATE)) {
     mrb_int i, alen = RARRAY_LEN(ary);
 
     for (i=0; i<alen; i++) {
@@ -1960,7 +2106,8 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 mrb_value
 mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary)
 {
-  iv_foreach(mrb, class_iv_ptr(c), const_i, &ary);
+  struct const_i_arg arg = { c, ary };
+  iv_foreach(mrb, class_iv_ptr(c), const_i, &arg);
   return ary;
 }
 

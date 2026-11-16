@@ -138,3 +138,31 @@ assert('Kernel#warn passes category: nil for a warning with none') do
     assert_equal [["b\n", {category: :experimental}]], warning_test_calls(:kwrest) { warn("b", category: :experimental) }
   end
 end
+
+assert("Module#deprecate_constant warns of a read") do
+  m = Module.new
+  m.const_set(:OLD, 1)
+  m.__send__(:deprecate_constant, :OLD)
+  assert_equal "", warning_test_stderr { m::OLD }
+  out = warning_test_with(:deprecated, true) do
+    warning_test_stderr { m::OLD; m.const_get(:OLD) }
+  end
+  # each starts with the file and line, where the build keeps them
+  lines = out.split("\n")
+  assert_equal 2, lines.size
+  assert_true lines[0].include?("warning: constant #{m.inspect}::OLD is deprecated")
+  assert_true lines[1].include?("warning: constant #{m.inspect}::OLD is deprecated")
+end
+
+module Test4DeprecateConstant
+  OLD = 1
+  deprecate_constant :OLD
+  def self.old = OLD
+end
+
+assert("Module#deprecate_constant warns of a lexical read") do
+  out = warning_test_with(:deprecated, true) do
+    warning_test_stderr { Test4DeprecateConstant.old }
+  end
+  assert_true out.include?("warning: constant Test4DeprecateConstant::OLD is deprecated")
+end
