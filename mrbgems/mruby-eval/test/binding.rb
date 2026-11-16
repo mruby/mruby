@@ -154,3 +154,27 @@ assert "a binding gives a string the scope its constants belong to" do
   assert_equal 6, BindingScopeProbe::FROM_CLASS_EVAL
   assert_false Object.const_defined?(:FROM_CLASS_EVAL, false)
 end
+
+assert("eval in TOPLEVEL_BINDING") do
+  eval("toplevel_eval_x = 2", TOPLEVEL_BINDING)
+  assert_equal 2, eval("toplevel_eval_x", TOPLEVEL_BINDING)
+  assert_equal 3, TOPLEVEL_BINDING.eval("toplevel_eval_x + 1")
+  assert_true TOPLEVEL_BINDING.local_variable_defined?(:toplevel_eval_x)
+  assert_equal "main", TOPLEVEL_BINDING.eval("self").to_s
+
+  # what it defines goes to Object, a method privately, as at the top level
+  TOPLEVEL_BINDING.eval("def toplevel_eval_m; :m; end; class ToplevelEvalC; end; ToplevelEvalK = 4")
+  assert_true Object.private_method_defined?(:toplevel_eval_m)
+  assert_equal :m, toplevel_eval_m
+  assert_kind_of Class, Object.const_get(:ToplevelEvalC)
+  assert_equal 4, Object.const_get(:ToplevelEvalK)
+end
+
+assert("eval in a copy of TOPLEVEL_BINDING") do
+  b = TOPLEVEL_BINDING.dup
+  assert_equal "main", b.eval("self").to_s
+  b.eval("def toplevel_dup_m; :d; end; toplevel_dup_x = 5")
+  assert_true Object.private_method_defined?(:toplevel_dup_m)
+  assert_equal 5, b.eval("toplevel_dup_x")
+  assert_false TOPLEVEL_BINDING.local_variable_defined?(:toplevel_dup_x)
+end

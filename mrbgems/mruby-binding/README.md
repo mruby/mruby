@@ -24,6 +24,21 @@ b = get_binding("hello")
 
 **Note:** `Kernel#binding` cannot be called from a C function or a Proc defined in C. Attempting to do so will raise a `RuntimeError`.
 
+### `TOPLEVEL_BINDING`
+
+A binding of the top level: its receiver is `main`, and a string evaluated in
+it defines its methods, classes and constants on `Object`, its methods
+private, as at the top level of a script. `ERB#result` takes it by default.
+
+```ruby
+eval("x = 1", TOPLEVEL_BINDING)
+eval("x + 1", TOPLEVEL_BINDING) # => 2
+```
+
+Each script runs in a scope of its own, so unlike CRuby's, the main script's
+local variables are not in it. Those that `eval` or `local_variable_set` add
+to it stay there for the next.
+
 ## `Binding` Class Methods
 
 A `Binding` object has the following methods:

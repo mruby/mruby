@@ -112,6 +112,9 @@ binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
   MRB_ENV_SET_LEN(env, 1);
   MRB_ENV_CLOSE(env);
   MRB_ENV_SET_SVAR(env);
+  /* and for the visibility a `def` evaluated in it takes, where the frame's
+     env holds one */
+  if (e) MRB_ENV_SET_VISIBILITY(env, MRB_ENV_VISIBILITY(e));
   return env;
 }
 
@@ -502,6 +505,32 @@ mrb_f_binding(mrb_state *mrb, mrb_value self)
   return mrb_binding_new(mrb, proc, self, env);
 }
 
+/*
+ * TOPLEVEL_BINDING: a binding of the top level, self main. A script runs in
+ * a scope of its own, so the main script's local variables are not in it;
+ * those that a string evaluated in it defines stay there for the next.
+ */
+static void
+binding_define_toplevel(mrb_state *mrb)
+{
+  mrb_value top = mrb_top_self(mrb);
+
+  /* The frame the binding is taken from, made up as one closed env: what
+     a top-level frame answers, self main, Object for the constants,
+     methods and classes a string evaluated in it defines, and private for
+     the visibility of those methods. The binding's own space, and that of
+     a copy, takes them from it as from any frame's env. */
+  struct REnv *frame = binding_env_new_lvspace(mrb, NULL);
+  frame->c = mrb->object_class;
+  frame->stack[0] = top;
+  MRB_ENV_SET_VISIBILITY(frame, MRB_METHOD_PRIVATE_FL >> 25);
+
+  mrb_value b = mrb_binding_new(mrb, NULL, top, frame);
+  mrb_iv_set(mrb, b, MRB_SYM(source_location),
+             mrb_assoc_new(mrb, mrb_str_new_lit(mrb, "<main>"), mrb_fixnum_value(0)));
+  mrb_define_global_const(mrb, "TOPLEVEL_BINDING", b);
+}
+
 void
 mrb_mruby_binding_gem_init(mrb_state *mrb)
 {
@@ -521,6 +550,8 @@ mrb_mruby_binding_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, binding, MRB_SYM(receiver), binding_receiver, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, binding, MRB_SYM(source_location), binding_source_location, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, binding, MRB_SYM(inspect), mrb_any_to_s, MRB_ARGS_NONE());
+
+  binding_define_toplevel(mrb);
 }
 
 void
