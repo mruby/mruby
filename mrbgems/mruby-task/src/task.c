@@ -1265,11 +1265,13 @@ mrb_task_s_get(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "S", &name);
 
-  /* Search all queues for task with matching name */
+  /* Search all queues for task with matching name. Compare bytes in C:
+     Task#name= takes any object, and an `==` dispatched from here could
+     close or relink the task under the walk. */
   for (int i = 0; i < MRB_NUM_TASK_QUEUE; i++) {
     mrb_task *t = mrb->task.queues[i];
     while (t != NULL) {
-      if (mrb_equal(mrb, t->name, name)) {
+      if (mrb_string_p(t->name) && mrb_str_equal(mrb, t->name, name)) {
         return t->self;
       }
       t = t->next;

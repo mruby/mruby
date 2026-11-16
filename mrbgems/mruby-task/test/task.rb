@@ -193,6 +193,28 @@ assert("Task without name returns (noname)") do
   assert_equal "(noname)", task.name
 end
 
+class TaskGetClosingName
+  def initialize(task)
+    @task = task
+  end
+
+  def ==(other)
+    @task.close
+    true
+  end
+end
+
+assert("Task.get does not call a name's == while walking the queues") do
+  task = Task.new(name: "task_get_target") { }
+  task.name = TaskGetClosingName.new(task)
+  assert_nil Task.get("task_get_other")
+  assert_equal :READY, task.status
+  task.close
+  found = Task.new(name: "task_get_found") { }
+  assert_same found, Task.get("task_get_found")
+  found.close
+end
+
 # Edge cases
 
 assert("Task.new with block doesn't execute immediately") do
