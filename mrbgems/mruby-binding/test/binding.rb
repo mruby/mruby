@@ -133,3 +133,14 @@ assert "a binding taken in a `define_method` block sees the block's closure" do
   c = Class.new { def m; binding.local_variables; end }
   assert_equal [], c.new.m
 end
+
+assert("TOPLEVEL_BINDING") do
+  b = TOPLEVEL_BINDING
+  assert_kind_of Binding, b
+  assert_equal "main", b.receiver.to_s
+  assert_equal ["<main>", 0], b.source_location
+  assert_false b.local_variable_defined?(:toplevel_binding_x)
+  assert_equal 1, b.local_variable_set(:toplevel_binding_x, 1)
+  assert_equal 1, TOPLEVEL_BINDING.local_variable_get(:toplevel_binding_x)
+  assert_include TOPLEVEL_BINDING.local_variables, :toplevel_binding_x
+end
