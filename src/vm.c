@@ -3716,13 +3716,17 @@ RETRY_TRY_BLOCK:
       }
 #endif
       {
-        mrb_value v = mrb_vm_const_get(mrb, irep->syms[b]);
+        mrb_bool cache = TRUE;
+        mrb_value v = mrb_vm_const_get(mrb, irep->syms[b], &cache);
         ci = mrb->c->ci;
         regs[a] = v;
 #ifndef MRB_NO_CONST_CACHE
-        cc->irep = irep;
-        cc->sym = sym;
-        cc->value = v;
+        /* a deprecated constant is not cached, so each read warns */
+        if (cache) {
+          cc->irep = irep;
+          cc->sym = sym;
+          cc->value = v;
+        }
 #endif
       }
       NEXT;

@@ -1681,22 +1681,23 @@ const_warn_location(mrb_state *mrb)
   return mrb_str_new(mrb, NULL, 0);
 }
 
-/* A deprecated constant `c::sym` has been read: warn, when Warning (from
-   mruby-warning) says to for :deprecated, as CRuby does. funcall takes no
-   keyword arguments, so Warning.warn is not given `category:`. */
-static void
+/* A constant `c::sym` has been read: if it is deprecated, warn, when
+   Warning (from mruby-warning) says to for :deprecated, as CRuby does, and
+   answer TRUE, so the read is not cached and the next warns too. funcall
+   takes no keyword arguments, so Warning.warn is not given `category:`. */
+static mrb_bool
 const_warn_deprecated(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 {
   c = const_owner(c);
-  if (!(mrb_const_flags(mrb, c, sym) & MRB_CONST_DEPRECATED)) return;
+  if (!(mrb_const_flags(mrb, c, sym) & MRB_CONST_DEPRECATED)) return FALSE;
   /* Warning may remove the constant, and v is then the caller's alone */
   mrb_gc_protect(mrb, v);
   mrb_value w;
   /* a read does not load Warning, nor see an autoload of it */
-  if (!const_lookup(mrb, mrb->object_class, MRB_SYM(Warning), &w, FALSE) || autoload_check(w)) return;
+  if (!const_lookup(mrb, mrb->object_class, MRB_SYM(Warning), &w, FALSE) || autoload_check(w)) return TRUE;
   mrb_value cat = mrb_symbol_value(MRB_SYM(deprecated));
-  if (!mrb_respond_to(mrb, w, MRB_OPSYM(aref))) return;
-  if (!mrb_test(mrb_funcall_argv(mrb, w, MRB_OPSYM(aref), 1, &cat))) return;
+  if (!mrb_respond_to(mrb, w, MRB_OPSYM(aref))) return TRUE;
+  if (!mrb_test(mrb_funcall_argv(mrb, w, MRB_OPSYM(aref), 1, &cat))) return TRUE;
 
   mrb_value msg = const_warn_location(mrb);
   if (c == mrb->object_class) {
@@ -1706,6 +1707,7 @@ const_warn_deprecated(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v
     mrb_str_cat_str(mrb, msg, mrb_format(mrb, "warning: constant %C::%n is deprecated\n", c, sym));
   }
   mrb_funcall_argv(mrb, w, MRB_SYM(warn), 1, &msg);
+  return TRUE;
 }
 
 static mrb_value
@@ -1745,15 +1747,16 @@ const_missing(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
+/* *cachep, unless NULL, is cleared when the constant is deprecated */
 static mrb_value
-const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
+const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_bool *cachep)
 {
   struct RClass *owner;
   mrb_value v = const_get_nohook(mrb, base, sym, skip, TRUE, &owner);
 
   /* call const_missing hook */
   if (mrb_undef_p(v)) return const_missing(mrb, base, sym);
-  const_warn_deprecated(mrb, owner, sym, v);
+  if (const_warn_deprecated(mrb, owner, sym, v) && cachep) *cachep = FALSE;
   return v;
 }
 
@@ -1809,7 +1812,7 @@ MRB_API mrb_value
 mrb_const_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   mod_const_check(mrb, mod);
-  return const_get(mrb, mrb_class_ptr(mod), sym, FALSE);
+  return const_get(mrb, mrb_class_ptr(mod), sym, FALSE, NULL);
 }
 
 static struct RClass*
@@ -1840,8 +1843,10 @@ lexical_scope_p(mrb_state *mrb, const struct RProc *proc)
   return proc_class(mrb, proc) != proc_class(mrb, proc->upper);
 }
 
+/* the constant `sym` a lexical read finds; *cachep is cleared when it is
+   deprecated, so that each read warns */
 mrb_value
-mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
+mrb_vm_const_get(mrb_state *mrb, mrb_sym sym, mrb_bool *cachep)
 {
   const struct RProc *proc = mrb->c->ci->proc;
   struct RClass *c = mrb_vm_cref_class(mrb, mrb->c->ci), *c2;
@@ -1850,21 +1855,21 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   mrb_value v;
 
   if (const_lookup(mrb, c, sym, &v, TRUE)) {
-    const_warn_deprecated(mrb, c, sym, v);
+    if (const_warn_deprecated(mrb, c, sym, v)) *cachep = FALSE;
     return v;
   }
   for (proc = proc->upper; proc && proc->upper; proc = proc->upper) {
     if (!lexical_scope_p(mrb, proc)) continue;
     c2 = proc_class(mrb, proc);
     if (const_lookup(mrb, c2, sym, &v, TRUE)) {
-      const_warn_deprecated(mrb, c2, sym, v);
+      if (const_warn_deprecated(mrb, c2, sym, v)) *cachep = FALSE;
       return v;
     }
   }
   if (c->tt == MRB_TT_SCLASS) {
     v = const_get_nohook(mrb, c, sym, TRUE, TRUE, &c2);
     if (!mrb_undef_p(v)) {
-      const_warn_deprecated(mrb, c2, sym, v);
+      if (const_warn_deprecated(mrb, c2, sym, v)) *cachep = FALSE;
       return v;
     }
 
@@ -1877,7 +1882,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
     }
     if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
   }
-  return const_get(mrb, c, sym, TRUE);
+  return const_get(mrb, c, sym, TRUE, cachep);
 }
 
 /* Non-raising lexical constant lookup for `defined?`. Mirrors the search

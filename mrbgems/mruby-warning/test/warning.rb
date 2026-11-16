@@ -166,3 +166,11 @@ assert("Module#deprecate_constant warns of a lexical read") do
   end
   assert_true out.include?("warning: constant Test4DeprecateConstant::OLD is deprecated")
 end
+
+assert("Module#deprecate_constant warns of each read from the same place") do
+  # the constant cache does not keep a deprecated constant
+  out = warning_test_with(:deprecated, true) do
+    warning_test_stderr { 3.times { Test4DeprecateConstant.old } }
+  end
+  assert_equal 3, out.split("\n").size
+end
