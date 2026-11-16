@@ -60,7 +60,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
    16:   eq_defined (a class among the ancestors defines its own `==`)
    8:    is_refined (MRB_USE_REFINEMENTS)
    7:    is_refinement (MRB_USE_REFINEMENTS)
-   9-15: unused
+   10-15: unused
+   9:    const_flags (a constant is private or deprecated)
    6:    prohibit Class#allocate
    0-5:  instance type
 */
@@ -84,6 +85,9 @@ mrb_class(mrb_state *mrb, mrb_value v)
    receiver; for `nil`, `true` and `false`, which carry no class pointer, it
    reads `MRB_BOP_NIL_TRUE_FALSE_EQ`, which the flag of the three sets. */
 #define MRB_FL_CLASS_EQ_DEFINED (1 << 16)
+/* Module#private_constant or #deprecate_constant has marked a constant of
+   the module; the marks are in the module's hidden `__const_flags__`. */
+#define MRB_FL_CLASS_CONST_FLAGS (1 << 9)
 #ifdef MRB_USE_REFINEMENTS
 /* A module made by Module#refine: its `super` is the class it refines. */
 #define MRB_FL_CLASS_IS_REFINEMENT (1 << 7)

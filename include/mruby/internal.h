@@ -869,6 +869,13 @@ mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
 mrb_bool mrb_vm_const_defined_p(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym);
 mrb_value mrb_vm_const_get_noraise(mrb_state *mrb, mrb_callinfo *ci, mrb_sym sym, mrb_bool load);
 mrb_value mrb_const_get_noraise(mrb_state *mrb, struct RClass *mod, mrb_sym sym, mrb_bool load);
+mrb_value mrb_vm_const_get_path(mrb_state *mrb, mrb_value mod, mrb_sym sym);
+/* the marks Module#private_constant and #deprecate_constant leave */
+#define MRB_CONST_PRIVATE    1
+#define MRB_CONST_DEPRECATED 2
+int mrb_const_flags(mrb_state *mrb, struct RClass *c, mrb_sym sym);
+void mrb_const_flags_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, int flag, mrb_bool on);
+void mrb_const_flags_copy(mrb_state *mrb, struct RClass *dst, struct RClass *src);
 mrb_bool mrb_const_lookup_at(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value *vp, mrb_bool load);
 void mrb_autoload_define(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value path);
 mrb_value mrb_autoload_path(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_bool inherit);

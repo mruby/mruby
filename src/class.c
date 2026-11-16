@@ -2880,6 +2880,76 @@ mrb_mod_private_class_method(mrb_state *mrb, mrb_value mod)
   return mod_class_method_visibility(mrb, mod, MRB_METHOD_PRIVATE_FL);
 }
 
+/* marks each named constant of mod, which has to be mod's own */
+static mrb_value
+mod_const_mark(mrb_state *mrb, mrb_value mod, int flag, mrb_bool on)
+{
+  mrb_int argc;
+  mrb_value *argv;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_check_frozen(mrb, c);
+  mrb_get_args(mrb, "*", &argv, &argc);
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_sym id = mrb_obj_to_sym(mrb, argv[i]);
+    mrb_int len;
+    const char *name = mrb_sym_name_len(mrb, id, &len);
+    /* constants share the table with instance variables */
+    if (!mrb_const_name_p(mrb, name, len) || !mrb_const_lookup_at(mrb, c, id, NULL, FALSE)) {
+      mrb_name_error(mrb, id, "constant %C::%n not defined", c, id);
+    }
+    mrb_const_flags_set(mrb, c, id, flag, on);
+  }
+  return mod;
+}
+
+/*
+ * call-seq:
+ *   mod.private_constant(name, ...)  -> mod
+ *
+ * Makes the named constants of mod private: a constant path,
+ * `mod::NAME`, no longer reaches them, nor does `mod.constants` list
+ * them, while code inside mod reads them as before.
+ *
+ *   class Foo
+ *     X = 1
+ *     private_constant :X
+ *     def self.x = X
+ *   end
+ *   Foo.x   #=> 1
+ *   Foo::X  #=> NameError: private constant Foo::X referenced
+ */
+static mrb_value
+mrb_mod_private_constant(mrb_state *mrb, mrb_value mod)
+{
+  return mod_const_mark(mrb, mod, MRB_CONST_PRIVATE, TRUE);
+}
+
+/*
+ * call-seq:
+ *   mod.public_constant(name, ...)  -> mod
+ *
+ * Makes the named constants of mod public again.
+ */
+static mrb_value
+mrb_mod_public_constant(mrb_state *mrb, mrb_value mod)
+{
+  return mod_const_mark(mrb, mod, MRB_CONST_PRIVATE, FALSE);
+}
+
+/*
+ * call-seq:
+ *   mod.deprecate_constant(name, ...)  -> mod
+ *
+ * Marks the named constants of mod deprecated: reading one warns, when
+ * `Warning[:deprecated]` is true (mruby-warning).
+ */
+static mrb_value
+mrb_mod_deprecate_constant(mrb_state *mrb, mrb_value mod)
+{
+  return mod_const_mark(mrb, mod, MRB_CONST_DEPRECATED, TRUE);
+}
+
 static mrb_value
 top_public(mrb_state *mrb, mrb_value self)
 {
@@ -4793,6 +4863,8 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, id, "constant %n not defined", id);
   }
+  /* a constant set again under the name starts with no marks */
+  mrb_const_flags_set(mrb, mrb_class_ptr(mod), id, MRB_CONST_PRIVATE|MRB_CONST_DEPRECATED, FALSE);
   /* a pending autoload goes with nothing to show for it */
   if (mrb_autoload_p(val)) return mrb_nil_value();
   return val;
@@ -5125,6 +5197,7 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
     clone->super = klass->super;
     if (klass->iv) {
       mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
+      mrb_const_flags_copy(mrb, clone, klass);
       mrb_obj_iv_set(mrb, (struct RObject*)clone, MRB_SYM(__attached__), obj);
     }
     if (klass->mt) {
@@ -5186,6 +5259,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_MODULE:
       copy_class(mrb, dest, obj);
       mrb_iv_copy(mrb, dest, obj);
+      mrb_const_flags_copy(mrb, mrb_class_ptr(dest), mrb_class_ptr(obj));
       mrb_iv_remove(mrb, dest, MRB_SYM(__classname__));
       break;
     case MRB_TT_OBJECT:
@@ -5536,6 +5610,7 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_mod_const_missing,   MRB_SYM(const_missing),    MRB_ARGS_REQ(1)),
   MRB_MT_ENTRY(mrb_mod_const_set,       MRB_SYM(const_set),        MRB_ARGS_REQ(2)),                   /* 15.2.2.4.23 */
   MRB_MT_ENTRY(mod_define_method,       MRB_SYM(define_method),    MRB_ARGS_ARG(1,1)),
+  MRB_MT_ENTRY(mrb_mod_deprecate_constant, MRB_SYM(deprecate_constant), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_mod_dup,             MRB_SYM(dup),              MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(extended),         MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.26 */
   MRB_MT_ENTRY(mrb_mod_extend_object,   MRB_SYM(extend_object),    MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
@@ -5556,9 +5631,11 @@ static const mrb_mt_entry mod_rom_entries[] = {
   MRB_MT_ENTRY(mrb_do_nothing,          MRB_SYM(prepended),        MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_mod_private,         MRB_SYM(private),          MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.36 */
   MRB_MT_ENTRY(mrb_mod_private_class_method, MRB_SYM(private_class_method), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_mod_private_constant, MRB_SYM(private_constant), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_mod_protected,       MRB_SYM(protected),        MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.37 */
   MRB_MT_ENTRY(mrb_mod_public,          MRB_SYM(public),           MRB_ARGS_ANY() | MRB_MT_PRIVATE),   /* 15.2.2.4.38 */
   MRB_MT_ENTRY(mrb_mod_public_class_method, MRB_SYM(public_class_method), MRB_ARGS_ANY()),
+  MRB_MT_ENTRY(mrb_mod_public_constant, MRB_SYM(public_constant), MRB_ARGS_ANY()),
   MRB_MT_ENTRY(mrb_mod_remove_const,    MRB_SYM(remove_const),     MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),  /* 15.2.2.4.40 */
   MRB_MT_ENTRY(mrb_mod_to_s,            MRB_SYM(to_s),             MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_mod_undef,           MRB_SYM(undef_method),     MRB_ARGS_ANY()),                    /* 15.2.2.4.41 */

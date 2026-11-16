@@ -2000,3 +2000,98 @@ assert('Module#public, #private, #protected and #module_function return their na
   assert_equal [:f, :g], r[:mf]
   assert_nil r[:mf0]
 end
+
+assert('Module#private_constant') do
+  class Test4PrivateConstant
+    X = 1
+    Y = 2
+    def self.x = X
+    def self.scoped = Test4PrivateConstant::X
+    def self.self_scoped = self::X
+  end
+  c = Test4PrivateConstant
+  assert_same c, c.__send__(:private_constant, :X)
+  assert_same c, c.__send__(:private_constant)
+  e = assert_raise(NameError) { c::X }
+  assert_equal "private constant Test4PrivateConstant::X referenced", e.message
+  assert_equal :X, e.name
+  assert_equal 2, c::Y
+  # the class's own code reads it, but not through a path, as does const_get
+  assert_equal 1, c.x
+  assert_raise(NameError) { c.scoped }
+  assert_raise(NameError) { c.self_scoped }
+  assert_equal 1, c.const_get(:X)
+  assert_true c.const_defined?(:X)
+  assert_nil defined?(Test4PrivateConstant::X)
+  assert_equal "constant", defined?(Test4PrivateConstant::Y)
+  assert_raise(NameError) { c.__send__(:private_constant, :NOPE) }
+  assert_raise(TypeError) { c.__send__(:private_constant, 1) }
+  # an instance variable is not a constant
+  class Test4PrivateConstant
+    @x = 1
+  end
+  assert_raise(NameError) { c.__send__(:private_constant, :@x) }
+
+  # a subclass reaches it only lexically, and an includer too
+  class Test4PrivateConstantSub < Test4PrivateConstant
+    def self.x = X
+  end
+  e = assert_raise(NameError) { Test4PrivateConstantSub::X }
+  assert_equal "private constant Test4PrivateConstant::X referenced", e.message
+  assert_equal 1, Test4PrivateConstantSub.x
+  # a name the class only inherits is not its own to mark
+  assert_raise(NameError) { Test4PrivateConstantSub.__send__(:private_constant, :Y) }
+  module Test4PrivateConstantMod
+    Z = 3
+    private_constant :Z
+  end
+  i = Class.new { include Test4PrivateConstantMod }
+  assert_raise(NameError) { i::Z }
+
+  # it stays private when set again, and is public once removed
+  c.const_set(:X, 2)
+  assert_raise(NameError) { c::X }
+  c.__send__(:remove_const, :X)
+  c.const_set(:X, 3)
+  assert_equal 3, c::X
+
+  # a const_missing of the class's own is called instead
+  c.__send__(:private_constant, :X)
+  def c.const_missing(name) = name
+  assert_equal :X, c::X
+end
+
+assert('Module#public_constant') do
+  c = Class.new
+  c.const_set(:X, 1)
+  c.__send__(:private_constant, :X)
+  assert_same c, c.__send__(:public_constant, :X)
+  assert_equal 1, c::X
+  assert_raise(NameError) { c.__send__(:public_constant, :NOPE) }
+
+  # a copy has marks of its own
+  c.__send__(:private_constant, :X)
+  d = c.dup
+  assert_raise(NameError) { d::X }
+  d.__send__(:public_constant, :X)
+  assert_equal 1, d::X
+  assert_raise(NameError) { c::X }
+end
+
+assert('Module#deprecate_constant') do
+  c = Class.new
+  c.const_set(:X, 1)
+  assert_same c, c.__send__(:deprecate_constant, :X)
+  assert_equal 1, c::X
+  assert_raise(NameError) { c.__send__(:deprecate_constant, :NOPE) }
+end
+
+assert('Module#private_constant on a frozen module') do
+  c = Class.new
+  c.const_set(:X, 1)
+  c.freeze
+  assert_raise(FrozenError) { c.__send__(:private_constant, :X) }
+  assert_raise(FrozenError) { c.__send__(:public_constant, :X) }
+  assert_raise(FrozenError) { c.__send__(:deprecate_constant, :X) }
+  assert_equal 1, c::X
+end
