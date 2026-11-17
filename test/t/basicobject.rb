@@ -113,3 +113,32 @@ assert('BasicObject#== defined on NilClass, TrueClass or FalseClass') do
                 :true_eq, :true_eq, true, true, false, true,
                 :false_eq, :false_eq, true, true, false, true], answers
 end
+
+$basic_object_defined_gvar = 1
+
+class BasicObjectDefined < BasicObject
+  K = 1
+  @@cvar = 1
+
+  def initialize
+    @set = 1
+  end
+
+  def method_missing(name, *args)
+    ::Kernel.raise ::NoMethodError, "method_missing #{name}"
+  end
+
+  def answers
+    [defined?(@set), defined?(@unset), defined?(K), defined?(Unset),
+     defined?(::BasicObjectDefined::K), defined?(@@cvar),
+     defined?($basic_object_defined_gvar), defined?(yield),
+     defined?(answers), defined?(unset), defined?(super)]
+  end
+end
+
+assert('defined? in an object that is no Object') do
+  assert_equal ["instance-variable", nil, "constant", nil, "constant",
+                "class variable", "global-variable", nil, "method", nil, nil],
+               BasicObjectDefined.new.answers
+  assert_equal "yield", BasicObjectDefined.new.answers {}[7]
+end

@@ -1002,7 +1002,9 @@ obj_pat_values(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();       /* not reached */
 }
 
-static const mrb_mt_entry kernel_rom_entries[] = {
+/* The helpers `defined?` compiles to, sent to self: on BasicObject, so that
+   an object that is no Object has them too. */
+static const mrb_mt_entry defined_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_defined_const_path, MRB_SYM_Q(__defined_const_path), MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_method, MRB_SYM_Q(__defined_method), MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_method_on, MRB_SYM_Q(__defined_method_on), MRB_ARGS_REQ(2) | MRB_MT_PRIVATE),
@@ -1012,6 +1014,9 @@ static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_f_defined_gvar,   MRB_SYM_Q(__defined_gvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_cvar,   MRB_SYM_Q(__defined_cvar),   MRB_ARGS_REQ(1) | MRB_MT_PRIVATE),
   MRB_MT_ENTRY(mrb_f_defined_super,  MRB_SYM_Q(__defined_super),  MRB_ARGS_NONE() | MRB_MT_PRIVATE),
+};
+
+static const mrb_mt_entry kernel_rom_entries[] = {
   MRB_MT_ENTRY(mrb_eqq_m,                        MRB_OPSYM(eqq),        MRB_ARGS_REQ(1)),  /* 15.3.1.3.2  */
   MRB_MT_ENTRY(mrb_obj_not_match,                MRB_OPSYM(nmatch),      MRB_ARGS_REQ(1)),  /* 11.4.4 c) */
   MRB_MT_ENTRY(mrb_cmp_m,                        MRB_OPSYM(cmp),         MRB_ARGS_REQ(1)),
@@ -1068,6 +1073,7 @@ mrb_init_kernel(mrb_state *mrb)
 
   mrb->kernel_module = krn = mrb_define_module_id(mrb, MRB_SYM(Kernel));                                                    /* 15.3.1 */
 
+  MRB_MT_INIT_ROM(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), defined_rom_entries);
   MRB_MT_INIT_ROM(mrb, krn, kernel_rom_entries);
   MRB_MT_INIT_ROM(mrb, mrb_singleton_class_ptr(mrb, mrb_obj_value(krn)),
                   kernel_module_function_entries);
