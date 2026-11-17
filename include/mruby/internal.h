@@ -145,6 +145,23 @@ size_t mrb_gc_mark_mt(mrb_state*, struct RClass*);
 int mrb_equal_in_c(mrb_state*, mrb_value, mrb_value);
 void mrb_gc_each_live_object(mrb_state*, int (*)(mrb_state*, struct RBasic*, void*), void*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
+#ifdef MRB_USE_GC_WEAK
+/* A table that holds objects weakly, defined by a gem that sets
+   MRB_USE_GC_WEAK: what it holds is not marked through it, and `clear` is
+   called once marking is complete, before the sweep, to drop each object
+   mrb_gc_weak_dead_p() reports. `clear` may neither allocate nor run Ruby
+   code. The table owns the node and links it with mrb_gc_weak_add(), and
+   unlinks it before the node is freed. */
+struct mrb_gc_weak {
+  struct mrb_gc_weak *prev, *next;
+  void (*clear)(mrb_state *mrb, struct mrb_gc_weak *weak);
+};
+void mrb_gc_weak_add(mrb_state *mrb, struct mrb_gc_weak *weak);
+void mrb_gc_weak_remove(mrb_state *mrb, struct mrb_gc_weak *weak);
+/* Only in a `clear` callback: whether `v`, which the table holds, is to be
+   freed by this sweep. An immediate value never is. */
+mrb_bool mrb_gc_weak_dead_p(mrb_state *mrb, mrb_value v);
+#endif
 
 /* hash */
 size_t mrb_hash_memsize(mrb_value obj);

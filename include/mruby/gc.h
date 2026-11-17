@@ -48,19 +48,11 @@ typedef struct mrb_gc_prof_hist {
 } mrb_gc_prof_hist;
 #endif
 
-/* A table that holds objects weakly: what it holds is not marked through
-   it, and `clear` is called once marking is complete, before the sweep, to
-   drop each object mrb_gc_weak_dead_p() reports. `clear` may neither
-   allocate nor run Ruby code. The table owns the node and links it with
-   mrb_gc_weak_add(), and unlinks it before the node is freed. */
-struct mrb_gc_weak {
-  struct mrb_gc_weak *prev, *next;
-  void (*clear)(mrb_state *mrb, struct mrb_gc_weak *weak);
-};
-
 typedef struct mrb_gc {
   struct kh_gcroot *root;          /* mrb_gc_register()ed objects -> pin count */
+#ifdef MRB_USE_GC_WEAK
   struct mrb_gc_weak *weaks;       /* mrb_gc_weak_add()ed tables */
+#endif
   struct mrb_heap_page *heaps;     /* all heaps pages */
   struct mrb_heap_page *free_heaps;/* heaps for allocation */
   struct mrb_heap_page *sweeps;    /* page where sweep starts */
@@ -129,11 +121,6 @@ typedef struct mrb_gc {
 } mrb_gc;
 
 MRB_API mrb_bool mrb_object_dead_p(mrb_state *mrb, struct RBasic *object);
-MRB_API void mrb_gc_weak_add(mrb_state *mrb, struct mrb_gc_weak *weak);
-MRB_API void mrb_gc_weak_remove(mrb_state *mrb, struct mrb_gc_weak *weak);
-/* Only in a `clear` callback: whether `v`, which the table holds, is to be
-   freed by this sweep. An immediate value never is. */
-MRB_API mrb_bool mrb_gc_weak_dead_p(mrb_state *mrb, mrb_value v);
 MRB_API int mrb_gc_add_region(mrb_state *mrb, void *start, size_t size);
 
 /* Task-scheduled GC control.

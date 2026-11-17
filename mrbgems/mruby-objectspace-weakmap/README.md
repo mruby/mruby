@@ -53,7 +53,8 @@ As in CRuby:
 ## How
 
 The maps keep their entries in tables the GC does not mark through, and
-link each table into the GC with `mrb_gc_weak_add()` (`mruby/gc.h`). Once
-marking is complete, before the sweep, the GC calls the table back, and it
-drops each entry `mrb_gc_weak_dead_p()` reports. WeakKeyMap's values are
-kept in an Array the map holds.
+link each table into the GC with `mrb_gc_weak_add()` (`mruby/internal.h`).
+Once marking is complete, before the sweep, the GC calls the table back, and
+it drops each entry `mrb_gc_weak_dead_p()` reports. WeakKeyMap's values are
+kept in an Array the map holds. The gem defines `MRB_USE_GC_WEAK`; a build
+without it has no weak tables in the GC.
