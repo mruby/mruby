@@ -243,6 +243,12 @@ assert('Array#delete_at', '15.2.12.5.9') do
   assert_equal([1], a)
 end
 
+assert('Array#delete_at keeps what it returns while the array shrinks') do
+  # the strings are held by the array alone, and its capacity shrinks
+  a = (1..40).map { |i| "s#{i}" }
+  35.times { |i| assert_equal("s#{i + 1}", a.delete_at(0)) }
+end
+
 assert('Array#each', '15.2.12.5.10') do
   a = [1,2,3]
   b = 0
