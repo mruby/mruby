@@ -461,6 +461,48 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
   return is_dead(gc, object);
 }
 
+MRB_API void
+mrb_gc_weak_add(mrb_state *mrb, struct mrb_gc_weak *weak)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  weak->prev = NULL;
+  weak->next = gc->weaks;
+  if (gc->weaks) gc->weaks->prev = weak;
+  gc->weaks = weak;
+}
+
+MRB_API void
+mrb_gc_weak_remove(mrb_state *mrb, struct mrb_gc_weak *weak)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  if (weak->prev) weak->prev->next = weak->next;
+  else if (gc->weaks == weak) gc->weaks = weak->next;
+  else return;                  /* not linked */
+  if (weak->next) weak->next->prev = weak->prev;
+  weak->prev = weak->next = NULL;
+}
+
+/* An object a weak table holds is one the heap holds, so the page walk of
+   mrb_object_dead_p() is not needed. */
+MRB_API mrb_bool
+mrb_gc_weak_dead_p(mrb_state *mrb, mrb_value v)
+{
+  if (mrb_immediate_p(v)) return FALSE;
+  return is_dead(&mrb->gc, mrb_basic_ptr(v));
+}
+
+/* marking is complete: each weak table drops what nothing marked, before
+   the sweep frees it */
+static void
+gc_clear_weaks(mrb_state *mrb, mrb_gc *gc)
+{
+  for (struct mrb_gc_weak *w = gc->weaks; w; w = w->next) {
+    w->clear(mrb, w);
+  }
+}
+
 static void
 link_heap_page(mrb_gc *gc, mrb_heap_page *page)
 {
@@ -584,6 +626,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
   gc->heaps = NULL;
   gc->free_heaps = NULL;
   gc->regions = NULL;
+  gc->weaks = NULL;
   add_heap(mrb, gc);
   gc->interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   gc->step_ratio = DEFAULT_GC_STEP_RATIO;
@@ -1700,6 +1743,7 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
          from the weak table before the sweep frees it */
       mrb_gc_clear_dead_refscopes(mrb);
 #endif
+      gc_clear_weaks(mrb, gc);
 #ifdef MRB_GC_PROFILE
       {
         uint64_t fmdt = gc_prof_now_us() - fm0;
