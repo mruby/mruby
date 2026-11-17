@@ -1474,6 +1474,10 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   ary_modify(mrb, a);
   mrb_value *ptr = ARY_PTR(a);
   mrb_value val = ptr[index];
+  /* the shrink below may collect, and val is then out of the array:
+     protect it while the array still holds it, since growing the arena
+     may collect too */
+  mrb_gc_protect(mrb, val);
 
   ptr += index;
   mrb_int len = alen - index;
