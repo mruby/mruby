@@ -3721,7 +3721,8 @@ RETRY_TRY_BLOCK:
         ci = mrb->c->ci;
         regs[a] = v;
 #ifndef MRB_NO_CONST_CACHE
-        /* a deprecated constant is not cached, so each read warns */
+        /* neither a deprecated constant, so that each read warns, nor what
+           const_missing gives, so that each read calls it, is cached */
         if (cache) {
           cc->irep = irep;
           cc->sym = sym;

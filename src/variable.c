@@ -1747,7 +1747,9 @@ const_missing(mrb_state *mrb, struct RClass *base, mrb_sym sym)
   return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
-/* *cachep, unless NULL, is cleared when the constant is deprecated */
+/* *cachep, unless NULL, is cleared when the constant is deprecated, or
+   when const_missing answers for it: the hook is called for each read, as
+   in CRuby, and what it gives is not the constant */
 static mrb_value
 const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_bool *cachep)
 {
@@ -1755,7 +1757,10 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip, mrb_b
   mrb_value v = const_get_nohook(mrb, base, sym, skip, TRUE, &owner);
 
   /* call const_missing hook */
-  if (mrb_undef_p(v)) return const_missing(mrb, base, sym);
+  if (mrb_undef_p(v)) {
+    if (cachep) *cachep = FALSE;
+    return const_missing(mrb, base, sym);
+  }
   if (const_warn_deprecated(mrb, owner, sym, v) && cachep) *cachep = FALSE;
   return v;
 }
@@ -1844,7 +1849,7 @@ lexical_scope_p(mrb_state *mrb, const struct RProc *proc)
 }
 
 /* the constant `sym` a lexical read finds; *cachep is cleared when it is
-   deprecated, so that each read warns */
+   deprecated, so that each read warns, or when const_missing gives it */
 mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym, mrb_bool *cachep)
 {

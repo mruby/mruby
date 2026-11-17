@@ -413,6 +413,20 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
+assert('Module#const_missing is called for each lexical read') do
+  module Test4ConstMissingEach
+    @n = 0
+    def self.const_missing(sym) = (@n += 1)
+    def self.read = Missing
+  end
+
+  assert_equal 1, Test4ConstMissingEach.read
+  assert_equal 2, Test4ConstMissingEach.read
+  # and the constant, once it is set, is what the read gives
+  Test4ConstMissingEach.const_set(:Missing, :set)
+  assert_equal :set, Test4ConstMissingEach.read
+end
+
 assert('Module#include', '15.2.2.4.27') do
   module Test4Include
     Const4Include = 42
