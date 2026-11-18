@@ -2110,6 +2110,14 @@ static mrb_value
 gc_start(mrb_state *mrb, mrb_value obj)
 {
   mrb_full_gc(mrb);
+#ifdef MRB_USE_GC_WEAK
+  /* what a weak table does with what was collected may run Ruby code,
+     which may link or unlink tables: take the next one first */
+  for (struct mrb_gc_weak *w = mrb->gc.weaks, *next; w; w = next) {
+    next = w->next;
+    if (w->after) w->after(mrb, w);
+  }
+#endif
   return mrb_nil_value();
 }
 

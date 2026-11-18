@@ -289,13 +289,11 @@ os_undefine_finalizer(mrb_state *mrb, mrb_value self)
   return obj;
 }
 
-/* GC.start, which then runs the finalizers of what it collected */
-static mrb_value
-fin_gc_start(mrb_state *mrb, mrb_value self)
+/* called by GC.start once it has collected */
+static void
+fin_after_start(mrb_state *mrb, struct mrb_gc_weak *weak)
 {
-  mrb_full_gc(mrb);
   fin_run(mrb);
-  return mrb_nil_value();
 }
 
 void
@@ -306,6 +304,7 @@ mrb_mruby_objectspace_finalizer_gem_init(mrb_state *mrb)
 
   f->objs = kh_init(fin, mrb);
   f->weak.clear = fin_clear_dead;
+  f->weak.after = fin_after_start;
   mrb_value d = mrb_obj_value(mrb_data_object_alloc(mrb, mrb->object_class, f, &fin_type));
   mrb_gc_weak_add(mrb, &f->weak);
   mrb_iv_set(mrb, d, MRB_SYM(__list__), mrb_ary_new(mrb));
@@ -313,7 +312,6 @@ mrb_mruby_objectspace_finalizer_gem_init(mrb_state *mrb)
 
   mrb_define_module_function_id(mrb, os, MRB_SYM(define_finalizer), os_define_finalizer, MRB_ARGS_ARG(1,1)|MRB_ARGS_BLOCK());
   mrb_define_module_function_id(mrb, os, MRB_SYM(undefine_finalizer), os_undefine_finalizer, MRB_ARGS_REQ(1));
-  mrb_define_class_method_id(mrb, mrb_module_get_id(mrb, MRB_SYM(GC)), MRB_SYM(start), fin_gc_start, MRB_ARGS_NONE());
   /* registered before any at_exit block, so it runs after them */
   mrb_state_atexit(mrb, fin_atexit);
 }

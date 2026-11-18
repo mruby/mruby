@@ -44,5 +44,5 @@ The objects that have finalizers are kept in a table the GC does not mark
 through, linked into the GC with `mrb_gc_weak_add()` (`mruby/internal.h`).
 Once marking is complete, before the sweep, the GC calls the table back,
 and it takes out each object `mrb_gc_weak_dead_p()` reports and queues its
-finalizers. The gem defines `MRB_USE_GC_WEAK`, and `GC.start` runs the
-queue after it collects.
+finalizers. The gem defines `MRB_USE_GC_WEAK`. `GC.start` then calls the
+table's `after` hook once it has collected, which runs the queue.
