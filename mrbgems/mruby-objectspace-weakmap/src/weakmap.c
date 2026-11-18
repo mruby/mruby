@@ -93,6 +93,9 @@ static struct RArray*
 wm_vals_new(mrb_state *mrb, mrb_value self, uint32_t capa)
 {
   mrb_value ary = mrb_ary_new_capa(mrb, capa);
+  /* the map and wm_clear_dead() index it by entry position without checking
+     its length, so Ruby must not be able to find it and shrink it */
+  mrb_ary_ptr(ary)->c = NULL; /* hide from ObjectSpace.each_object */
   if (capa > 0) mrb_ary_set(mrb, ary, capa-1, mrb_nil_value());
   /* a frozen map still takes entries, as in CRuby */
   mrb_obj_iv_set_force(mrb, mrb_obj_ptr(self), MRB_SYM(__values__), ary);

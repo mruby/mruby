@@ -204,6 +204,25 @@ assert("ObjectSpace::WeakKeyMap keeps values with their keys across a rebuild") 
   extra.each { |k| assert_equal("e#{k}", m[k]) }
 end
 
+assert("ObjectSpace.each_object does not reach WeakKeyMap's values") do
+  # the map indexes the Array of its values by entry position; one Ruby
+  # could shrink would have #[], #delete and the GC go past its end
+  m = ObjectSpace::WeakKeyMap.new
+  marker = Object.new
+  keys = (0...20).map { |i| "k#{i}" }
+  keys.each { |k| m[k] = marker }
+  found = 0
+  ObjectSpace.each_object(Array) do |a|
+    next unless a.size >= keys.size && a[0].equal?(marker)
+    found += 1
+    a.clear
+  end
+  assert_equal 0, found
+  keys.each { |k| assert_same marker, m[k] }
+  assert_same marker, m.delete(keys[19])
+  GC.start
+end
+
 assert("ObjectSpace::WeakMap#each yields each entry when the block grows the map") do
   m = ObjectSpace::WeakMap.new
   keys = (0...8).map { |i| "k#{i}" }
