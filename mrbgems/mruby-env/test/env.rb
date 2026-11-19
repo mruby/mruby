@@ -16,6 +16,25 @@ assert('ENV[] and ENV[]=') do
   assert_nil ENV["MRUBY_ENV_TEST_A"]
 end
 
+assert('ENV reads a substring only up to its length') do
+  # long enough that the substrings share their parents' bytes
+  full = "MRUBY_ENV_TEST_SUBSTR_" + "K" * 20 + "_TAIL"
+  key = full[0, 42]
+  ENV[full] = "full"
+  assert_nil ENV[key]
+  assert_false ENV.key?(key)
+  assert_nil ENV.delete(key)
+  ENV[key] = "key"
+  assert_equal "full", ENV[full]
+  assert_equal "key", ENV[key]
+  ENV[key] = nil
+  assert_equal "full", ENV[full]
+  ENV[key] = ("v" * 30 + "_TAIL")[0, 30]
+  assert_equal "v" * 30, ENV[key]
+  ENV.delete(key)
+  ENV.delete(full)
+end
+
 assert('ENV[] returns nil for missing key') do
   assert_nil ENV["MRUBY_ENV_TEST_NONEXISTENT"]
 end
