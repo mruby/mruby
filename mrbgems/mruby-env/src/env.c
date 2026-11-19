@@ -23,7 +23,10 @@ extern char **environ;
 #endif
 #endif
 
-static void
+/* Checks the name and returns it as a C string. RSTRING_PTR() is not one: a
+   substring shares the bytes of the string it was cut from, and getenv()
+   would read on past its length into them. */
+static const char*
 env_check_key(mrb_state *mrb, mrb_value key)
 {
   mrb_ensure_string_type(mrb, key);
@@ -33,6 +36,7 @@ env_check_key(mrb_state *mrb, mrb_value key)
   if (memchr(RSTRING_PTR(key), '\0', RSTRING_LEN(key))) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad environment variable name: contains null byte");
   }
+  return RSTRING_CSTR(mrb, key);
 }
 
 /* ENV[] */
@@ -43,8 +47,7 @@ mrb_env_aref(mrb_state *mrb, mrb_value self)
   const char *val;
 
   mrb_get_args(mrb, "o", &key);
-  env_check_key(mrb, key);
-  val = getenv(RSTRING_PTR(key));
+  val = getenv(env_check_key(mrb, key));
   if (val == NULL) return mrb_nil_value();
   return mrb_str_new_cstr(mrb, val);
 }
@@ -54,15 +57,16 @@ static mrb_value
 mrb_env_aset(mrb_state *mrb, mrb_value self)
 {
   mrb_value key, val;
+  const char *name;
 
   mrb_get_args(mrb, "oo", &key, &val);
-  env_check_key(mrb, key);
+  name = env_check_key(mrb, key);
 
   if (mrb_nil_p(val)) {
 #ifdef _WIN32
-    _putenv_s(RSTRING_PTR(key), "");
+    _putenv_s(name, "");
 #else
-    unsetenv(RSTRING_PTR(key));
+    unsetenv(name);
 #endif
     return mrb_nil_value();
   }
@@ -72,9 +76,9 @@ mrb_env_aset(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad environment variable value: contains null byte");
   }
 #ifdef _WIN32
-  _putenv_s(RSTRING_PTR(key), RSTRING_PTR(val));
+  _putenv_s(name, RSTRING_CSTR(mrb, val));
 #else
-  setenv(RSTRING_PTR(key), RSTRING_PTR(val), 1);
+  setenv(name, RSTRING_CSTR(mrb, val), 1);
 #endif
   return val;
 }
@@ -84,18 +88,18 @@ static mrb_value
 mrb_env_delete(mrb_state *mrb, mrb_value self)
 {
   mrb_value key;
-  const char *val;
+  const char *name, *val;
   mrb_value result;
 
   mrb_get_args(mrb, "o", &key);
-  env_check_key(mrb, key);
-  val = getenv(RSTRING_PTR(key));
+  name = env_check_key(mrb, key);
+  val = getenv(name);
   if (val == NULL) return mrb_nil_value();
   result = mrb_str_new_cstr(mrb, val);
 #ifdef _WIN32
-  _putenv_s(RSTRING_PTR(key), "");
+  _putenv_s(name, "");
 #else
-  unsetenv(RSTRING_PTR(key));
+  unsetenv(name);
 #endif
   return result;
 }
@@ -156,8 +160,7 @@ mrb_env_has_key(mrb_state *mrb, mrb_value self)
   mrb_value key;
 
   mrb_get_args(mrb, "o", &key);
-  env_check_key(mrb, key);
-  return mrb_bool_value(getenv(RSTRING_PTR(key)) != NULL);
+  return mrb_bool_value(getenv(env_check_key(mrb, key)) != NULL);
 }
 
 /* ENV.to_s */

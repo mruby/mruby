@@ -88,6 +88,35 @@ at_exit_call(mrb_state *mrb, void *proc)
   return mrb_yield_argv(mrb, *(mrb_value*)proc, 0, NULL);
 }
 
+static mrb_value
+atexit_hook_call(mrb_state *mrb, void *f)
+{
+  (*(mrb_atexit_func*)f)(mrb);
+  return mrb_nil_value();
+}
+
+static void at_exit_run(mrb_state *mrb);
+
+/*
+ * Runs the state's hooks registered before at_exit_run, which mrb_close()
+ * would run next, so that they are not lost when the blocks end the
+ * process. A hook that raises leaves the rest to run, as in mrb_close().
+ */
+static void
+at_exit_run_rest(mrb_state *mrb)
+{
+  int i = mrb->atexit_stack_len;
+
+  while (i > 0 && mrb->atexit_stack[i-1] != at_exit_run) i--;
+  if (i == 0) return;
+  for (i--; i > 0; i--) {
+    mrb_atexit_func f = mrb->atexit_stack[i-1];
+    mrb_bool error;
+    mrb_protect_error(mrb, atexit_hook_call, &f, &error);
+    mrb_gc_arena_restore(mrb, 0);
+  }
+}
+
 /*
  * Runs the blocks, the last registered first, those they register in turn
  * included. While they run, `$!` is the exception the program ended with
@@ -95,7 +124,8 @@ at_exit_call(mrb_state *mrb, void *proc)
  * raises anything but SystemExit has its exception reported; the rest run
  * either way. If one raised, the process then ends with the status of the
  * last SystemExit, or in failure when another exception came after it,
- * since mrb_close() has no status to answer.
+ * since mrb_close() has no status to answer, once the hooks mrb_close()
+ * would run after this one have run.
  */
 static void
 at_exit_run(mrb_state *mrb)
@@ -139,7 +169,10 @@ at_exit_run(mrb_state *mrb)
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb->exc = exc;
-  if (raised) exit(status);
+  if (raised) {
+    at_exit_run_rest(mrb);
+    exit(status);
+  }
 }
 
 /*

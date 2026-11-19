@@ -34,9 +34,7 @@ Unlike CRuby:
 - the GC cannot run Ruby code, so the finalizers of an object collected by
   the GC on its own run at the next `define_finalizer`, `GC.start`, or at
   exit, not as soon as the object is gone;
-- a copy made by `dup` or `clone` has no finalizers;
-- an `at_exit` block that calls `exit` or raises ends the process there
-  (mruby-exit), so the finalizers left to the exit do not run.
+- a copy made by `dup` or `clone` has no finalizers.
 
 ## How
 
