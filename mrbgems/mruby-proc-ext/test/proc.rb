@@ -85,6 +85,12 @@ assert('Proc#parameters') do
   assert_equal([[:opt, :x], [:opt, :y], [:rest, :other]], Proc.new{|x,y=42,*other|}.parameters)
   assert_equal([[:opt, :a], [:opt, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:opt, :f], [:opt, :g], [:block, :h]], Proc.new {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
   assert_equal([[:req, :a], [:req, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:req, :f], [:req, :g], [:block, :h]], lambda {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
+  # the keyword dictionary is there for keywords without ** too
+  assert_equal([[:req, :a], [:key, :k]], ->(a, k: 1){}.parameters)
+  assert_equal([[:req, :a], [:key, :k], [:block, :b]], ->(a, k: 1, &b){}.parameters)
+  assert_equal([[:key, :k], [:keyrest, :o], [:block, :b]], ->(k: 1, **o, &b){}.parameters)
+  assert_equal([[:keyrest, :o]], ->(**o){}.parameters)
+  assert_equal([[:rest, :*], [:keyrest, :**], [:block, :&]], ->(*, **, &){}.parameters)
 end
 
 assert('Proc#to_proc') do

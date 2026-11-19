@@ -164,23 +164,21 @@ kernel_proc(mrb_state *mrb, mrb_value self)
  *    prc.parameters  #=> [[:req, :x], [:opt, :y], [:rest, :other]]
  */
 
+/* [type, name], or [type] when the parameter has no name */
+static void
+param_push(mrb_state *mrb, mrb_value params, mrb_sym type, const mrb_sym *lv, int nlv, int idx)
+{
+  mrb_value a = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, a, mrb_symbol_value(type));
+  if (lv && idx < nlv && lv[idx]) {
+    mrb_ary_push(mrb, a, mrb_symbol_value(lv[idx]));
+  }
+  mrb_ary_push(mrb, params, a);
+}
+
 mrb_value
 mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 {
-  struct parameters_type {
-    mrb_sym name;
-    int size;
-  } *p, parameters_list [] = {
-    {MRB_SYM(req),    0},
-    {MRB_SYM(opt),    0},
-    {MRB_SYM(rest),   0},
-    {MRB_SYM(req),    0},
-    {MRB_SYM(keyrest),0},
-    {MRB_SYM(block),  0},
-    {MRB_SYM(key),    0},
-    {0, 0}
-  };
-  int i;
   const struct RProc *proc = mrb_proc_ptr(self);
   /* An alias proc carries no irep of its own: body.mid holds the aliased
      method's name and `upper` points at the original proc (see mrb_alias_method
@@ -194,7 +192,8 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     if (!proc) return mrb_ary_new(mrb);
   }
   mrb_aspec aspec;
-  mrb_bool has_lv = TRUE;
+  const mrb_sym *lv = NULL;
+  int nlv = 0;
   if (MRB_PROC_CFUNC_P(proc)) {
     uint32_t caspec_bits = proc->flags & MRB_PROC_CASPEC_MASK;
     if (caspec_bits != 0) {
@@ -206,7 +205,6 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     else {
       return mrb_ary_new(mrb);
     }
-    has_lv = FALSE;
   }
   else {
     const struct mrb_irep *irep = proc->body.irep;
@@ -214,57 +212,35 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
       return mrb_ary_new(mrb);
     }
     aspec = PEEK_W(irep->iseq+1);
+    lv = irep->lv;
+    nlv = irep->nlocals - 1;
   }
 
-  if (!MRB_PROC_STRICT_P(proc)) {
-    parameters_list[0].name = MRB_SYM(opt);
-    parameters_list[3].name = MRB_SYM(opt);
-  }
+  mrb_sym req = MRB_PROC_STRICT_P(proc) ? MRB_SYM(req) : MRB_SYM(opt);
+  int ma = MRB_ASPEC_REQ(aspec);
+  int oa = MRB_ASPEC_OPT(aspec);
+  int ra = MRB_ASPEC_REST(aspec);
+  int pa = MRB_ASPEC_POST(aspec);
+  int ka = MRB_ASPEC_KEY(aspec);
+  int kd = MRB_ASPEC_KDICT(aspec);
+  int ba = MRB_ASPEC_BLOCK(aspec);
+  mrb_value params = mrb_ary_new_capa(mrb, ma+oa+ra+pa+ka+kd+ba);
 
-  parameters_list[0].size = MRB_ASPEC_REQ(aspec);
-  parameters_list[1].size = MRB_ASPEC_OPT(aspec);
-  parameters_list[2].size = MRB_ASPEC_REST(aspec);
-  parameters_list[3].size = MRB_ASPEC_POST(aspec);
-  parameters_list[4].size = MRB_ASPEC_KDICT(aspec);
-  parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
-  parameters_list[6].size = MRB_ASPEC_KEY(aspec);
-
-  int max = 0;
-  for (i = 0; parameters_list[i].name; i++) {
-    max += parameters_list[i].size;
-  }
-
-  mrb_value parameters = mrb_ary_new_capa(mrb, max);
-  mrb_value krest = mrb_nil_value();
-  mrb_value block = mrb_nil_value();
-
-  const mrb_sym *lv = has_lv ? proc->body.irep->lv : NULL;
-  for (i = 0, p = parameters_list; p->name; p++) {
-    mrb_value sname = mrb_symbol_value(p->name);
-
-    for (int j = 0; j < p->size; i++, j++) {
-      mrb_value a = mrb_ary_new(mrb);
-      mrb_ary_push(mrb, a, sname);
-      if (lv && i < max && lv[i]) {
-        mrb_ary_push(mrb, a, mrb_symbol_value(lv[i]));
-      }
-      if (p->name == MRB_SYM(block)) {
-        if (lv && lv[i+1]) {
-          mrb_ary_push(mrb, a, mrb_symbol_value(lv[i+1]));
-        }
-        block = a; continue;
-      }
-      if (p->name == MRB_SYM(keyrest)) {
-        krest = a; continue;
-      }
-      mrb_ary_push(mrb, parameters, a);
-    }
-    /* need to skip empty block slot */
-    if (p->size == 0 && p->name == MRB_SYM(block)) i++;
-  }
-  if (!mrb_nil_p(krest)) mrb_ary_push(mrb, parameters, krest);
-  if (!mrb_nil_p(block)) mrb_ary_push(mrb, parameters, block);
-  return parameters;
+  /* the registers OP_ENTER fills, in order: the positional arguments, the
+     keyword dictionary when there are keywords or **, the block, then a
+     named block's copy of it and the keywords */
+  int i = 0, j;
+  for (j = 0; j < ma; j++) param_push(mrb, params, req, lv, nlv, i++);
+  for (j = 0; j < oa; j++) param_push(mrb, params, MRB_SYM(opt), lv, nlv, i++);
+  if (ra) param_push(mrb, params, MRB_SYM(rest), lv, nlv, i++);
+  for (j = 0; j < pa; j++) param_push(mrb, params, req, lv, nlv, i++);
+  int kidx = (ka || kd) ? i++ : -1;
+  int bidx = i++;
+  if (ba) i++;
+  for (j = 0; j < ka; j++) param_push(mrb, params, MRB_SYM(key), lv, nlv, i++);
+  if (kd) param_push(mrb, params, MRB_SYM(keyrest), lv, nlv, kidx);
+  if (ba) param_push(mrb, params, MRB_SYM(block), lv, nlv, bidx+1);
+  return params;
 }
 
 /* ---------------------------*/
