@@ -240,6 +240,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   for (j = 0; j < ka; j++) param_push(mrb, params, MRB_SYM(key), lv, nlv, i++);
   if (kd) param_push(mrb, params, MRB_SYM(keyrest), lv, nlv, kidx);
   if (ba) param_push(mrb, params, MRB_SYM(block), lv, nlv, bidx+1);
+  if (MRB_ASPEC_NOBLOCK(aspec)) param_push(mrb, params, MRB_SYM(noblock), NULL, 0, 0);
   return params;
 }
 

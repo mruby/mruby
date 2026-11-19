@@ -91,6 +91,15 @@ assert('Proc#parameters') do
   assert_equal([[:key, :k], [:keyrest, :o], [:block, :b]], ->(k: 1, **o, &b){}.parameters)
   assert_equal([[:keyrest, :o]], ->(**o){}.parameters)
   assert_equal([[:rest, :*], [:keyrest, :**], [:block, :&]], ->(*, **, &){}.parameters)
+  assert_equal([[:noblock]], ->(&nil){}.parameters)
+  assert_equal([[:req, :a], [:key, :k], [:noblock]], ->(a, k: 1, &nil){}.parameters)
+end
+
+assert('&nil gets no name from the code around it') do
+  # the offset of `&` was read as the name, any symbol or none the compiler
+  # had, which aborted it
+  x = 1
+  assert_equal([[:noblock]], ->(&nil){}.parameters)
 end
 
 assert('Proc#to_proc') do
