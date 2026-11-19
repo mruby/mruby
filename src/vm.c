@@ -4307,6 +4307,10 @@ RETRY_TRY_BLOCK:
       mrb_value kdict;
 
       if (mrb_hash_p(kdict=regs[kidx]) && !mrb_hash_empty_p(mrb, kdict)) {
+        /* with a dictionary of its own, the method is **nil */
+        if (MRB_ASPEC_KDICT(PEEK_W(irep->iseq+1))) {
+          RAISE_LIT(mrb, E_ARGUMENT_ERROR, "no keywords accepted");
+        }
         mrb_value key1 = mrb_hash_first_key(mrb, kdict);
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", key1);
       }

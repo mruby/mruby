@@ -1,3 +1,4 @@
+#include <string.h>
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/proc.h>
@@ -238,7 +239,17 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   int bidx = i++;
   if (ba) i++;
   for (j = 0; j < ka; j++) param_push(mrb, params, MRB_SYM(key), lv, nlv, i++);
-  if (kd) param_push(mrb, params, MRB_SYM(keyrest), lv, nlv, kidx);
+  if (kd) {
+    /* **nil names its dictionary so, a name no variable can have */
+    mrb_int len;
+    const char *name = (lv && kidx < nlv && lv[kidx]) ? mrb_sym_name_len(mrb, lv[kidx], &len) : NULL;
+    if (name && len == 5 && memcmp(name, "**nil", 5) == 0) {
+      param_push(mrb, params, MRB_SYM(nokey), NULL, 0, 0);
+    }
+    else {
+      param_push(mrb, params, MRB_SYM(keyrest), lv, nlv, kidx);
+    }
+  }
   if (ba) param_push(mrb, params, MRB_SYM(block), lv, nlv, bidx+1);
   if (MRB_ASPEC_NOBLOCK(aspec)) param_push(mrb, params, MRB_SYM(noblock), NULL, 0, 0);
   return params;

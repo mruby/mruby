@@ -2679,6 +2679,26 @@ assert('&nil in formal parameters') do
   assert_raise(ArgumentError) { f.call {} }
 end
 
+assert('**nil in formal parameters') do
+  def nokey(x, **nil) = x
+  assert_equal 1, nokey(1)
+  # a Hash is a positional argument, and no keywords is none
+  assert_equal({z: 2}, nokey({z: 2}))
+  h = {}
+  assert_equal 1, nokey(1, **h)
+  e = assert_raise(ArgumentError) { nokey(1, z: 2) }
+  assert_equal "no keywords accepted", e.message
+
+  f = Proc.new { |x, **nil| x }
+  assert_equal 1, f.call(1)
+  assert_raise(ArgumentError) { f.call(1, z: 2) }
+
+  def nokey2(**nil, &nil); end
+  nokey2
+  assert_raise(ArgumentError) { nokey2(z: 2) }
+  assert_raise(ArgumentError) { nokey2 {} }
+end
+
 assert('brace-less variable interpolation') do
   # `"#@iv"` is the short form of `"#{@iv}"`. It reaches the codegen as an
   # EmbeddedVariableNode, which used to be unimplemented.

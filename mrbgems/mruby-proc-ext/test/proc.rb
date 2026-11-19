@@ -93,6 +93,8 @@ assert('Proc#parameters') do
   assert_equal([[:rest, :*], [:keyrest, :**], [:block, :&]], ->(*, **, &){}.parameters)
   assert_equal([[:noblock]], ->(&nil){}.parameters)
   assert_equal([[:req, :a], [:key, :k], [:noblock]], ->(a, k: 1, &nil){}.parameters)
+  assert_equal([[:req, :x], [:nokey]], ->(x, **nil){}.parameters)
+  assert_equal([[:nokey], [:noblock]], ->(**nil, &nil){}.parameters)
 end
 
 assert('&nil gets no name from the code around it') do
