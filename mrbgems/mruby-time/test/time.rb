@@ -296,6 +296,12 @@ assert('Time#utc_offset, #gmt_offset, #gmtoff', '15.2.19.7.12, 15.2.19.7.14, 15.
   assert_equal(utc_time.utc_offset, utc_time.gmtoff)
   assert_equal(local_time.utc_offset, local_time.gmt_offset)
   assert_equal(local_time.utc_offset, local_time.gmtoff)
+
+  # The offset is positive east of UTC: the wall clock read as UTC is ahead of the real time
+  [local_time, Time.local(2000, 7, 1, 12), Time.at(0), Time.at(1300000000)].each do |t|
+    wall_clock = Time.utc(t.year, t.mon, t.day, t.hour, t.min, t.sec)
+    assert_equal(wall_clock.to_i - t.to_i, t.utc_offset)
+  end
 end
 
 assert('Time#nsec, #tv_nsec') do

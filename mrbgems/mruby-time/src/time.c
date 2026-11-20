@@ -1671,9 +1671,9 @@ time_utc_offset(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(0);  /* UTC is always offset 0 */
   }
 
-  /* For local times, calculate offset = local_time_t - utc_time_t */
+  /* For local times, the offset is the wall clock read as UTC minus the real UTC time */
   time_t utc_time_t = timegm(&tm->datetime);  /* Convert datetime as UTC */
-  mrb_int offset_seconds = (mrb_int)(tm->sec - utc_time_t);
+  mrb_int offset_seconds = (mrb_int)(utc_time_t - tm->sec);
 
   return mrb_fixnum_value(offset_seconds);
 }
