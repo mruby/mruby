@@ -1381,4 +1381,15 @@ assert('IO.read and IO.write with an offset that cannot be sought') do
   File.open($mrbtest_io_wfname, "w") {}  # other tests expect it empty
 end
 
+assert('IO#initialize keeps its descriptor when an option lookup initializes the stream again') do
+  fd1 = IO.sysopen($mrbtest_io_rfname)
+  fd2 = IO.sysopen($mrbtest_io_rfname)
+  io = IO.new(fd1, autoclose: false)
+  opt = Hash.new { |h, k| io.instance_eval { initialize(fd2) } if k == :encoding; nil }
+  io.instance_eval { initialize(fd1, "r", opt) }
+  assert_equal fd1, io.fileno
+  assert_equal $mrbtest_io_msg, io.read
+  io.close
+end
+
 MRubyIOTestUtil.io_test_cleanup
