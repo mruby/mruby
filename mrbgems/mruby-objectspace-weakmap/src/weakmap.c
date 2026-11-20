@@ -89,6 +89,21 @@ wm_clear_dead(mrb_state *mrb, struct mrb_gc_weak *weak)
   }
 }
 
+/* A Symbol is never dropped, so the map may be its only holder. WeakKeyMap's
+   values are marked here too: their Array is hidden from object walks. */
+static void
+wm_mark_syms(mrb_state *mrb, struct mrb_gc_weak *weak, void (*mark)(mrb_state*, mrb_value))
+{
+  struct wm *m = (struct wm*)weak;
+
+  for (uint32_t i = 0; i < m->elen; i++) {
+    struct wm_entry *e = &m->ents[i];
+    if (!e->live) continue;
+    mark(mrb, e->key);
+    mark(mrb, m->keyed ? ARY_PTR(m->vals)[i] : e->val);
+  }
+}
+
 static struct RArray*
 wm_vals_new(mrb_state *mrb, mrb_value self, uint32_t capa)
 {
@@ -118,6 +133,7 @@ wm_get(mrb_state *mrb, mrb_value self, mrb_bool create)
   m->keyed = keyed;
   m->vals = vals;
   m->weak.clear = wm_clear_dead;
+  m->weak.syms = wm_mark_syms;
   mrb_data_init(self, m, &wm_type);
   mrb_gc_weak_add(mrb, &m->weak);
   return m;

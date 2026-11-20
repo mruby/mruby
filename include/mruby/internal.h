@@ -151,12 +151,17 @@ void mrb_gc_free_mt(mrb_state*, struct RClass*);
    called once marking is complete, before the sweep, to drop each object
    mrb_gc_weak_dead_p() reports. `clear` may neither allocate nor run Ruby
    code. `after`, unless NULL, is called by GC.start once it has collected,
-   and may run Ruby code. The table owns the node and links it with
-   mrb_gc_weak_add(), and unlinks it before the node is freed. */
+   and may run Ruby code. `syms`, unless NULL, is called by the symbol GC,
+   and calls `mark` with each value the table keeps that may be a Symbol:
+   an immediate is never dropped, so the table may be its only holder. The
+   table owns the node and links it with mrb_gc_weak_add(), and unlinks it
+   before the node is freed. */
 struct mrb_gc_weak {
   struct mrb_gc_weak *prev, *next;
   void (*clear)(mrb_state *mrb, struct mrb_gc_weak *weak);
   void (*after)(mrb_state *mrb, struct mrb_gc_weak *weak);
+  void (*syms)(mrb_state *mrb, struct mrb_gc_weak *weak,
+               void (*mark)(mrb_state *mrb, mrb_value v));
 };
 void mrb_gc_weak_add(mrb_state *mrb, struct mrb_gc_weak *weak);
 void mrb_gc_weak_remove(mrb_state *mrb, struct mrb_gc_weak *weak);

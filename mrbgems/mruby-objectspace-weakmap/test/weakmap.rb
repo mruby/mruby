@@ -257,3 +257,21 @@ assert("ObjectSpace::WeakMap and WeakKeyMap take entries when frozen") do
     keys.each { |k| assert_equal(k, m[k]) }
   end
 end
+
+assert("symbol GC keeps the Symbols a map holds") do
+  stress
+  # a Symbol is never dropped from a map, which may be its only holder
+  wm = ObjectSpace::WeakMap.new
+  wm["gc-weakmap-key-#{1}".to_sym] = 1
+  wm[2] = "gc-weakmap-value-#{1}".to_sym
+  wk = ObjectSpace::WeakKeyMap.new
+  key = "k"
+  wk[key] = "gc-weakkeymap-value-#{1}".to_sym
+
+  6000.times { |i| "gc-filler-weakmap-#{i}".to_sym }
+  GC.start
+
+  assert_equal ["gc-weakmap-key-1"], wm.keys.select { |k| k.is_a?(Symbol) }.map(&:to_s)
+  assert_equal "gc-weakmap-value-1", wm[2].to_s
+  assert_equal "gc-weakkeymap-value-1", wk[key].to_s
+end

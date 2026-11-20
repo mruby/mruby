@@ -780,7 +780,7 @@ sym_gc_mark_set_elem(mrb_state *mrb, mrb_value v, void *p)
 }
 #endif
 
-#ifdef MRB_USE_TASK_SCHEDULER
+#if defined(MRB_USE_TASK_SCHEDULER) || defined(MRB_USE_GC_WEAK)
 static void
 sym_gc_mark_value(mrb_state *mrb, mrb_value v)
 {
@@ -980,6 +980,12 @@ mrb_symbol_gc(mrb_state *mrb)
 #ifdef MRB_USE_TASK_SCHEDULER
   /* the contexts of the other tasks, and the values a task keeps */
   mrb_task_foreach(mrb, sym_gc_mark_context, sym_gc_mark_value);
+#endif
+#ifdef MRB_USE_GC_WEAK
+  /* the keys and values of tables that hold objects weakly */
+  for (struct mrb_gc_weak *w = mrb->gc.weaks; w; w = w->next) {
+    if (w->syms) w->syms(mrb, w, sym_gc_mark_value);
+  }
 #endif
 
   /* Mark symbols from global variable table.
