@@ -382,6 +382,35 @@ assert('symbol GC keeps the names of live global variables') do
   assert_true global_variables.include?("$symbol_gc_eval_global".to_sym)
 end
 
+assert('symbol GC keeps the file names of live code') do
+  stress
+  # The file name of compiled code is a dynamic symbol held by the irep's
+  # debug info alone.
+  eval("def symbol_gc_file_name_method; raise 'x'; end", nil, "symbol-gc-live-file.rb", 1)
+
+  6000.times { |i| "gc-filler-file-name-#{i}".to_sym }
+  GC.start
+
+  bt = begin; symbol_gc_file_name_method; rescue => e; e.backtrace; end
+  assert_equal "symbol-gc-live-file.rb:1:in symbol_gc_file_name_method", bt[0]
+end
+
+assert('symbol GC keeps the names in a backtrace') do
+  stress
+  # A backtrace keeps the method name and the irep of each location, and the
+  # irep keeps the file name. Once the method is removed, the backtrace is
+  # the only holder of both.
+  eval("def symbol_gc_backtrace_method; raise 'x'; end", nil, "symbol-gc-backtrace-file.rb", 1)
+  e = begin; symbol_gc_backtrace_method; rescue => e; e; end
+  Object.remove_method(:symbol_gc_backtrace_method)
+  GC.start
+
+  6000.times { |i| "gc-filler-backtrace-name-#{i}".to_sym }
+  GC.start
+
+  assert_equal "symbol-gc-backtrace-file.rb:1:in symbol_gc_backtrace_method", e.backtrace[0]
+end
+
 assert('eval in a scope whose locals are named after a presym literal') do
   # An anonymous rest parameter is recorded under the local name `*`, which is
   # also one of the compiler's presym literals. Parsing the eval interns the

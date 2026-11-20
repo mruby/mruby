@@ -249,6 +249,8 @@ mrb_value mrb_num_coerce_bin(mrb_state *mrb, mrb_value x, mrb_value y, mrb_sym o
 #endif
 #ifdef MRB_USE_SET
 size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
+/* calls `func` with each element of a Set, for the symbol GC */
+void mrb_set_foreach(mrb_state *mrb, struct RBasic *set, void (*func)(mrb_state*, mrb_value, void*), void *data);
 void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
 size_t mrb_set_memsize(mrb_value);
 #endif
