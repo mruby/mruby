@@ -382,6 +382,19 @@ assert('symbol GC keeps the names of live global variables') do
   assert_true global_variables.include?("$symbol_gc_eval_global".to_sym)
 end
 
+assert('symbol GC keeps the file names of live code') do
+  stress
+  # The file name of compiled code is a dynamic symbol held by the irep's
+  # debug info alone.
+  eval("def symbol_gc_file_name_method; raise 'x'; end", nil, "symbol-gc-live-file.rb", 1)
+
+  6000.times { |i| "gc-filler-file-name-#{i}".to_sym }
+  GC.start
+
+  bt = begin; symbol_gc_file_name_method; rescue => e; e.backtrace; end
+  assert_equal "symbol-gc-live-file.rb:1:in symbol_gc_file_name_method", bt[0]
+end
+
 assert('eval in a scope whose locals are named after a presym literal') do
   # An anonymous rest parameter is recorded under the local name `*`, which is
   # also one of the compiler's presym literals. Parsing the eval interns the
