@@ -891,6 +891,17 @@ sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
       if (mrb_symbol_p(v)) sym_gc_mark(mrb, mrb_symbol(v));
     }
     break;
+  case MRB_TT_BACKTRACE:
+    {
+      /* A location keeps the method name and the irep it reports, whose
+         file names may have no other holder once the method is gone. */
+      struct RBacktrace *bt = (struct RBacktrace*)obj;
+      for (size_t i = 0; i < bt->len; i++) {
+        sym_gc_mark(mrb, bt->locations[i].method_id);
+        sym_gc_mark_irep(mrb, bt->locations[i].irep);
+      }
+    }
+    break;
   default:
     break;
   }
