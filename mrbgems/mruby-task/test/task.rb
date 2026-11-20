@@ -441,6 +441,28 @@ assert("Task.current and Task.pass inside a fiber") do
   assert_equal [:other, :passed, :returned], order
 end
 
+# Resuming a fiber writes RESUMED, then RUNNING, over the CREATED status of
+# the task's own context. The end of the task body was told from the end of
+# a fiber body by that status, so it went to fiber_terminate(), which freed
+# the task's stacks; a task run again on its context (as picoruby-sandbox
+# runs each irb line) then stopped without running its new body.
+assert("a task that resumed a fiber runs a new body after reset_context") do
+  skip unless Object.const_defined?(:Fiber)
+  t = Task.new { Fiber.new { :fiber }.resume }
+  Task.run
+  assert_equal :fiber, t.value
+  TaskTest.rerun(t) { :second }
+  Task.run
+  assert_equal :second, t.value
+  # a fiber left suspended is abandoned by the reset, not resumed
+  TaskTest.rerun(t) { f = Fiber.new { Fiber.yield 1; 2 }; f.resume }
+  Task.run
+  assert_equal 1, t.value
+  TaskTest.rerun(t) { :fourth }
+  Task.run
+  assert_equal :fourth, t.value
+end
+
 assert("exception raised from C after blocking is not leaked into Task#value") do
   child = nil
 
