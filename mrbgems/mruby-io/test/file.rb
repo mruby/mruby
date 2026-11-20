@@ -341,6 +341,17 @@ assert('File.join') do
   assert_raise(ArgumentError) { File.join("x", b) }
 end
 
+class MRubyIOTestGrowingPath
+  def initialize(ary); @ary = ary; end
+  def to_path; 8.times { @ary << "c" }; "a"; end
+end
+
+assert('File.join with a to_path that grows the array being joined') do
+  ary = ["b"]
+  ary.unshift(MRubyIOTestGrowingPath.new(ary))
+  assert_equal "a/b" + "/c" * 8, File.join(ary)
+end
+
 assert('File.realpath') do
   dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
   begin

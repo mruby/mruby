@@ -1019,16 +1019,17 @@ mrb_file_path(mrb_state *mrb, mrb_value klass)
   return mrb_io_path(mrb, mrb_get_arg1(mrb));
 }
 
-/* Flattens the arguments of File.join into `names`, checking each value
-   is a String as it lands. `seen` holds the arrays currently being walked,
+/* Flattens the elements of `ary` into `names`, checking each value is a
+   String as it lands. `seen` holds the arrays currently being walked,
    innermost last, so an array that contains itself (directly or through
    another array) is caught on re-entry the way CRuby catches it. Only
-   the ancestors are kept, so the same array may appear twice as siblings. */
+   the ancestors are kept, so the same array may appear twice as siblings.
+   Each element is read anew by index: `to_path` may change the array. */
 static void
-mrb_file_join_flatten(mrb_state *mrb, mrb_value names, mrb_value seen, const mrb_value *argv, mrb_int argc)
+mrb_file_join_flatten(mrb_state *mrb, mrb_value names, mrb_value seen, mrb_value ary)
 {
-  for (mrb_int i = 0; i < argc; i++) {
-    mrb_value arg = argv[i];
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_value arg = RARRAY_PTR(ary)[i];
 
     if (mrb_array_p(arg)) {
       for (mrb_int k = 0; k < RARRAY_LEN(seen); k++) {
@@ -1037,7 +1038,7 @@ mrb_file_join_flatten(mrb_state *mrb, mrb_value names, mrb_value seen, const mrb
         }
       }
       mrb_ary_push(mrb, seen, arg);
-      mrb_file_join_flatten(mrb, names, seen, RARRAY_PTR(arg), RARRAY_LEN(arg));
+      mrb_file_join_flatten(mrb, names, seen, arg);
       mrb_ary_pop(mrb, seen);
     }
     else {
@@ -1070,7 +1071,7 @@ mrb_file_join(mrb_state *mrb, mrb_value klass)
   }
 
   mrb_value names = mrb_ary_new_capa(mrb, argc);
-  mrb_file_join_flatten(mrb, names, mrb_ary_new(mrb), argv, argc);
+  mrb_file_join_flatten(mrb, names, mrb_ary_new(mrb), mrb_ary_new_from_values(mrb, argc, argv));
 
   mrb_int names_len = RARRAY_LEN(names);
   if (names_len == 0) {
