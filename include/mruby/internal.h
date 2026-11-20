@@ -1150,6 +1150,10 @@ mrb_value mrb_bint_abs(mrb_state *mrb, mrb_value x);
 #ifdef MRB_USE_TASK_SCHEDULER
 /* GC marking for task scheduler */
 void mrb_task_mark_all(mrb_state *mrb);
+/* calls `ctx` with each task's context and `val` with its values, for the
+   symbol GC */
+void mrb_task_foreach(mrb_state *mrb, void (*ctx)(mrb_state*, struct mrb_context*),
+                      void (*val)(mrb_state*, mrb_value));
 /* vm.c: whether the running task can be switched away from here */
 mrb_bool mrb_task_across_c_boundary(mrb_state *mrb);
 #endif

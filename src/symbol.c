@@ -780,6 +780,14 @@ sym_gc_mark_set_elem(mrb_state *mrb, mrb_value v, void *p)
 }
 #endif
 
+#ifdef MRB_USE_TASK_SCHEDULER
+static void
+sym_gc_mark_value(mrb_state *mrb, mrb_value v)
+{
+  if (mrb_symbol_p(v)) sym_gc_mark(mrb, mrb_symbol(v));
+}
+#endif
+
 /* `sym_gc_mark_object` reaches a suspended fiber, whose stack this walks. */
 static void sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c);
 
@@ -969,6 +977,10 @@ mrb_symbol_gc(mrb_state *mrb)
   if (mrb->c != mrb->root_c) {
     sym_gc_mark_context(mrb, mrb->c);
   }
+#ifdef MRB_USE_TASK_SCHEDULER
+  /* the contexts of the other tasks, and the values a task keeps */
+  mrb_task_foreach(mrb, sym_gc_mark_context, sym_gc_mark_value);
+#endif
 
   /* Mark symbols from global variable table.
      `mrb->globals` is a table of its own, not the instance variables of

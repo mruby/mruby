@@ -1052,3 +1052,34 @@ assert("a fiber under a C frame or entered by transfer stays unswitchable") do
   assert_equal [:c_frame_slept, :other], order
   assert_equal [RuntimeError, RuntimeError], raised
 end
+
+# The symbol GC walks objects and the running context. A waiting task's
+# stack, and the name and value a task keeps in C, are reached by neither.
+assert("symbol GC keeps the symbols a task holds") do
+  stress
+  q = Task::Queue.new
+  local = nil
+  waiter = Task.new { v = "gc-task-local-#{1}".to_sym; q.pop; local = v.to_s }
+  named = Task.new { "gc-task-value-#{1}".to_sym }
+  named.name = "gc-task-name-#{1}".to_sym
+  Task.new do
+    6000.times { |i| "gc-filler-task-#{i}".to_sym }
+    GC.start
+    q.push 1
+  end
+  Task.run
+  assert_equal "gc-task-local-1", local
+  assert_equal "gc-task-name-1", named.name.to_s
+  assert_equal "gc-task-value-1", named.value.to_s
+
+  main = Task.current
+  saved = main.name
+  begin
+    main.name = "gc-task-main-name-#{1}".to_sym
+    6000.times { |i| "gc-filler-task-main-#{i}".to_sym }
+    GC.start
+    assert_equal "gc-task-main-name-1", main.name.to_s
+  ensure
+    main.name = saved
+  end
+end

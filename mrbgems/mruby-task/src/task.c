@@ -240,6 +240,32 @@ mrb_task_mark_all(mrb_state *mrb)
   mrb_task_excl_exit(mrb);
 }
 
+/* For the symbol GC, which walks objects and the running context only:
+   calls `ctx` with the context of each queued task, and `val` with the
+   values each task, the main one too, keeps in its mrb_task. */
+void
+mrb_task_foreach(mrb_state *mrb, void (*ctx)(mrb_state*, struct mrb_context*),
+                 void (*val)(mrb_state*, mrb_value))
+{
+  if (mrb->task.main_task) {
+    val(mrb, mrb->task.main_task->result);
+    val(mrb, mrb->task.main_task->name);
+  }
+  if (mrb->task.queues[0] == NULL && mrb->task.queues[1] == NULL &&
+      mrb->task.queues[2] == NULL && mrb->task.queues[3] == NULL) {
+    return;
+  }
+  mrb_task_excl_enter(mrb);
+  for (int qi = 0; qi < 4; qi++) {
+    for (mrb_task *t = mrb->task.queues[qi]; t; t = t->next) {
+      ctx(mrb, &t->c);
+      val(mrb, t->result);
+      val(mrb, t->name);
+    }
+  }
+  mrb_task_excl_exit(mrb);
+}
+
 /*
  * Queue operations
  */
