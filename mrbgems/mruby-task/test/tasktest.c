@@ -196,6 +196,25 @@ tasktest_proc_set_stack(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, 2, r);
 }
 
+/* Run a finished task again with another body, the way picoruby-sandbox
+   runs each irb line on one task: suspend it (as Sandbox#suspend does after
+   each run; resume only wakes a suspended task), reset the context, set the
+   proc, resume. The caller runs the scheduler for the result. */
+static mrb_value
+tasktest_rerun(mrb_state *mrb, mrb_value self)
+{
+  mrb_value task, blk;
+  mrb_get_args(mrb, "o&", &task, &blk);
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "block required");
+  }
+  mrb_suspend_task(mrb, task);
+  mrb_task_reset_context(mrb, task);
+  mrb_task_proc_set(mrb, task, mrb_proc_ptr(blk));
+  mrb_resume_task(mrb, task);
+  return mrb_nil_value();
+}
+
 struct extend_probe {
   struct mrb_context *c;
   mrb_int room;
@@ -417,6 +436,7 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "run_sync", tasktest_run_sync, MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "set_svar", tasktest_set_svar, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "proc_set_stack", tasktest_proc_set_stack, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, tasktest, "rerun", tasktest_rerun, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
   mrb_define_module_function(mrb, tasktest, "proc_set_deep", tasktest_proc_set_deep, MRB_ARGS_REQ(2));
 #ifdef MRB_USE_TASK_TRACE

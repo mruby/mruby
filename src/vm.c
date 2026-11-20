@@ -4428,7 +4428,14 @@ RETRY_TRY_BLOCK:
         }
 
 #ifdef MRB_USE_TASK_SCHEDULER
-        if (mrb->c->status == MRB_TASK_CREATED) {
+        /* A task's own context ends here, a fiber's goes on below. Tell
+           them by owner, not by status: a task that resumed a fiber has
+           RESUMED and then RUNNING written over its CREATED by
+           fiber_switch(), and fiber_terminate() would then free the stacks
+           of a context the task is reset and run on again (Sandbox). A
+           fiber's context always has its RFiber in c->fib; a task's has
+           none, or the one Fiber.current borrowed for it. */
+        if (!c->fib || MRB_FLAG_TEST(c->fib, MRB_FL_FIBER_BORROWED)) {
           mrb_gc_arena_restore(mrb, ai);
           mrb->jmp = prev_jmp;
           TASK_STOP(mrb);
