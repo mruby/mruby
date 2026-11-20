@@ -30,6 +30,41 @@ assert('pack("m")') do
   assert_pack "m0", "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==", ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
 end
 
+# unpack 'm' without padding (unpadded tail groups)
+assert('unpack("m") unpadded base64') do
+  # negative controls (already correct)
+  assert_equal ["abcd"], "YWJjZA==".unpack("m")
+  assert_equal ["abc"], "YWJj".unpack("m")
+
+  # final group 2/3 chars without '=' padding
+  assert_equal ["a"], "YQ".unpack("m")
+  assert_equal ["a"], "YQ=".unpack("m")
+  assert_equal ["ab"], "YWI".unpack("m")
+  assert_equal ["abcd"], "YWJjZA".unpack("m")
+  assert_equal ["abcde"], "YWJjZGU".unpack("m")
+
+  # whitespace / newlines in or after input
+  assert_equal ["abcd"], "YWJj ZA".unpack("m")
+  assert_equal ["abcd"], "YWJj\nZA".unpack("m")
+  assert_equal ["abcd"], "YWJjZA\n".unpack("m")
+
+  # single char, empty, all whitespace
+  assert_equal [""], "Y".unpack("m")
+  assert_equal [""], "".unpack("m")
+  assert_equal [""], " \n\t".unpack("m")
+
+  # multi-field templates (same consume/position semantics as CRuby 3.3)
+  assert_equal ["a\x06\x10", ""], "YQYQ".unpack("m m")
+  assert_equal ["ab\x18", ""], "YWIYQ".unpack("m a*")
+
+  # round-trip: pack without padding then unpack
+  21.times do |n|
+    bytes = (0...n).map { |i| (i * 7 + 13) & 0xff }.pack("C*")
+    b64 = [bytes].pack("m0").gsub("=", "")
+    assert_equal bytes, b64.unpack1("m")
+  end
+end
+
 # pack & unpack 'M' (Quoted-printable)
 assert('pack("M")') do
   assert_pack "M", "123=\n", ["123"]
