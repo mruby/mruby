@@ -1476,6 +1476,33 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_operator(Float::INFINITY, :eql?, ('9' * 200000).to_f)
 end if Object.const_defined?(:Float)
 
+assert('String#to_f with long digit strings', '#7846') do
+  assert_operator(1.0, :eql?, ('0' * 78 + '1').to_f)
+  assert_operator(1.0, :eql?, ('0' * 79 + '1').to_f)
+  assert_operator(1.0, :eql?, ('0' * 80 + '1').to_f)
+  assert_operator(1.0, :eql?, ('0' * 81 + '1').to_f)
+  assert_operator(1.0, :eql?, ('0' * 100 + '1').to_f)
+  assert_operator(0.0, :eql?, ('0' * 100).to_f)
+  assert_operator(0.0, :eql?, ('0' * 1000).to_f)
+  assert_operator(-5.0, :eql?, ('-' + '0' * 100 + '5').to_f)
+  assert_operator(5.0, :eql?, ('+' + '0' * 100 + '5').to_f)
+  assert_operator(100000.0, :eql?, ('1.' + '0' * 80 + 'e5').to_f)
+  assert_operator(100000.0, :eql?, ('1.' + '0' * 100 + 'E+5').to_f)
+  assert_operator(1.0e-05, :eql?, ('1.' + '0' * 100 + 'e-5').to_f)
+  assert_operator(1.0e-81, :eql?, ('0.' + '0' * 80 + '1').to_f)
+  assert_operator(1.0e+101, :eql?, ('1_' + '0' * 100 + '0').to_f)
+  assert_operator(0.0, :eql?, ('a' * 100).to_f)
+  assert_operator(1.2, :eql?, ("\t" + '0' * 100 + '1.2  junk').to_f)
+end if Object.const_defined?(:Float)
+
+assert('String#to_f on a shared substring', '#7846') do
+  s = '1' * 30 + '5' * 30
+  t = s[0, 30]
+  assert_operator(('1' * 30).to_f, :eql?, t.to_f)
+  u = ('9' * 40 + 'e5')[0, 40]
+  assert_operator(('9' * 40).to_f, :eql?, u.to_f)
+end if Object.const_defined?(:Float)
+
 assert('String#to_i', '15.2.10.5.39') do
   assert_operator 0, :eql?, ''.to_i
   assert_operator 32143, :eql?, '32143'.to_i

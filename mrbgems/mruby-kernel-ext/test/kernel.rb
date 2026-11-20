@@ -234,6 +234,28 @@ assert('Kernel#Float') do
   assert_raise(ArgumentError) { Float('1_2.3__4') }
 end
 
+assert('Kernel#Float with long digit strings', '#7846') do
+  skip unless Object.const_defined?(:Float)
+  assert_operator(1.0, :eql?, Float('0' * 80 + '1'))
+  assert_operator(0.0, :eql?, Float('0' * 100))
+  assert_operator(-5.0, :eql?, Float('-' + '0' * 100 + '5'))
+  assert_operator(100000.0, :eql?, Float('1.' + '0' * 80 + 'e5'))
+  assert_operator(1.0e-81, :eql?, Float('0.' + '0' * 80 + '1'))
+  assert_operator(1.0e+101, :eql?, Float('1_' + '0' * 100 + '0'))
+  assert_raise(ArgumentError) { Float('1_2__3' + '0' * 100) }
+  assert_raise(ArgumentError) { Float('a' * 100) }
+  assert_raise(ArgumentError) { Float('0' * 80 + '1 junk') }
+end
+
+assert('Kernel#Float on a shared substring', '#7846') do
+  skip unless Object.const_defined?(:Float)
+  s = '1' * 30 + '5' * 30
+  t = s[0, 30]
+  assert_operator(Float('1' * 30), :eql?, Float(t))
+  u = ('9' * 40 + 'e5')[0, 40]
+  assert_operator(Float('9' * 40), :eql?, Float(u))
+end
+
 assert('Kernel#Float with a hexadecimal number too big for mrb_int') do
   skip unless Object.const_defined?(:Float)
   begin
