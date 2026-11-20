@@ -921,3 +921,13 @@ assert("Set refuses changes once frozen") do
   assert_same s, s.delete_if { false }
   assert_equal Set[1, 2, 3], s.dup.add(3)
 end
+
+assert('symbol GC keeps the symbols in a Set') do
+  stress
+  s = Set["gc-set-element-#{1}".to_sym]
+
+  6000.times { |i| "gc-filler-set-element-#{i}".to_sym }
+  GC.start
+
+  assert_equal ["gc-set-element-1"], s.to_a.map(&:to_s)
+end

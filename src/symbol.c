@@ -771,6 +771,15 @@ sym_gc_mark_hash_entry(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
   return 0;
 }
 
+#ifdef MRB_USE_SET
+/* Callback: mark a symbol element of a Set */
+static void
+sym_gc_mark_set_elem(mrb_state *mrb, mrb_value v, void *p)
+{
+  if (mrb_symbol_p(v)) sym_gc_mark(mrb, mrb_symbol(v));
+}
+#endif
+
 /* `sym_gc_mark_object` reaches a suspended fiber, whose stack this walks. */
 static void sym_gc_mark_context(mrb_state *mrb, struct mrb_context *c);
 
@@ -902,6 +911,11 @@ sym_gc_mark_object(mrb_state *mrb, struct RBasic *obj, void *data)
       }
     }
     break;
+#ifdef MRB_USE_SET
+  case MRB_TT_SET:
+    mrb_set_foreach(mrb, obj, sym_gc_mark_set_elem, NULL);
+    break;
+#endif
   default:
     break;
   }

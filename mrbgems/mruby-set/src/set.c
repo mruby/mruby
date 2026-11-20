@@ -186,6 +186,18 @@ mrb_gc_mark_set(mrb_state *mrb, struct RBasic *obj)
 }
 
 void
+mrb_set_foreach(mrb_state *mrb, struct RBasic *obj, void (*func)(mrb_state*, mrb_value, void*), void *data)
+{
+  struct RSet *s = (struct RSet*)obj;
+  kset_t *set = &s->set;
+  if (kset_is_empty(set)) return;
+
+  KSET_FOREACH(set, k) {
+    func(mrb, kset_key(set, k), data);
+  }
+}
+
+void
 mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
 {
   struct RSet *s = (struct RSet*)obj;
