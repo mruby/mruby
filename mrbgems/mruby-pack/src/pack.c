@@ -1313,21 +1313,22 @@ unpack_base64(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
   const char *sptr = sptr0;
 
   /* estimate buffer size - may be shorter due to padding/whitespace */
-  mrb_int dlen = slen / 4 * 3;
+  mrb_int dlen = (slen / 4 + 1) * 3;
   mrb_value dst = mrb_str_new(mrb, NULL, dlen);
   char *dptr0 = RSTRING_PTR(dst);
   char *dptr = dptr0;
 
   int padding = 0;
-  while (slen >= 4) {
-    unsigned char ch[4];
-
+  int i = 0;
+  unsigned char ch[4];
+  while (slen > 0) {
     /* collect 4 valid base64 characters */
-    for (int i = 0; i < 4; i++) {
+    padding = 0;
+    for (i = 0; i < 4; i++) {
       unsigned char c;
       do {
         if (slen-- == 0)
-          goto done;
+          goto partial;
         c = *sptr++;
         if (c >= sizeof(base64_dec_tab))
           continue;
@@ -1358,6 +1359,15 @@ unpack_base64(mrb_state *mrb, const void *src, mrb_int slen, mrb_value ary)
     }
   }
 
+  goto done;
+
+partial:
+  /* input ended inside a group: keep the bytes its leading characters hold */
+  if (i - padding >= 2) {
+    unsigned long l = (ch[0] << 18) + (ch[1] << 12) + (i - padding > 2 ? ch[2] << 6 : 0);
+    *dptr++ = (l >> 16) & 0xff;
+    if (i - padding > 2) *dptr++ = (l >> 8) & 0xff;
+  }
 done:
   dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
   mrb_ary_push(mrb, ary, dst);
