@@ -1392,4 +1392,22 @@ assert('IO#initialize keeps its descriptor when an option lookup initializes the
   io.close
 end
 
+assert('IO#initialize does not adopt the descriptor its stream would close') do
+  fd = IO.sysopen($mrbtest_io_rfname)
+  io = IO.new(fd)
+  assert_raise(SystemCallError) { io.instance_eval { initialize(fd) } }
+  assert_equal fd, io.fileno
+  assert_equal $mrbtest_io_msg, io.read
+
+  # the same descriptor, made the stream's own by an option lookup
+  io2 = IO.new(IO.sysopen($mrbtest_io_rfname), autoclose: false)
+  fd2 = io2.fileno
+  opt = Hash.new { |h, k| io2.instance_eval { initialize(fd2) } if k == :encoding; nil }
+  assert_raise(SystemCallError) { io2.instance_eval { initialize(fd2, "r", opt) } }
+  assert_equal fd2, io2.fileno
+  assert_equal $mrbtest_io_msg, io2.read
+  io.close
+  io2.close
+end
+
 MRubyIOTestUtil.io_test_cleanup

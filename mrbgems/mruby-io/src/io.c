@@ -744,6 +744,13 @@ io_init(mrb_state *mrb, mrb_value io)
 
   struct mrb_io *fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
+    /* the old stream would close the descriptor it is asked to adopt,
+       leaving io on a number the next open() hands out again */
+    if (fd > 2 && ((fptr->fd == fd && fptr->close_fd) ||
+                   (fptr->fd2 == fd && fptr->close_fd2))) {
+      errno = EBADF;
+      badfd_error(mrb);
+    }
     fptr_finalize(mrb, fptr, TRUE);
     mrb_free(mrb, fptr);
   }
