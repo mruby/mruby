@@ -156,6 +156,38 @@ assert("String#encode options") do
   assert_equal "a", "a".encode("UTF-8", foo: 1)
 end
 
+assert("String#encode fallback: cannot change the copies the conversion reads") do
+  # the copy of the receiver the loop walks, found and replaced together with
+  # the receiver, so the buffer they shared is freed and reused
+  s = "\u00e9" * 64
+  src = ("\u00e9" * 64).freeze
+  done = false
+  fb = ->(c) {
+    unless done
+      done = true
+      ObjectSpace.each_object(String) do |o|
+        o.replace("A" * 300) if !o.frozen? && !o.equal?(s) && o == src
+      end
+      s.replace("B" * 300)
+      GC.start
+      (1..50).map { "C" * 127 }
+    end
+    "?"
+  }
+  assert_equal "?" * 64, s.encode("US-ASCII", fallback: fb)
+
+  # the copy of replace:, which has to stay something the target holds
+  key = "~R~".freeze
+  rep = key.dup
+  fb = ->(c) {
+    ObjectSpace.each_object(String) do |o|
+      o.replace("\u00fc") if !o.frozen? && !o.equal?(rep) && o == key
+    end
+    "#"
+  }
+  assert_equal "#~R~", "\u00e9\xff".encode("US-ASCII", invalid: :replace, replace: rep, fallback: fb)
+end
+
 assert("String#encode to an encoding it does not convert") do
   e = assert_raise(Encoding::ConverterNotFoundError) { "a".encode("EUC-JP") }
   assert_equal "code converter not found (UTF-8 to EUC-JP)", e.message

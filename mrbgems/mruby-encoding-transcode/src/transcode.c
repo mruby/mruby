@@ -181,8 +181,8 @@ tc_parse_opts(mrb_state *mrb, mrb_value opts, struct tc_opts *o)
   if (mrb_symbol_p(v) && mrb_symbol(v) == MRB_SYM(replace)) o->undef_replace = TRUE;
   else if (!mrb_nil_p(v)) mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown value for undefined character option");
 
-  /* replace: alone replaces undefined characters; read a copy of it, which
-     fallback: cannot change */
+  /* replace: alone replaces undefined characters; read a frozen copy of it,
+     which fallback: cannot change even when ObjectSpace hands it out */
   v = tc_opt(mrb, opts, MRB_SYM(replace));
   if (!mrb_nil_p(v)) {
     v = mrb_ensure_string_type(mrb, v);
@@ -190,7 +190,7 @@ tc_parse_opts(mrb_state *mrb, mrb_value opts, struct tc_opts *o)
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "replacement string is broken: %v as %s",
                  mrb_str_inspect(mrb, v), tc_enc_names[tc_str_enc(v)]);
     }
-    o->replace = mrb_str_dup(mrb, v);
+    o->replace = mrb_str_dup_frozen(mrb, v);
     if (!o->invalid_replace) o->undef_replace = TRUE;
   }
 
@@ -404,8 +404,9 @@ tc_convert(mrb_state *mrb, mrb_value str, int src, int dst, struct tc_opts *opts
   struct tc_conv c;
 
   /* fallback: runs Ruby code, which can change str under the loop: read a
-     copy of it, which shares the bytes until str changes */
-  if (!mrb_nil_p(opts->fallback) && !opts->undef_replace) str = mrb_str_dup(mrb, str);
+     frozen copy of it, which shares the bytes until str changes and which
+     the fallback cannot change even when ObjectSpace hands it out */
+  if (!mrb_nil_p(opts->fallback) && !opts->undef_replace) str = mrb_str_dup_frozen(mrb, str);
 
   const unsigned char *p = (const unsigned char*)RSTRING_PTR(str);
   const unsigned char *e = p + RSTRING_LEN(str);
