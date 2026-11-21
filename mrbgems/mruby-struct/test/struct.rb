@@ -112,6 +112,10 @@ assert('Struct#each', '15.2.18.4.4') do
     a << x
   }
   assert_equal [1, 2], a
+
+  e = cc.each
+  assert_true e.instance_of?(Enumerator)
+  assert_equal [1, 2], e.to_a
 end
 
 assert('Struct#each_pair', '15.2.18.4.5') do
@@ -122,6 +126,10 @@ assert('Struct#each_pair', '15.2.18.4.5') do
     a << [k,v]
   }
   assert_equal [[:m1, 1], [:m2, 2]], a
+
+  e = cc.each_pair
+  assert_true e.instance_of?(Enumerator)
+  assert_equal [[:m1, 1], [:m2, 2]], e.to_a
 end
 
 assert('Struct#members', '15.2.18.4.6') do
@@ -132,6 +140,10 @@ end
 assert('Struct#select', '15.2.18.4.7') do
   c = Struct.new(:m1, :m2)
   assert_equal([2]) { c.new(1,2).select{|v| v % 2 == 0} }
+
+  e = c.new(1, 2).select
+  assert_true e.instance_of?(Enumerator)
+  assert_equal [1, 2], e.to_a
 end
 
 assert('large struct') do
