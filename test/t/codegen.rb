@@ -667,3 +667,12 @@ assert('keyword pairs after a double splat or a flush go into one hash') do
   assert_equal 66, k.size
   assert_equal 64, k[:k64]
 end
+
+assert('nil&.x = v and nil&.x op= v leave nil where the result goes') do
+  def self.codegen_safe_args(*a) = a
+  o = nil
+  assert_equal [5], codegen_safe_args(*[5], &(o&.a = 1))
+  assert_equal [5], codegen_safe_args(*[5], &(o&.a += 1))
+  assert_equal [5], codegen_safe_args(*[5], &(o&.a ||= 1))
+  assert_equal [5], codegen_safe_args(*[5], &(o&.a &&= 1))
+end

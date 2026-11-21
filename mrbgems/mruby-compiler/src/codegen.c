@@ -2695,6 +2695,9 @@ gen_call_assign(mrc_codegen_scope *s, mrc_node *tree, int val, int safe, int rec
   }
   if (safe) {
     int recv = cursp()-1;
+    /* nil&.x = v is nil: the jump below skips the move of v to the result
+       slot, which would otherwise keep whatever it held */
+    if (val) genop_1(s, OP_LOADNIL, top);
     gen_move(s, cursp(), recv, 1);
     skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
   }
@@ -5521,8 +5524,10 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       }
       codegen(s, receiver, VAL);
       if (safe) {
-        /* nil&.x op= v short-circuits to nil without the read/write */
+        /* nil&.x op= v short-circuits to nil without the read/write, and
+           leaves that nil in the result slot */
         int recv = cursp()-1;
+        if (0 <= vsp) genop_1(s, OP_LOADNIL, vsp);
         gen_move(s, cursp(), recv, 1);
         skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
       }
