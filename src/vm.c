@@ -48,7 +48,9 @@ void abort(void);
 
 #ifndef MRB_CALL_LEVEL_MAX
 #if defined(__SANITIZE_ADDRESS__)
-#define MRB_CALL_LEVEL_MAX 128
+/* an instrumented mrb_vm_exec() frame takes about 200KB, and a block
+   called from C nests one for every two levels */
+#define MRB_CALL_LEVEL_MAX 64
 #else
 #define MRB_CALL_LEVEL_MAX 512
 #endif
