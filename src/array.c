@@ -475,16 +475,17 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
   mrb_int size = mrb_as_int(mrb, ss);
   struct RArray *a = mrb_ary_ptr(ary);
 
-  /* Rebuilding an array through `initialize` writes over whatever it held,
-     and nothing below this point asks whether that is allowed: a size of
-     zero writes nothing at all, and the loop that fills a larger one writes
-     through no helper that checks. The branch above goes through
-     ary_replace(), which opens with the same check. */
   ary_modify_check(mrb, a);
+  if (size < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
+  }
+  ary_modify(mrb, a);
 
   if (ARY_CAPA(a) < size) {
     ary_expand_capa(mrb, a, size);
   }
+
+  ARY_SET_LEN(a, 0);
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<size; i++) {

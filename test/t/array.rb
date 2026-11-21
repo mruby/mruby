@@ -313,6 +313,73 @@ assert('Array#initialize', '15.2.12.5.15') do
   assert_equal([0,1], d)
 end
 
+assert('Array#initialize negative size and shrink') do
+  assert_raise_with_message(ArgumentError, "negative array size") { Array.new(-1) }
+  assert_raise_with_message(ArgumentError, "negative array size") { Array.new(-1, 0) }
+  assert_raise_with_message(ArgumentError, "negative array size") { Array.new(-5) {|i| i} }
+
+  a = [1, 2, 3]
+  assert_raise_with_message(ArgumentError, "negative array size") { a.__send__(:initialize, -1) }
+  assert_equal([1, 2, 3], a)
+
+  assert_equal([], Array.new(0))
+  assert_equal([], Array.new)
+
+  a = [1, 2, 3]
+  a.__send__(:initialize)
+  assert_equal([], a)
+
+  a = [1, 2, 3]
+  a.__send__(:initialize, 0)
+  assert_equal([], a)
+
+  assert_equal([1, 1], Array.new(2, 1))
+  assert_equal([0, 1], Array.new(2) {|i| i})
+
+  a = [1, 2, 3]
+  a.__send__(:initialize, 1)
+  assert_equal([nil], a)
+
+  a = [1, 2, 3]
+  a.__send__(:initialize, 2) {|i| i * 10}
+  assert_equal([0, 10], a)
+
+  a = [1, 2, 3]
+  a.__send__(:initialize, 5, :x)
+  assert_equal([:x, :x, :x, :x, :x], a)
+
+  assert_equal([9, 8], Array.new([9, 8]))
+  a = [1, 2, 3]
+  a.__send__(:initialize, [9, 8])
+  assert_equal([9, 8], a)
+
+  assert_raise(FrozenError) { [1, 2].freeze.__send__(:initialize) }
+  assert_raise(FrozenError) { [1, 2].freeze.__send__(:initialize, -1) }
+
+  a = [1, 2, 3, 4, 5]
+  b = a[1, 3]
+  b.__send__(:initialize, 1, :x)
+  assert_equal([:x], b)
+  assert_equal([1, 2, 3, 4, 5], a)
+
+  b = a[1, 3]
+  b.__send__(:initialize, 5, :y)
+  assert_equal([:y, :y, :y, :y, :y], b)
+  assert_equal([1, 2, 3, 4, 5], a)
+
+  a = [1, 2, 3, 4]
+  a.__send__(:initialize, 4, 0)
+  assert_equal([0, 0, 0, 0], a)
+
+  a = [1, 2]
+  a.__send__(:initialize, 2, :z)
+  assert_equal([:z, :z], a)
+
+  a = [1, 2, 3]
+  a.__send__(:initialize, 3, :w)
+  assert_equal([:w, :w, :w], a)
+end
+
 assert('Array#initialize_copy', '15.2.12.5.16') do
   a = [1,2,3]
   b = [].__send__(:initialize_copy, a)
