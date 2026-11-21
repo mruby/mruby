@@ -65,6 +65,19 @@ assert('Integer#pow(e, m) takes the sign of m') do
   assert_equal(-3, (-7).pow(3, -5))
   assert_equal(-2, 7.pow(3, -5))
   assert_equal(0, (-5).pow(3, 5))
+
+  # the smallest mrb_int, whose magnitude does not fit in one
+  min = -(1 << (1.size * 8 - 2)) * 2
+  begin
+    1 << (1.size * 8)   # probe: a value past mrb_int needs mruby-bigint
+  rescue RangeError
+    assert_raise(RangeError) { 2.pow(1, min) }
+  else
+    assert_equal(min + 2, 2.pow(1, min))
+    assert_equal(min + 243, 3.pow(5, min))
+    assert_equal(-27, (-3).pow(3, min))
+    assert_equal(min + 5, (min * -4 + 5).pow(1, min))
+  end
 end
 
 assert('Integer#gcd') do

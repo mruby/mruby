@@ -5934,7 +5934,8 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
   MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
-  if (mrb_integer_p(mod)) {
+  /* MRB_INT_MIN goes the bigint way: its magnitude does not fit in mrb_int */
+  if (mrb_integer_p(mod) && mrb_integer(mod) != MRB_INT_MIN) {
     mrb_int m = mrb_integer(mod);
     if (m == 0) mrb_int_zerodiv(mrb);
     if (m < 0) {

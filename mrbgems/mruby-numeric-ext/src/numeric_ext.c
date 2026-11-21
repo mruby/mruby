@@ -241,6 +241,14 @@ int_powm(mrb_state *mrb, mrb_value x)
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
   mod = mrb_integer(m);
   if (mod == 0) mrb_int_zerodiv(mrb);
+  if (mod == MRB_INT_MIN) {
+    /* -mod does not fit in mrb_int */
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
+#else
+    mrb_int_overflow(mrb, "pow");
+#endif
+  }
   if (mod < 0) {
     neg_mod = TRUE;
     mod = -mod;
