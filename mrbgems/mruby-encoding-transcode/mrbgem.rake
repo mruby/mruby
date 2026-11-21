@@ -6,4 +6,6 @@ MRuby::Gem::Specification.new('mruby-encoding-transcode') do |spec|
   spec.add_dependency 'mruby-encoding', core: 'mruby-encoding'
   # the tests pass a Method as fallback:
   spec.add_test_dependency 'mruby-method', core: 'mruby-method'
+  # and reach the copies the conversion reads through ObjectSpace:
+  spec.add_test_dependency 'mruby-objectspace', core: 'mruby-objectspace'
 end
