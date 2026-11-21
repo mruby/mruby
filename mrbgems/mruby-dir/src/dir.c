@@ -143,6 +143,11 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   mrb_dir_handle *handle;
   struct mrb_dir *mdir;
   const char *path;
+  mrb_bool binary;
+
+  /* to_path can initialize self again: call it before the struct below is
+     freed and replaced */
+  path = dir_path(mrb, dir_get_args(mrb, &binary));
 
   mdir = (struct mrb_dir*)DATA_PTR(self);
   if (mdir) {
@@ -153,10 +158,9 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
 
   mdir = (struct mrb_dir*)mrb_malloc(mrb, sizeof(*mdir));
   mdir->handle = NULL;
-  mdir->binary = FALSE;
+  mdir->binary = binary;
   DATA_PTR(self) = mdir;
 
-  path = dir_path(mrb, dir_get_args(mrb, &mdir->binary));
   if ((handle = mrb_hal_dir_open(mrb, path)) == NULL) {
     mrb_sys_fail(mrb, path);
   }

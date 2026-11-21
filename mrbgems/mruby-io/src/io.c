@@ -737,6 +737,10 @@ io_init(mrb_state *mrb, mrb_value io)
     mrb_value v = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(autoclose)));
     if (!mrb_nil_p(v)) autoclose = mrb_test(v);
   }
+  /* the lookups can run a Hash's default proc, which can initialize io
+     again: ask them all before the struct below is freed and replaced */
+  mrb_bool fd_binary, bom;
+  mrb_bool binmode = io_mode_binary_p(mrb, mode, opt, &fd_binary, &bom);
 
   struct mrb_io *fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
@@ -753,8 +757,7 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->writable = OPEN_WRITABLE_P(flags);
   fptr->close_fd = autoclose;
   fptr->close_fd2 = autoclose;
-  mrb_bool fd_binary, bom;
-  fptr->binmode = io_mode_binary_p(mrb, mode, opt, &fd_binary, &bom);
+  fptr->binmode = binmode;
   if (fd_binary) io_fd_binmode(fptr);
   io_init_buf(mrb, fptr);
   if (bom && fptr->readable) {

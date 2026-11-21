@@ -243,6 +243,29 @@ assert('Dir methods take encoding:') do
   assert_raise(ArgumentError) { Dir.children(d, no_such_option: 1) }
 end
 
+class DirTestReinitPath
+  def initialize(dir)
+    @dir = dir
+  end
+
+  def to_path
+    @dir.instance_eval { initialize(DirTest.sandbox) }
+    DirTest.sandbox
+  end
+end
+
+assert('Dir#initialize keeps its arguments when to_path initializes the Dir again') do
+  dir = Dir.new(DirTest.sandbox)
+  path = DirTestReinitPath.new(dir)
+  dir.instance_eval { initialize(path, encoding: "BINARY") }
+  a = []
+  while n = dir.read
+    a << n
+  end
+  dir.close
+  assert_equal 9, dir_test_jp_size(a)
+end
+
 assert('DirTest.teardown') do
   GC.start
   assert_nothing_raised{DirTest.teardown}
