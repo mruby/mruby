@@ -682,3 +682,11 @@ assert("Struct: instance variables") do
   assert_equal "tag", s.tag
   assert_equal "tag", d.tag
 end
+
+assert("Struct#each, #each_pair and #select return an Enumerator without a block") do
+  skip unless Object.const_defined?(:Enumerator)
+  s = Struct.new(:a, :b).new(1, 2)
+  assert_equal [1, 2], s.each.to_a
+  assert_equal [[:a, 1], [:b, 2]], s.each_pair.to_a
+  assert_equal [2], s.select.each { |v| v > 1 }
+end

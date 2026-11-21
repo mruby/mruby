@@ -12,4 +12,7 @@ MRuby::Gem::Specification.new('mruby-struct') do |spec|
   if build.gems.any? {|g| g.name == 'mruby-rational'}
     spec.add_test_dependency 'mruby-rational', :core => 'mruby-rational'
   end
+  if build.gems.any? {|g| g.name == 'mruby-enumerator'}
+    spec.add_test_dependency 'mruby-enumerator', :core => 'mruby-enumerator'
+  end
 end

@@ -11,6 +11,7 @@ class Struct
   #
   # ISO 15.2.18.4.4
   def each(&block)
+    return to_enum(:each) unless block
     self.class.members.each {|field|
       block.call(self[field])
     }
@@ -24,6 +25,7 @@ class Struct
   #
   # ISO 15.2.18.4.5
   def each_pair(&block)
+    return to_enum(:each_pair) unless block
     self.class.members.each {|field|
       block.call(field.to_sym, self[field])
     }
@@ -37,6 +39,7 @@ class Struct
   #
   # ISO 15.2.18.4.7
   def select(&block)
+    return to_enum(:select) unless block
     ary = []
     self.class.members.each {|field|
       val = self[field]
