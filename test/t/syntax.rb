@@ -117,6 +117,19 @@ assert('super forwards the keyword arguments at their current values') do
   assert_equal [1, {c: 2}], anon.new.rest(a: 1, c: 2)
 end
 
+assert('super in a block in a define_method body made by another method') do
+  # the body closed over the defining method's env; a block in it must take
+  # the name of the method being run, not that of the one that defined it
+  base = Class.new { def foo; :base; end }
+  sub = Class.new(base) do
+    def self.make(name)
+      define_method(name) { [1].map { super() }.first }
+    end
+    make(:foo)
+  end
+  assert_equal :base, sub.new.foo
+end
+
 assert('super forwards from a scope that has closed') do
   # A block that outlives its method reads the method's locals through an
   # env moved off the stack when the frame popped, holding exactly the

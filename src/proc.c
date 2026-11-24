@@ -263,7 +263,10 @@ closure_setup(mrb_state *mrb, struct RProc *p)
     }
     e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, ci->stack, tc);
     ci->u.env = e;
-    if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
+    /* a method body (define_method) names its own method in ci->mid; the
+       env it closed over belongs to the method that defined it */
+    if (!MRB_PROC_SCOPE_P(up) && MRB_PROC_ENV_P(up) &&
+        MRB_PROC_ENV(up)->cxt == NULL) {
       e->mid = MRB_PROC_ENV(up)->mid;
     }
   }
