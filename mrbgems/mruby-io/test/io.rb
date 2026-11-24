@@ -1410,4 +1410,12 @@ assert('IO#initialize does not adopt the descriptor its stream would close') do
   io2.close
 end
 
+assert('IO#initialize does not adopt a descriptor an option lookup closed') do
+  fd = IO.sysopen($mrbtest_io_rfname)
+  io = IO.new(fd)
+  opt = Hash.new { |h, k| io.close if k == :encoding; nil }
+  assert_raise(SystemCallError) { io.instance_eval { initialize(fd, "r", opt) } }
+  assert_true io.closed?
+end
+
 MRubyIOTestUtil.io_test_cleanup

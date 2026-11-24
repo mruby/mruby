@@ -719,15 +719,6 @@ io_init(mrb_state *mrb, mrb_value io)
   if (mrb_nil_p(mode) && !mrb_nil_p(opt)) {
     mode = mrb_hash_get(mrb, opt, mrb_symbol_value(MRB_SYM(mode)));
   }
-  switch (fd) {
-    case 0: /* STDIN_FILENO */
-    case 1: /* STDOUT_FILENO */
-    case 2: /* STDERR_FILENO */
-      break;
-    default:
-      check_file_descriptor(mrb, fd);
-      break;
-  }
   int flags = io_mode_to_flags(mrb, mode);
   /* the keyword options: autoclose: false keeps the descriptor open
    * after close and binmode: true sets binary mode; the others (path:,
@@ -741,6 +732,8 @@ io_init(mrb_state *mrb, mrb_value io)
      again: ask them all before the struct below is freed and replaced */
   mrb_bool fd_binary, bom;
   mrb_bool binmode = io_mode_binary_p(mrb, mode, opt, &fd_binary, &bom);
+  /* after the lookups: one of them may have closed the descriptor */
+  if (fd < 0 || fd > 2) check_file_descriptor(mrb, fd);
 
   struct mrb_io *fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
