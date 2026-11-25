@@ -9,6 +9,7 @@
 #include <mruby/irep.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
+#include <mruby/array.h>
 #include <mruby/debug.h>
 #include <mruby/error.h>
 #include <mruby/data.h>
@@ -428,7 +429,7 @@ read_section_irep(mrb_state *mrb, const uint8_t *bin, size_t size, uint8_t flags
 }
 
 static int
-read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_irep* irep, size_t *record_len, const mrb_sym *filenames, size_t filenames_len)
+read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_irep* irep, size_t *record_len, const mrb_value *filenames, size_t filenames_len)
 {
   const uint8_t *bin = start;
   ptrdiff_t diff;
@@ -470,7 +471,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_
     filename_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (filename_idx >= filenames_len) return MRB_DUMP_GENERAL_FAILURE;
-    file->filename_sym = filenames[filename_idx];
+    file->filename_sym = mrb_symbol(filenames[filename_idx]);
 
     file->line_entry_count = bin_to_uint32(bin);
     bin += sizeof(uint32_t);
@@ -559,8 +560,9 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *
   if ((size_t)(end - bin) < sizeof(uint16_t)) return MRB_DUMP_GENERAL_FAILURE;
   uint16_t filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
-  mrb_value filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
-  mrb_sym *filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
+  /* an Array, not a byte buffer: the symbol GC an intern below can run
+     sees the names interned before it */
+  mrb_value filenames = mrb_ary_new_capa(mrb, filenames_len);
   for (uint16_t i = 0; i < filenames_len; i++) {
     if ((size_t)(end - bin) < sizeof(uint16_t)) {
       result = MRB_DUMP_GENERAL_FAILURE;
@@ -572,16 +574,14 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *
       result = MRB_DUMP_GENERAL_FAILURE;
       goto debug_exit;
     }
-    if (flags & FLAG_SRC_MALLOC) {
-      filenames[i] = mrb_intern(mrb, (const char*)bin, (size_t)f_len);
-    }
-    else {
-      filenames[i] = mrb_intern_static(mrb, (const char*)bin, (size_t)f_len);
-    }
+    mrb_sym sym = (flags & FLAG_SRC_MALLOC) ?
+      mrb_intern(mrb, (const char*)bin, (size_t)f_len) :
+      mrb_intern_static(mrb, (const char*)bin, (size_t)f_len);
+    mrb_ary_push(mrb, filenames, mrb_symbol_value(sym));
     bin += f_len;
   }
 
-  result = read_debug_record(mrb, bin, end, irep, &len, filenames, filenames_len);
+  result = read_debug_record(mrb, bin, end, irep, &len, RARRAY_PTR(filenames), filenames_len);
   if (result != MRB_DUMP_OK) goto debug_exit;
 
   bin += len;
@@ -592,12 +592,12 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *
   }
 
 debug_exit:
-  mrb_str_resize(mrb, filenames_obj, 0);
+  mrb_ary_clear(mrb, filenames);
   return result;
 }
 
 static int
-read_lv_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
+read_lv_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_irep *irep, size_t *record_len, const mrb_value *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
 
@@ -616,7 +616,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, const uint8_t *end, mrb_ire
       if (sym_idx >= syms_len) {
         return MRB_DUMP_GENERAL_FAILURE;
       }
-      lv[i] = syms[sym_idx];
+      lv[i] = mrb_symbol(syms[sym_idx]);
     }
   }
 
@@ -647,8 +647,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   size_t len = 0;
   int result;
   uint32_t syms_len;
-  mrb_sym *syms;
-  mrb_value syms_obj;
+  mrb_value syms;
   mrb_sym (*intern_func)(mrb_state*, const char*, size_t) =
     (flags & FLAG_SRC_MALLOC)? mrb_intern : mrb_intern_static;
 
@@ -659,19 +658,21 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   if ((size_t)(end - bin) < sizeof(uint32_t)) return MRB_DUMP_READ_FAULT;
   syms_len = bin_to_uint32(bin);
   bin += sizeof(uint32_t);
-  if (SIZE_ERROR_MUL(syms_len, sizeof(mrb_sym))) return MRB_DUMP_GENERAL_FAILURE;
-  syms_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)syms_len);
-  syms = (mrb_sym*)RSTRING_PTR(syms_obj);
+  /* each name takes at least its length field */
+  if (syms_len > (size_t)(end - bin) / sizeof(uint16_t)) return MRB_DUMP_READ_FAULT;
+  /* an Array, not a byte buffer: the symbol GC an intern below can run
+     sees the names interned before it */
+  syms = mrb_ary_new_capa(mrb, (mrb_int)syms_len);
   for (i = 0; i < syms_len; i++) {
     if ((size_t)(end - bin) < sizeof(uint16_t)) return MRB_DUMP_READ_FAULT;
     uint16_t const str_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (bin + str_len > end) return MRB_DUMP_READ_FAULT;
-    syms[i] = intern_func(mrb, (const char*)bin, str_len);
+    mrb_ary_push(mrb, syms, mrb_symbol_value(intern_func(mrb, (const char*)bin, str_len)));
     bin += str_len;
   }
 
-  result = read_lv_record(mrb, bin, end, irep, &len, syms, syms_len);
+  result = read_lv_record(mrb, bin, end, irep, &len, RARRAY_PTR(syms), syms_len);
   if (result != MRB_DUMP_OK) goto lv_exit;
 
   bin += len;
@@ -682,7 +683,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, size_t size, mrb_irep *ire
   }
 
 lv_exit:
-  mrb_str_resize(mrb, syms_obj, 0);
+  mrb_ary_clear(mrb, syms);
   return result;
 }
 

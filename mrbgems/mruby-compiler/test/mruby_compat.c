@@ -211,6 +211,66 @@ parsers_outlive_each_other(mrb_state *mrb, mrb_value self)
   return mrb_top_run(mrb, proc, mrb_top_self(mrb), 0);
 }
 
+/*
+ * Compiles `src`, dumps it with every "lv_" in the bytes turned into "LV_",
+ * so reading it back interns those local variable names anew, fills the
+ * symbol table to `room` names short of MRB_SYMBOL_MAX with names nothing
+ * holds, and reads the dump. Answers the names of the top-level locals that
+ * were read, nil for one that no longer names a symbol, or nil where the
+ * build collects no symbols.
+ */
+static mrb_value
+lv_at_symbol_limit(mrb_state *mrb, mrb_value self)
+{
+#if MRB_SYMBOL_MAX > 0
+  const char *src;
+  mrb_int room;
+  mrb_get_args(mrb, "zi", &src, &room);
+
+  mrb_ccontext *c = mrb_ccontext_new(mrb);
+  c->no_exec = TRUE;
+  mrb_value proc = mrb_load_string_cxt(mrb, src, c);
+  mrb_ccontext_free(mrb, c);
+  if (mrb->exc || !mrb_proc_p(proc)) {
+    mrb->exc = NULL;
+    return mrb_nil_value();
+  }
+
+  uint8_t *bin = NULL;
+  size_t size = 0;
+  if (mrb_dump_irep(mrb, mrb_proc_ptr(proc)->body.irep, 0, &bin, &size) != MRB_DUMP_OK) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "dump failed");
+  }
+  mrb_value buf = mrb_str_new(mrb, (const char*)bin, (mrb_int)size);
+  mrb_free(mrb, bin);
+  char *b = RSTRING_PTR(buf);
+  for (size_t i = 0; i + 3 <= size; i++) {
+    if (memcmp(b + i, "lv_", 3) == 0) memcpy(b + i, "LV_", 3);
+  }
+
+  char name[] = "__lv_fill_0000";
+  for (int k = 0; mrb->dynamic_sym_count + room < MRB_SYMBOL_MAX; k++) {
+    for (int d = 0, v = k; d < 4; d++, v /= 10) name[13 - d] = '0' + v % 10;
+    mrb_intern_cstr(mrb, name);
+  }
+
+  mrb_irep *irep = mrb_read_irep_buf(mrb, b, size);
+  if (irep == NULL) mrb_raise(mrb, E_RUNTIME_ERROR, "read failed");
+  mrb_value names = mrb_ary_new(mrb);
+  int ai = mrb_gc_arena_save(mrb);
+  for (int i = 0; irep->lv && i + 1 < irep->nlocals; i++) {
+    mrb_int len;
+    const char *n = mrb_sym_name_len(mrb, irep->lv[i], &len);
+    mrb_ary_push(mrb, names, n ? mrb_str_new(mrb, n, len) : mrb_nil_value());
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  mrb_irep_decref(mrb, irep);
+  return names;
+#else
+  return mrb_nil_value();
+#endif
+}
+
 void
 mrb_mruby_compiler_gem_test(mrb_state *mrb)
 {
@@ -221,4 +281,5 @@ mrb_mruby_compiler_gem_test(mrb_state *mrb)
   mrb_define_method(mrb, mrb->object_class, "__parsers_outlive_each_other", parsers_outlive_each_other, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrb->object_class, "__enter_operand", enter_operand, MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->object_class, "__insn_walk", insn_walk, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->object_class, "__lv_at_symbol_limit", lv_at_symbol_limit, MRB_ARGS_REQ(2));
 }

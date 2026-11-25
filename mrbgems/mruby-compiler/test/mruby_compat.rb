@@ -84,3 +84,12 @@ assert('mrb_decode_insn points at the next instruction') do
   _, ext = __insn_walk((0..300).map { |i| "x.m#{i}" }.join(";"))
   assert_true ext > 0
 end
+
+assert('local variable names read back while the symbol table fills') do
+  # read_section_lv() interns the names first and fills irep->lv after; a
+  # symbol GC in between must not take the names interned before it
+  src = (0...200).map { |i| "lv_#{i}_x = #{i}\n" }.join
+  names = __lv_at_symbol_limit(src, 100)
+  skip 'no symbol GC in this build' if names.nil?
+  assert_equal (0...200).map { |i| "LV_#{i}_x" }, names
+end
