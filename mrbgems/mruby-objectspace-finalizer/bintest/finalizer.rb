@@ -34,3 +34,17 @@ assert('the finalizers run at exit after an at_exit block that raises') do
   assert_true err.include?("in handler (RuntimeError)"), err
   assert_equal 1, status
 end
+
+assert('a finalizer at exit cannot reach the batch the others wait in') do
+  skip "no mruby command" unless finalizer_mruby?
+  code = <<~'RUBY'
+    $o = [Object.new, Object.new]
+    ObjectSpace.define_finalizer($o[0], Proc.new {
+      ObjectSpace.each_object(Array) { |a| a[1] = 42 if a.size >= 2 && a[0].is_a?(Array) }
+    })
+    ObjectSpace.define_finalizer($o[1], Proc.new { puts "B" })
+  RUBY
+  out, _, status = finalizer_run(code)
+  assert_equal "B\n", out
+  assert_equal 0, status
+end

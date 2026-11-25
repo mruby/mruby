@@ -191,6 +191,8 @@ fin_atexit(mrb_state *mrb)
   f->running = TRUE;
   for (;;) {
     mrb_value batch = mrb_ary_new(mrb);
+    /* the finalizers run below; they may not reach the ones still to run */
+    mrb_ary_ptr(batch)->c = NULL;
 
     kh_clear(fin, mrb, f->objs);
     f->ndead = 0;
@@ -255,6 +257,7 @@ os_define_finalizer(mrb_state *mrb, mrb_value self)
   else {
     uint32_t slot = fin_slot_new(mrb, f);
     mrb_value procs = mrb_ary_new_capa(mrb, 2);
+    mrb_ary_ptr(procs)->c = NULL; /* hide from ObjectSpace.each_object */
     mrb_ary_push(mrb, procs, mrb_int_value(mrb, mrb_obj_id(obj)));
     mrb_ary_push(mrb, procs, callable);
     mrb_ary_set(mrb, list, slot, procs);
@@ -307,7 +310,9 @@ mrb_mruby_objectspace_finalizer_gem_init(mrb_state *mrb)
   f->weak.after = fin_after_start;
   mrb_value d = mrb_obj_value(mrb_data_object_alloc(mrb, mrb->object_class, f, &fin_type));
   mrb_gc_weak_add(mrb, &f->weak);
-  mrb_iv_set(mrb, d, MRB_SYM(__list__), mrb_ary_new(mrb));
+  mrb_value list = mrb_ary_new(mrb);
+  mrb_ary_ptr(list)->c = NULL; /* hide from ObjectSpace.each_object */
+  mrb_iv_set(mrb, d, MRB_SYM(__list__), list);
   mrb_obj_iv_set(mrb, (struct RObject*)os, MRB_SYM(__finalizers__), d);
 
   mrb_define_module_function_id(mrb, os, MRB_SYM(define_finalizer), os_define_finalizer, MRB_ARGS_ARG(1,1)|MRB_ARGS_BLOCK());
