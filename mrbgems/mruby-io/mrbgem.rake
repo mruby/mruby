@@ -7,6 +7,7 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   spec.add_test_dependency 'mruby-time', core: 'mruby-time'
   spec.add_test_dependency 'mruby-errno', core: 'mruby-errno'
   spec.add_test_dependency 'mruby-kernel-ext', core: 'mruby-kernel-ext'
+  spec.add_test_dependency 'mruby-objectspace', core: 'mruby-objectspace'
 
   if spec.for_windows?
     spec.linker.libraries << "ws2_32"

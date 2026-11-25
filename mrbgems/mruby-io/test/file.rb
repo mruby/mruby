@@ -352,6 +352,25 @@ assert('File.join with a to_path that grows the array being joined') do
   assert_equal "a/b" + "/c" * 8, File.join(ary)
 end
 
+class MRubyIOTestPathScan
+  attr_reader :found
+  def initialize(first = nil); @first = first; end
+  def to_path
+    return (@s = "a".dup) unless @first
+    s = @first.instance_eval { @s }
+    @found = 0
+    ObjectSpace.each_object(Array) { |a| @found += 1 if a.any? { |e| e.equal?(s) } }
+    "b"
+  end
+end
+
+assert('File.join keeps the components it gathered out of ObjectSpace') do
+  first = MRubyIOTestPathScan.new
+  second = MRubyIOTestPathScan.new(first)
+  assert_equal "a/b", File.join(first, second)
+  assert_equal 0, second.found
+end
+
 assert('File.realpath') do
   dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
   begin

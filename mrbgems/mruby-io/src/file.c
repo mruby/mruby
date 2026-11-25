@@ -1070,8 +1070,15 @@ mrb_file_join(mrb_state *mrb, mrb_value klass)
     return mrb_str_new_lit(mrb, "");
   }
 
+  /* `to_path` runs Ruby in the middle of the walk: the Arrays it works in
+     are hidden from ObjectSpace.each_object, so only strings go in them */
   mrb_value names = mrb_ary_new_capa(mrb, argc);
-  mrb_file_join_flatten(mrb, names, mrb_ary_new(mrb), mrb_ary_new_from_values(mrb, argc, argv));
+  mrb_value seen = mrb_ary_new(mrb);
+  mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
+  mrb_ary_ptr(names)->c = NULL;
+  mrb_ary_ptr(seen)->c = NULL;
+  mrb_ary_ptr(args)->c = NULL;
+  mrb_file_join_flatten(mrb, names, seen, args);
 
   mrb_int names_len = RARRAY_LEN(names);
   if (names_len == 0) {
