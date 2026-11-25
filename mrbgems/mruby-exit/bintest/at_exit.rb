@@ -72,3 +72,22 @@ assert('the exception the program ended with outlives a block that lets go of it
   assert_true err.end_with?("sees boom\n"), err
   assert_equal 1, status
 end
+
+assert('a block cannot reach the exception the program ended with through ObjectSpace') do
+  skip "no mruby command" unless at_exit_mruby?
+  skip "no ObjectSpace" unless at_exit_run('print Object.const_defined?(:ObjectSpace)')[0] == "true"
+  code = 'at_exit { GC.start; $stderr.puts "sees #{$!.message}" }; ' \
+         'at_exit { $! = nil; ObjectSpace.each_object(Array) { |a| a.clear if a.size < 3 && a.any? { |x| RuntimeError === x } }; GC.start }; ' \
+         'raise "boom"'
+  _, err, status = at_exit_run(code)
+  assert_true err.end_with?("sees boom\n"), err
+  assert_equal 1, status
+end
+
+assert('the exception the program ended with outlives a block that raises') do
+  skip "no mruby command" unless at_exit_mruby?
+  _, err, status = at_exit_run('at_exit { $! = nil; GC.start; $stderr.puts "ok" }; at_exit { raise RuntimeError, "h", cause: nil }; raise "boom"')
+  assert_true err.include?("h (RuntimeError)"), err
+  assert_true err.end_with?("ok\n"), err
+  assert_equal 1, status
+end

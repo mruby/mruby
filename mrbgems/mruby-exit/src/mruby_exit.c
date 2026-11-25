@@ -135,10 +135,15 @@ at_exit_run(mrb_state *mrb)
 
   struct RObject *exc = mrb->exc;
   mrb_sym bang = mrb_intern_lit(mrb, "$!");
-  /* what `$!` is next, rooted here: a block may set `$!` itself, and
-     mrb->exc does not hold the exception while the blocks run */
-  mrb_value held = mrb_ary_new_capa(mrb, 1);
-  mrb_ary_push(mrb, held, exc ? mrb_obj_value(exc) : mrb_nil_value());
+  /* what `$!` is next, and the exception mrb->exc gets back, rooted
+     here: a block may set `$!` itself, and mrb->exc does not hold the
+     exception while the blocks run; hidden from ObjectSpace, so a block
+     cannot empty it */
+  mrb_value held = mrb_ary_new_capa(mrb, 2);
+  mrb_value ev = exc ? mrb_obj_value(exc) : mrb_nil_value();
+  mrb_ary_push(mrb, held, ev);
+  mrb_ary_push(mrb, held, ev);
+  mrb_ary_ptr(held)->c = NULL;
   int ai = mrb_gc_arena_save(mrb);
   mrb_bool raised = FALSE;
   int status = EXIT_SUCCESS;
