@@ -80,13 +80,25 @@ queue_wake_all_waiters(mrb_state *mrb, mrb_task_queue *q)
   mrb_task_excl_exit(mrb);
 }
 
+/*
+ * The backing Array, under a name instance_variable_set cannot reach; nil
+ * before #initialize has run.
+ */
+static mrb_value
+queue_items(mrb_state *mrb, mrb_value self)
+{
+  mrb_value items = mrb_iv_get(mrb, self, MRB_SYM(__items__));
+  if (!mrb_array_p(items)) mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized queue");
+  return items;
+}
+
 static mrb_value
 queue_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_task_queue *q = (mrb_task_queue*)mrb_malloc(mrb, sizeof(mrb_task_queue));
   q->closed = 0;
   mrb_data_init(self, q, &mrb_task_queue_type);
-  mrb_iv_set(mrb, self, MRB_IVSYM(items), mrb_ary_new(mrb));
+  mrb_iv_set(mrb, self, MRB_SYM(__items__), mrb_ary_new(mrb));
   return self;
 }
 
@@ -104,8 +116,8 @@ mrb_task_queue_push(mrb_state *mrb, mrb_value self, mrb_value obj)
   mrb_task_queue *q = (mrb_task_queue*)DATA_PTR(self);
   if (q->closed) return MRB_TASK_QUEUE_PUSH_CLOSED;
 
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
-  mrb_assert(mrb_array_p(items));
+  mrb_value items = mrb_iv_get(mrb, self, MRB_SYM(__items__));
+  if (!mrb_array_p(items)) return MRB_TASK_QUEUE_PUSH_INVALID;
   mrb_ary_push(mrb, items, obj);
   queue_wake_one_waiter(mrb, q);
   return MRB_TASK_QUEUE_PUSH_OK;
@@ -179,7 +191,7 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
   mrb_task_queue *q = (mrb_task_queue*)mrb_data_get_ptr(mrb, self, &mrb_task_queue_type);
   if (!q) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid queue");
 
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_value items = queue_items(mrb, self);
 
   /* Item available - return it.
    *
@@ -257,21 +269,21 @@ queue_pop_try(mrb_state *mrb, mrb_value self)
 static mrb_value
 queue_size(mrb_state *mrb, mrb_value self)
 {
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_value items = queue_items(mrb, self);
   return mrb_int_value(mrb, RARRAY_LEN(items));
 }
 
 static mrb_value
 queue_empty_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_value items = queue_items(mrb, self);
   return mrb_bool_value(RARRAY_LEN(items) == 0);
 }
 
 static mrb_value
 queue_clear(mrb_state *mrb, mrb_value self)
 {
-  mrb_value items = mrb_iv_get(mrb, self, MRB_IVSYM(items));
+  mrb_value items = queue_items(mrb, self);
   mrb_ary_clear(mrb, items);
   return self;
 }

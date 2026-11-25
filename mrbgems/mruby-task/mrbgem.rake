@@ -5,6 +5,8 @@ MRuby::Gem::Specification.new('mruby-task') do |spec|
 
   # The tests resume fibers and ask for Fiber.current inside tasks.
   spec.add_test_dependency 'mruby-fiber', core: 'mruby-fiber'
+  # Task::Queue storage tests set instance variables.
+  spec.add_test_dependency 'mruby-metaprog', core: 'mruby-metaprog'
 
   # Enable task scheduler globally (required for vm.c integration)
   spec.build.defines << 'MRB_USE_TASK_SCHEDULER'

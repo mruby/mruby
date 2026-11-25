@@ -200,3 +200,22 @@ assert("Task::Queue timeout validates arguments") do
   assert_raise(ArgumentError) { q.pop(timeout_ms: -1) }
   assert_raise(ArgumentError) { q.pop(true, timeout_ms: 1) }
 end
+
+assert("Task::Queue keeps its storage out of reach of instance variables") do
+  q = Task::Queue.new
+  if q.respond_to?(:instance_variable_set)
+    assert_equal [], q.instance_variables
+    q.instance_variable_set(:@items, 42)
+    q.push(1)
+    assert_equal 1, q.size
+    assert_equal 1, q.pop
+    assert_true q.empty?
+  end
+end
+
+assert("Task::Queue raises before #initialize has run") do
+  q = Task::Queue.allocate
+  assert_raise(ArgumentError) { q.size }
+  assert_raise(ArgumentError) { q.empty? }
+  assert_raise(ArgumentError) { q.clear }
+end
