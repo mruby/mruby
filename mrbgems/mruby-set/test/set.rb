@@ -931,3 +931,23 @@ assert('symbol GC keeps the symbols in a Set') do
 
   assert_equal ["gc-set-element-1"], s.to_a.map(&:to_s)
 end
+
+assert("Set#flatten keeps a nested set alive while an element's #hash runs") do
+  k = Class.new do
+    attr_accessor :outer
+    def hash
+      if @outer
+        o = @outer
+        @outer = nil
+        o.clear
+        GC.start
+      end
+      1
+    end
+    def eql?(o) = equal?(o)
+  end
+  e = k.new
+  outer = Set[Set.new([e, *(1..20).map { |i| "x#{i}" }])]
+  e.outer = outer
+  assert_equal 21, outer.flatten.size
+end

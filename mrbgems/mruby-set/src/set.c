@@ -1279,7 +1279,8 @@ set_add_all(mrb_state *mrb, mrb_value self)
 
 /*
  * Recursively flattens a set by merging nested sets into the target set.
- * This is an internal helper function that does not call back to the VM.
+ * Adding an element may call its #hash, which can empty the set that held
+ * a nested set: each one walked is kept on the arena while it is.
  *
  * @param mrb The mruby state
  * @param target The target set table to add elements to
@@ -1305,6 +1306,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
       (*seen_count)++;
 
       /* Recursively flatten the nested set */
+      mrb_gc_protect(mrb, elem);
       kset_t *nested_set = set_get_kset(mrb, elem);
       if (nested_set) {
         int nested_result = set_flatten_recursive(mrb, target, nested_set, seen_count);
