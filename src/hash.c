@@ -8,6 +8,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/error.h>
 #include <mruby/hash.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
@@ -578,7 +579,8 @@ ea_resize(mrb_state *mrb, hash_entry *ea, uint32_t old_capa, uint32_t capa)
   return ea;
 }
 
-static void
+/* Move the live entries to the front and answer how many there are. */
+static uint32_t
 ea_compress(hash_entry *ea, uint32_t n_used)
 {
   hash_entry *w_entry = ea;
@@ -590,9 +592,11 @@ ea_compress(hash_entry *ea, uint32_t n_used)
   /* Mark the slots vacated by compaction as deleted; they hold stale copies
      of moved entries, which must not be read as live by a later H_EACH scan
      that overruns the live range (GHSA-jfmr-44fc-gfhg). */
+  uint32_t n = U32(w_entry - ea);
   for (hash_entry *end = ea + n_used; w_entry < end; w_entry++) {
     entry_delete(w_entry);
   }
+  return n;
 }
 
 /*
@@ -823,16 +827,22 @@ ib_it_active_p(const index_buckets_iter *it)
 }
 
 static index_buckets_iter
-ib_it_init(mrb_state *mrb, struct RHash *h, mrb_value key)
+ib_it_init_code(struct RHash *h, uint32_t hash_code)
 {
   index_buckets_iter it;
   it.h = h;
   it.bit = ib_bit(h);
   it.mask = ib_bit_to_capa(it.bit) - 1;
-  it.initial_pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.initial_pos = ib_it_pos_for(&it, hash_code);
   it.pos = it.initial_pos;
   it.step = 0;
   return it;
+}
+
+static index_buckets_iter
+ib_it_init(mrb_state *mrb, struct RHash *h, mrb_value key)
+{
+  return ib_it_init_code(h, obj_hash_code(mrb, key, h));
 }
 
 static void
@@ -1147,11 +1157,12 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
     ar_rehash(mrb, h);
     return;
   }
-  uint32_t w_size = 0, ea_capa = ht_ea_capa(h);
+  uint32_t w_size = 0, ea_capa = ht_ea_capa(h), ea_n_used = ht_ea_n_used(h);
   hash_entry *ea = ht_ea(h);
   ht_init(mrb, h, 0, ea, ea_capa, h_ht(h), ib_bit_for(size));
   ht_set_size(h, size);
-  ht_set_ea_n_used(h, ht_ea_n_used(h));
+  /* an entry Ruby adds from the loop goes after the ones still to be read */
+  ht_set_ea_n_used(h, ea_n_used);
   EA_EACH(ea, ea_capa, size, r_entry) {
     /* the cycle asks this entry's own key for its hash code, and the key it
        meets answers #eql?: Ruby in either can vacate the slot the pair is
@@ -1179,6 +1190,123 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
   mrb_assert(size == w_size);
   ht_set_ea_n_used(h, size);
   size <= AR_MAX_SIZE ? ht_to_ar(mrb, h) : ht_adjust_ea(mrb, h, size, ea_capa);
+}
+
+/* Whether key_hash_code() asks the key itself, that is, calls Ruby. */
+static mrb_bool
+key_hash_calls_p(const struct RHash *h, mrb_value key)
+{
+  if (h_identity_p(h)) return FALSE;
+  switch (mrb_type(key)) {
+  case MRB_TT_STRING:
+  case MRB_TT_TRUE:
+  case MRB_TT_FALSE:
+  case MRB_TT_SYMBOL:
+  case MRB_TT_INTEGER:
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+#endif
+    return FALSE;
+  default:
+    return TRUE;
+  }
+}
+
+struct repair_hash {
+  const struct RHash *h;
+  mrb_value key;
+  uint32_t code;
+};
+
+static mrb_value
+repair_hash_body(mrb_state *mrb, void *ud)
+{
+  struct repair_hash *a = (struct repair_hash*)ud;
+  a->code = key_hash_code(mrb, a->key, a->h);
+  return mrb_nil_value();
+}
+
+/* The hash code a key is indexed by while a table is repaired.  A key whose
+   `hash` raises, and once `ask` is false every key that would call Ruby, is
+   put on one fixed probe chain: a lookup no longer finds it, but the table it
+   sits in stays sound. */
+static uint32_t
+repair_hash_code(mrb_state *mrb, const struct RHash *h, mrb_value key, mrb_bool ask)
+{
+  struct repair_hash a = { h, key, 0 };
+  mrb_bool error;
+
+  if (!ask && key_hash_calls_p(h, key)) return 0;
+  mrb_protect_error(mrb, repair_hash_body, &a, &error);
+  return error ? 0 : a.code;
+}
+
+/*
+ * Bring h back in step after a rehash raised partway, leaving the entries the
+ * rehash had not reached unindexed and the size counting entries it had
+ * already merged (#7862, #7864).  The live entries are packed and counted, and
+ * the index is emptied first: every lookup misses then, but nothing else is
+ * out of step, so the Ruby the hash codes call meets a sound table.  The codes
+ * are gathered before any is put in the index; when that Ruby changes the
+ * table, the repair starts over, and after a few rounds it stops asking.
+ */
+static void
+h_repair(mrb_state *mrb, struct RHash *h)
+{
+  for (int round = 0;; round++) {
+    if (h_ar_p(h)) {
+      if (!ar_ea(h)) return;    /* cleared: nothing left out of step */
+      uint32_t n = ea_compress(ar_ea(h), ar_ea_n_used(h));
+      ar_set_size(h, n);
+      ar_set_ea_n_used(h, n);
+      return;
+    }
+
+    hash_entry *ea = ht_ea(h);
+    uint32_t n = ea_compress(ea, ht_ea_n_used(h));
+    ht_set_size(h, n);
+    ht_set_ea_n_used(h, n);
+    if (n <= AR_MAX_SIZE) {
+      ht_to_ar(mrb, h);
+      return;
+    }
+
+    uint32_t bit = ib_bit_for(n);
+    size_t ib_size = ib_byte_size_for(bit);
+    hash_table *ht = (hash_table*)mrb_realloc(mrb, h_ht(h), sizeof(hash_table) + ib_size);
+    h_set_ht(h, ht);
+    memset(ht_ib(h), 0xff, ib_size);
+    ib_set_bit(h, bit);
+
+    uint32_t *codes = (uint32_t*)mrb_malloc(mrb, sizeof(uint32_t) * n);
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+      codes[i] = repair_hash_code(mrb, h, ea[i].key, round < 3);
+      if (h_ar_p(h) || h_ht(h) != ht || ht_ea(h) != ea ||
+          ht_size(h) != n || ht_ea_n_used(h) != n || ib_bit(h) != bit) {
+        break;
+      }
+    }
+    if (i == n) {
+      memset(ht_ib(h), 0xff, ib_size);
+      for (i = 0; i < n; i++) {
+        index_buckets_iter it = ib_it_init_code(h, codes[i]);
+        do {
+          ib_it_next(&it);
+        } while (!ib_it_empty_p(&it));
+        ib_it_set(&it, i);
+      }
+    }
+    mrb_free(mrb, codes);
+    if (i == n) return;
+  }
+}
+
+static mrb_value
+ht_rehash_body(mrb_state *mrb, void *ud)
+{
+  ht_rehash(mrb, (struct RHash*)ud);
+  return mrb_nil_value();
 }
 
 /*
@@ -1263,8 +1391,26 @@ h_rehash(mrb_state *mrb, struct RHash *h)
    * - To prevent EA from breaking if an exception occurs in the middle,
    *   delete the slot before moving when moving the entry, and update size
    *   at any time when overwriting.
+   *
+   * - That keeps an AR table sound, which has no index.  A hash table is
+   *   reindexed in place, so the entries not yet reached have no index when
+   *   `hash` or `eql?` raises; `h_repair` rebuilds it before the exception
+   *   goes on.
    */
-  (h_size(h) == 0 ? h_clear : h_ar_p(h) ? ar_rehash : ht_rehash)(mrb, h);
+  if (h_size(h) == 0) {
+    h_clear(mrb, h);
+  }
+  else if (h_ar_p(h)) {
+    ar_rehash(mrb, h);
+  }
+  else {
+    mrb_bool error;
+    mrb_value exc = mrb_protect_error(mrb, ht_rehash_body, h, &error);
+    if (error) {
+      h_repair(mrb, h);
+      mrb_exc_raise(mrb, exc);
+    }
+  }
 }
 
 static void

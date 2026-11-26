@@ -988,6 +988,67 @@ assert('Hash#rehash') do
   [1, 17].each{assert_equal(_1 * 2, h[_1])}
 end
 
+assert('Hash#rehash that raises leaves every key findable') do
+  # A hash table is reindexed in place, so the entries a raising rehash had not
+  # reached were left out of the index, and a key Ruby added from #eql? landed
+  # on an entry already moved (#7862, #7864).
+  key = Class.new do
+    attr_accessor :mode
+    def initialize(h) @h, @mode = h, nil end
+    def eql?(o)
+      if @mode == :raise
+        @mode = nil
+        @h[:added] = 0
+        raise "eql"
+      end
+      equal?(o)
+    end
+    def hash
+      case @mode
+      when :hash then raise "hash"
+      when :grow then @h[Object.new] = 0
+      end
+      1
+    end
+  end
+
+  h = {}
+  300.times { |i| h[i] = i }
+  k1, k2 = key.new(h), key.new(h)
+  h[k1] = 1; h[k2] = 2
+  k1.mode = :raise
+  assert_raise(RuntimeError) { h.rehash }
+  assert_equal 303, h.size
+  assert_equal h.size, h.keys.size
+  h.keys.each { |x| assert_true(h.key?(x)) }
+  assert_equal [0, 1, 2], [h[0], h[k1], h[k2]]
+  300.times { |i| h[i] = i }
+  assert_equal 303, h.size
+
+  # a key whose hash raises again while the index is rebuilt is no longer
+  # found, but the table holding it stays sound
+  k1.mode = :hash
+  assert_raise(RuntimeError) { h.rehash }
+  assert_equal h.size, h.keys.size
+  h.keys.each { |x| assert_true(h.key?(x)) unless x.equal?(k1) }
+  300.times { |i| h[i] = i }
+  assert_equal 303, h.size
+
+  # nor when its hash adds keys every time it is asked: the rebuild stops
+  # asking then, and only the keys hashed without Ruby are found
+  h = {}
+  300.times { |i| h[i] = i }
+  k = key.new(h)
+  h[k] = 1
+  k.mode = :grow
+  h.rehash rescue nil
+  k.mode = nil
+  assert_equal h.size, h.keys.size
+  300.times { |i| assert_equal i, h[i] }
+  300.times { |i| h[i] = i }
+  assert_equal h.size, h.keys.size
+end
+
 assert('Hash iteration with entries deleted ahead of the cursor') do
   # Regression for GHSA-jfmr-44fc-gfhg: a block that deletes not-yet-visited
   # entries during iteration must not let the entry scan run past the end of
