@@ -233,3 +233,24 @@ assert('Task::Queue keeps its sentinel when the constant is removed') do
   assert_false keep.any? { |a| a.equal?(v) }
   Task::Queue.const_set(:WAIT_TIMEOUT, v)
 end
+
+assert('Task::Queue raises Task::Error when the constant is removed') do
+  q = Task::Queue.new
+  q.close
+  err = Task::Error
+  id = err.object_id
+  Task.__send__(:remove_const, :Error)
+  err = nil
+  GC.start
+  keep = []
+  50.times { |i| keep << Class.new << [i] }
+  e = nil
+  begin
+    q.push(1)
+  rescue => x
+    e = x
+  end
+  assert_equal id, e.class.object_id
+  assert_equal "queue closed", e.message
+  Task.const_set(:Error, e.class)
+end

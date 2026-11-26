@@ -336,8 +336,10 @@ mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class)
 
   task_error_class_ = mrb_class_get_under_id(mrb, task_class, MRB_SYM(Error));
 
-  /* The sentinels the C side hands back.  A script can remove the constants
-     that name them, so they are rooted where no script reaches. */
+  /* The class the queue raises and the sentinels the C side hands back.  A
+     script can remove the constants that name them, so they are rooted where
+     no script reaches. */
+  mrb_gc_register(mrb, mrb_obj_value(task_error_class_));
   wait_retry_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
   wait_timeout_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
   mrb_gc_register(mrb, wait_retry_);
