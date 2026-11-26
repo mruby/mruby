@@ -1693,8 +1693,10 @@ const_warn_deprecated(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v
 {
   c = const_owner(c);
   if (!(mrb_const_flags(mrb, c, sym) & MRB_CONST_DEPRECATED)) return FALSE;
-  /* Warning may remove the constant, and v is then the caller's alone */
+  /* Warning may remove the constant, and v is then the caller's alone;
+     so may be the class, which a constant path walk holds in a C local */
   mrb_gc_protect(mrb, v);
+  mrb_gc_protect(mrb, mrb_obj_value(c));
   mrb_value w;
   /* a read does not load Warning, nor see an autoload of it */
   if (!const_lookup(mrb, mrb->object_class, MRB_SYM(Warning), &w, FALSE) || autoload_check(w)) return TRUE;

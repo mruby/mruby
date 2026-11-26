@@ -935,8 +935,12 @@ mrb_f_defined_const_path(mrb_state *mrb, mrb_value self)
     outer = start;
   }
   /* An autoload runs Ruby, which can reach `path` through ObjectSpace and
-     shrink it, so its length is read afresh each turn. */
+     shrink it, so its length is read afresh each turn; it can also drop
+     the constant that named `outer`, which is then held here alone. */
+  int ai = mrb_gc_arena_save(mrb);
   for (; i < RARRAY_LEN(path); i++) {
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, outer);
     enum mrb_vtype t = mrb_type(outer);
     if (t != MRB_TT_CLASS && t != MRB_TT_MODULE && t != MRB_TT_SCLASS) {
       return mrb_nil_value();

@@ -4818,11 +4818,16 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
   mrb_int len = RSTRING_LEN(path);
   mrb_int off = 0;
 
+  /* each step's module is held here alone once a hook drops the constant
+     that named it: kept on the arena while the next step runs Ruby */
+  int ai = mrb_gc_arena_save(mrb);
   while (off < len) {
     mrb_int end = mrb_str_index_lit(mrb, path, "::", off);
     if (end == -1) end = len;
     mrb_sym id = mrb_intern(mrb, ptr+off, end-off);
     mod = const_get_sym(mrb, mod, id, inherit, off == 0);
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_gc_protect(mrb, mod);
     if (end == len)
       off = end;
     else {

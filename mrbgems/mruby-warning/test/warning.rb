@@ -174,3 +174,31 @@ assert("Module#deprecate_constant warns of each read from the same place") do
   end
   assert_equal 3, out.split("\n").size
 end
+
+module Test4DeprecateDrop
+  module B
+    X = 1
+    deprecate_constant :X
+  end
+end
+
+assert("Module#deprecate_constant read whose Warning hook drops the module") do
+  class << Warning
+    alias __test_drop_aref []
+    def [](category)
+      Test4DeprecateDrop.__send__(:remove_const, :B) if Test4DeprecateDrop.const_defined?(:B)
+      GC.start
+      true
+    end
+  end
+  begin
+    v = nil
+    warning_test_stderr { v = Test4DeprecateDrop.const_get("B::X") }
+    assert_equal 1, v
+  ensure
+    class << Warning
+      alias [] __test_drop_aref
+      remove_method :__test_drop_aref
+    end
+  end
+end
