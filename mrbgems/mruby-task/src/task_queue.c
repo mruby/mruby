@@ -336,9 +336,12 @@ mrb_init_task_queue(mrb_state *mrb, struct RClass *task_class)
 
   task_error_class_ = mrb_class_get_under_id(mrb, task_class, MRB_SYM(Error));
 
-  /* Allocate and store WAIT_RETRY sentinel (rooted by the class constant table) */
+  /* The sentinels the C side hands back.  A script can remove the constants
+     that name them, so they are rooted where no script reaches. */
   wait_retry_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
   wait_timeout_ = mrb_obj_new(mrb, mrb->object_class, 0, NULL);
+  mrb_gc_register(mrb, wait_retry_);
+  mrb_gc_register(mrb, wait_timeout_);
   mrb_define_const_id(mrb, queue_class, MRB_SYM(WAIT_RETRY), wait_retry_);
   mrb_define_const_id(mrb, queue_class, MRB_SYM(WAIT_TIMEOUT), wait_timeout_);
 

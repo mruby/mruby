@@ -219,3 +219,17 @@ assert("Task::Queue raises before #initialize has run") do
   assert_raise(ArgumentError) { q.empty? }
   assert_raise(ArgumentError) { q.clear }
 end
+
+assert('Task::Queue keeps its sentinel when the constant is removed') do
+  q = Task::Queue.new
+  id = Task::Queue::WAIT_TIMEOUT.object_id
+  Task::Queue.__send__(:remove_const, :WAIT_TIMEOUT)
+  GC.start
+  keep = []
+  50.times { |i| keep << [i] }
+  v = q.__pop_try(false, 0)
+  assert_equal Object, v.class
+  assert_equal id, v.object_id
+  assert_false keep.any? { |a| a.equal?(v) }
+  Task::Queue.const_set(:WAIT_TIMEOUT, v)
+end
