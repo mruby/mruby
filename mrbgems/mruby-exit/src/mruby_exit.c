@@ -210,6 +210,8 @@ f_at_exit(mrb_state *mrb, mrb_value self)
   mrb_value list = mrb_gv_get(mrb, AT_EXIT_LIST);
   if (!mrb_array_p(list)) {
     list = mrb_ary_new(mrb);
+    /* hidden from ObjectSpace: the exit path takes each entry for a Proc */
+    mrb_ary_ptr(list)->c = NULL;
     /* the hook before the list: a list without one would not run */
     mrb_state_atexit(mrb, at_exit_run);
     mrb_gv_set(mrb, AT_EXIT_LIST, list);

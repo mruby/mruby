@@ -91,3 +91,13 @@ assert('the exception the program ended with outlives a block that raises') do
   assert_true err.end_with?("ok\n"), err
   assert_equal 1, status
 end
+
+assert('a script cannot reach the list of at_exit blocks') do
+  skip "no mruby command" unless at_exit_mruby?
+  code = 'at_exit { puts "a" }; ' \
+         'ObjectSpace.each_object(Array) { |a| a.push(42).push(a[-2]) if Proc === a.last }; ' \
+         'puts "m"'
+  out, _, status = at_exit_run(code)
+  assert_equal "m\na\n", out
+  assert_equal 0, status
+end
