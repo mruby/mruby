@@ -229,6 +229,10 @@ struct mrb_context {
 
   enum mrb_fiber_state status : 4;
   mrb_bool vmexec : 1;
+  /* Call depth of the contexts this one was resumed from, so that the call
+     level limit counts every fiber nested on the one C stack, not only the
+     frames of this context.  Sits in the padding before `fib`. */
+  uint16_t base_level;
   struct RFiber *fib;
 };
 

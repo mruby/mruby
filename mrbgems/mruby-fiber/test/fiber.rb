@@ -280,3 +280,23 @@ assert('Fiber#storage and Fiber#storage=') do
   assert_raise(ArgumentError) { Fiber.new { }.storage }
   f.storage = saved
 end
+
+assert('call level limit counts nested fibers') do
+  # each level yields from C, so it nests on the C stack; the fibers must not
+  # reset the depth count that stops the recursion
+  o = Object.new
+  def o.down
+    instance_eval { Fiber.new { down }.resume }
+  end
+  assert_raise(SystemStackError) { o.down }
+
+  # resuming the same fiber again and again does not add up
+  gen = Fiber.new { loop { Fiber.yield 1 } }
+  t = 0
+  Fiber.new { 2000.times { t += gen.resume } }.resume
+  assert_equal 2000, t
+  a = b = nil
+  a = Fiber.new { 1000.times { b.transfer }; :a }
+  b = Fiber.new { loop { a.transfer } }
+  assert_equal :a, a.resume
+end

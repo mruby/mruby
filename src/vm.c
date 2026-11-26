@@ -55,6 +55,11 @@ void abort(void);
 #define MRB_CALL_LEVEL_MAX 512
 #endif
 #endif
+#if MRB_CALL_LEVEL_MAX > UINT16_MAX
+#error MRB_CALL_LEVEL_MAX must fit in mrb_context.base_level
+#endif
+
+#define CI_LEVEL(c) ((c)->ci - (c)->cibase + (c)->base_level)
 
 /* Maximum stack depth. Should be set lower on memory constrained systems.
 The value below allows about 60000 recursive calls in the simplest case. */
@@ -920,6 +925,23 @@ mrb_c_stack_check(mrb_state *mrb)
 #define c_stack_check(mrb) ((void)0)
 #endif
 
+/*
+ * Called by a fiber switch before it resumes context `c` from the running
+ * one.  Every resume from C nests another mrb_vm_exec() on the one C stack,
+ * so `c` starts counting where the running context stands; past the limit
+ * it raises SystemStackError instead.
+ */
+void
+mrb_vm_context_nest(mrb_state *mrb, struct mrb_context *c)
+{
+  ptrdiff_t level = CI_LEVEL(mrb->c);
+
+  if (level >= MRB_CALL_LEVEL_MAX) {
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+  }
+  c->base_level = (uint16_t)level;
+}
+
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_class,
        const struct RProc *proc, struct RProc *blk, mrb_sym mid, uint16_t argc)
@@ -933,7 +955,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   else {
     ptrdiff_t size = ci - c->cibase;
 
-    if (size >= MRB_CALL_LEVEL_MAX) {
+    if (size + c->base_level >= MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
     c->cibase = (mrb_callinfo*)mrb_realloc_with_gc_disabled(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
@@ -1638,7 +1660,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     if (!mrb->c->stbase) {
       stack_init(mrb);
     }
-    if (ci - mrb->c->cibase > MRB_CALL_LEVEL_MAX) {
+    if (CI_LEVEL(mrb->c) > MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
     c_stack_check(mrb);

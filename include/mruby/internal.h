@@ -67,6 +67,7 @@ mrb_value mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c);
 void mrb_mod_define_method_scoped(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m);
 mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);
+void mrb_vm_context_nest(mrb_state *mrb, struct mrb_context *c);
 #ifdef MRB_USE_REFINEMENTS
 /* refinement.c / class.c / proc.c */
 struct RArray *mrb_vm_refinements(mrb_state *mrb, const mrb_callinfo *ci);

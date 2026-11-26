@@ -8,6 +8,7 @@
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/variable.h>
+#include <mruby/internal.h>
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
 
@@ -268,10 +269,13 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   }
   fiber_check_cfunc(mrb, c);
   if (resume) {
+    mrb_vm_context_nest(mrb, c);
     old_c->status = MRB_FIBER_RESUMED;
     c->prev = mrb->c;
   }
   else {
+    /* a transfer runs beside the running fiber, not on top of it */
+    c->base_level = old_c->base_level;
     old_c->status = MRB_FIBER_TRANSFERRED;
     // c->prev = mrb->root_c;
     c->prev = NULL;
