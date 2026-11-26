@@ -150,6 +150,8 @@ owner_scope(mrb_state *mrb, mrb_value owner)
   mrb_value a = mrb_iv_get(mrb, owner, MRB_SYM(__activated_refinements__));
   if (mrb_nil_p(a)) {
     a = mrb_ary_new(mrb);
+    /* the lookup trusts what is in it: hidden from ObjectSpace */
+    mrb_ary_ptr(a)->c = NULL;
     mrb_iv_set(mrb, owner, MRB_SYM(__activated_refinements__), a);
   }
   return a;
@@ -161,6 +163,8 @@ refinements_hash(mrb_state *mrb, mrb_value owner)
   mrb_value h = mrb_iv_get(mrb, owner, MRB_SYM(__refinements__));
   if (mrb_nil_p(h)) {
     h = mrb_hash_new(mrb);
+    /* refine trusts what is in it: hidden from ObjectSpace */
+    mrb_hash_ptr(h)->c = NULL;
     mrb_iv_set(mrb, owner, MRB_SYM(__refinements__), h);
   }
   return h;
@@ -210,7 +214,7 @@ mod_refine(mrb_state *mrb, mrb_value self)
   mrb_check_frozen(mrb, mrb_class_ptr(self));
 
   struct RClass *tc = mrb_class_ptr(target);
-  mrb_value rv = mrb_hash_get(mrb, refinements_hash(mrb, self), target);
+  mrb_value rv = mrb_hash_fetch(mrb, refinements_hash(mrb, self), target, mrb_nil_value());
   struct RClass *r = mrb_nil_p(rv) ? refinement_new(mrb, self, tc) : mrb_class_ptr(rv);
   rv = mrb_obj_value(r);
 

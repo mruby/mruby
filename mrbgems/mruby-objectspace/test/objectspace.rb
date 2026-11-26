@@ -254,3 +254,17 @@ assert('mrb_gc_register counts its registrations') do
   assert_equal [false, true, true, false, false, true, false],
                ObjectSpace.__gc_root_survivors(pairs)
 end
+
+assert('ObjectSpace does not reach what refinements keep') do
+  skip "requires MRB_USE_REFINEMENTS" unless Object.const_defined?(:Refinement)
+  k = Class.new { def foo = 0 }
+  m = Module.new { refine(k) { def foo = 1 } }
+  ObjectSpace.each_object(Hash) { |h| h[k] = 12345 if h.keys == [k] }
+  ObjectSpace.each_object(Array) { |a| a[0] = 12345 if a.size == 1 && Refinement === a[0] }
+  m.module_eval { refine(k) { def foo = 2 } }
+  c = Class.new do
+    using m
+    define_method(:run) { k.new.foo }
+  end
+  assert_equal 2, c.new.run
+end
