@@ -7194,7 +7194,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
 
       lp = loop_push(s, LOOP_BEGIN);
       lp->pc0 = new_label(s);
-      catch_entry = catch_handler_new(s);
+      /* a rescue entry only with a clause to land on: without one, the
+         exception went on past the begin as if it had been rescued */
+      catch_entry = cast->rescue_clause ? catch_handler_new(s) : -1;
       begin = s->pc;
       /* begin */
       gen_begin(s, (mrc_node *)cast, VAL);
@@ -7202,7 +7204,9 @@ codegen(mrc_codegen_scope *s, mrc_node *tree, int val)
       lp->type = LOOP_RESCUE;
       end = s->pc;
       noexc = genjmp_0(s, OP_JMP);
-      catch_handler_set(s, catch_entry, MRC_CATCH_RESCUE, begin, end, s->pc);
+      if (catch_entry >= 0) {
+        catch_handler_set(s, catch_entry, MRC_CATCH_RESCUE, begin, end, s->pc);
+      }
       exend = JMPLINK_START;
       pos1 = JMPLINK_START;
       if (cast->rescue_clause) {

@@ -82,3 +82,23 @@ assert('begin with an empty ensure keeps its value in a register of its own') do
   assert_equal [1, 4, 2], [1, (begin 4 ensure end), 2]
   assert_raise(NoMethodError) { begin ensure end[*false] }
 end
+
+assert('an exception passes through a begin with an empty ensure') do
+  def ensure_empty_raise
+    x = (begin; raise "boom"; ensure; end)
+    [:reached, x]
+  end
+  def ensure_empty_undef
+    begin; undef ^; ensure; end
+    :reached
+  end
+  assert_raise_with_message(RuntimeError, "boom") { ensure_empty_raise }
+  assert_raise(NameError) { ensure_empty_undef }
+  r = begin
+    begin; raise "inner"; ensure; end
+    :reached
+  rescue => e
+    e.message
+  end
+  assert_equal "inner", r
+end
