@@ -173,3 +173,21 @@ assert('a cfunc proc that raises, through Proc#call from C') do
   assert_raise(ArgumentError) { ProcExtTest.funcall_call(pr) }
   assert_raise(ArgumentError) { Hash.new(&pr)[:missing] }
 end
+
+assert('mrb_ci_given_argc() keeps the count OP_ENTER rewrites') do
+  t = ProcExtTest
+  def t.yield_args(*a) = yield(*a)
+  def t.yield_kw = yield(1, k: 2)
+  b2 = proc { |a, b| t.given_argc }
+  assert_equal 1, t.yield_args(1, &b2)
+  assert_equal 2, t.yield_args(1, nil, &b2)
+  assert_equal 1, t.yield_args([1, 2], &b2)
+  assert_equal 0, t.yield_args(&b2)
+  assert_equal 3, t.yield_args(1, 2, 3, &b2)
+  assert_equal 20, t.yield_args(*(1..20).to_a, &b2)
+  assert_equal 2, t.yield_kw(&b2)
+  assert_equal 2, t.yield_args(1, 2) { t.given_argc }
+  assert_equal 1, t.yield_args(1) { |*r| t.given_argc }
+  assert_equal 1, ->(a) { t.given_argc }.call(1)
+  assert_equal 2, ->(a, b = 0) { t.given_argc }.call(1, 2)
+end

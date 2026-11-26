@@ -976,6 +976,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   ci->kw = (argc>>4) ? 1 : 0;
   ci->cci = cci;
   ci->vis = MRB_METHOD_PUBLIC_FL;
+  ci->given = 0;
   if (c->svars) c->svars[ci - c->cibase] = NULL;
   ci->u.target_class = target_class;
 
@@ -1333,6 +1334,18 @@ cipop(mrb_state *mrb)
  * @return The value returned by the `body` function if no exception occurred,
  *         or the exception object if an exception occurred.
  */
+MRB_API mrb_int
+mrb_ci_given_argc(mrb_state *mrb, const mrb_callinfo *ci)
+{
+  if (ci->given) return ci->given - 1;
+  /* OP_ENTER has not rewritten the count */
+  if (ci->n == CALL_MAXARGS) {
+    mrb_value args = ci->stack[1];
+    if (mrb_array_p(args)) return RARRAY_LEN(args);
+  }
+  return ci->n;
+}
+
 MRB_API mrb_value
 mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, mrb_bool *error)
 {
@@ -2947,6 +2960,8 @@ vm_op_enter(mrb_state *mrb, uint32_t a)
     argc = (int)ARY_LEN(ary);
     mrb_gc_protect(mrb, regs[1]);
   }
+  /* `n` is rewritten below; keep what the caller passed */
+  ci->given = (uint8_t)(argc < 255 ? argc + 1 : 255);
 
   /* strict argument check */
   if (ci->proc && MRB_PROC_STRICT_P(ci->proc)) {

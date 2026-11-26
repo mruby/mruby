@@ -104,6 +104,13 @@ funcall_call(mrb_state *mrb, mrb_value self)
   return mrb_funcall_argv(mrb, pr, mrb_intern_lit(mrb, "call"), argc, argv);
 }
 
+/* the count the frame that called this was given */
+static mrb_value
+given_argc(mrb_state *mrb, mrb_value self)
+{
+  return mrb_int_value(mrb, mrb_ci_given_argc(mrb, mrb->c->ci - 1));
+}
+
 void mrb_mruby_proc_ext_gem_test(mrb_state *mrb)
 {
   struct RClass *cls;
@@ -115,4 +122,5 @@ void mrb_mruby_proc_ext_gem_test(mrb_state *mrb)
   mrb_define_class_method(mrb, cls, "cfunc_proc_with_env", cfunc_proc_with_env, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, cls, "cfunc_proc_raising", cfunc_proc_raising, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, cls, "funcall_call", funcall_call, MRB_ARGS_REQ(1)|MRB_ARGS_REST());
+  mrb_define_class_method(mrb, cls, "given_argc", given_argc, MRB_ARGS_NONE());
 }

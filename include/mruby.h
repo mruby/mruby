@@ -177,6 +177,7 @@ typedef struct {
   uint8_t cci;                  /* called from C function */
   uint8_t vis;                  /* 3(ZERO):1(given class):1(module_function):1(separate module):2(method visibility) */
                                 /* under 3-bit flags are copied to env, and after that, env takes precedence */
+  uint8_t given;                /* 1 + positional arguments passed, kept when OP_ENTER rewrites `n` (saturates at 255); 0 until then */
   mrb_sym mid;
   const struct RProc *proc;
   struct RProc *blk;
@@ -1287,6 +1288,18 @@ mrb_get_mid(mrb_state *mrb) /* get method symbol */
  * Correctly handles *splat arguments.
  */
 MRB_API mrb_int mrb_get_argc(mrb_state *mrb);
+
+/**
+ * The number of positional arguments the frame `ci` was called with.
+ *
+ * `OP_ENTER` rewrites the count the frame was called with to the shape of
+ * its parameters, so that a block `|a, b|` yielded `x` and one yielded
+ * `x, nil` look the same afterwards; this answers the count before that,
+ * with packed arguments counted one by one and keyword arguments a block
+ * takes as a Hash counted as one.  It saturates at 254.  A C function finds
+ * the frame that called it at `mrb->c->ci - 1`.
+ */
+MRB_API mrb_int mrb_ci_given_argc(mrb_state *mrb, const mrb_callinfo *ci);
 
 /**
  * Retrieve an array of arguments from mrb_state.
