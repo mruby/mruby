@@ -100,7 +100,10 @@ static uint32_t
 get_iflags(mrb_state *mrb, mrb_value self)
 {
   mrb_value v = mrb_iv_get(mrb, self, MRB_IVSYM(flags));
-  return mrb_nil_p(v) ? 0 : (uint32_t)mrb_integer(v);
+  if (mrb_nil_p(v)) return 0;
+  /* a script can set @flags to anything */
+  if (!mrb_integer_p(v)) mrb_raise(mrb, E_TYPE_ERROR, "broken Regexp flags");
+  return (uint32_t)mrb_integer(v);
 }
 
 /* Parse flags from string or integer */

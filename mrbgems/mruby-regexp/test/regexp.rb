@@ -647,3 +647,11 @@ assert("Regexp#=~ binds named captures by $~, not by what =~ answers") do
   assert_equal 1, r
   assert_nil x
 end
+
+assert('Regexp reads @flags only as an Integer') do
+  r = /a b/
+  skip unless r.respond_to?(:instance_variable_set)
+  r.instance_variable_set(:@flags, "x" * 3)
+  assert_raise(TypeError) { Regexp.new(r) }
+  assert_raise(TypeError) { r.options }
+end
