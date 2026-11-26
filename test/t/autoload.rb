@@ -220,3 +220,19 @@ assert('an autoload with no Kernel#require to load it') do
     end
   end
 end
+
+assert('an autoload whose file drops the module a constant path walk uses') do
+  module AutoloadTest; module Drop; class B; autoload :C, "al/drop"; end; end; end
+  autoload_file("al/drop") do
+    AutoloadTest::Drop.const_set(:B, Module.new)
+    GC.start
+  end
+  assert_raise(NameError) { AutoloadTest::Drop.const_get("B::C") }
+
+  module AutoloadTest; module Gone; autoload :B, "al/gone"; end; end
+  autoload_file("al/gone") do
+    module AutoloadTest; remove_const(:Gone); end
+    GC.start
+  end
+  assert_nil defined?(AutoloadTest::Gone::B::C)
+end

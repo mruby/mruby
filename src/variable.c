@@ -1495,6 +1495,9 @@ static void
 autoload_load(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value marker)
 {
   struct autoload *al = (struct autoload*)DATA_PTR(marker);
+  /* the file may also drop the last reference to `c`, which the caller's
+     walk goes on using after this returns: left on the arena below `ai` */
+  mrb_gc_protect(mrb, mrb_obj_value(c));
   int ai = mrb_gc_arena_save(mrb);
   mrb_bool error;
 
