@@ -48,3 +48,27 @@ assert('a finalizer at exit cannot reach the batch the others wait in') do
   assert_equal "B\n", out
   assert_equal 0, status
 end
+
+assert('a finalizer that removes ObjectSpace leaves the others to run') do
+  skip "no mruby command" unless finalizer_mruby?
+  code = <<~'RUBY'
+    class Fin
+      def call(id)
+        if Object.const_defined?(:ObjectSpace)
+          Object.__send__(:remove_const, :ObjectSpace)
+          GC.start
+          200.times { [1, 2, 3].map { |x| "s#{x}" * 10 } }
+        end
+        puts "fin"
+      end
+    end
+    def setup = 3.times { ObjectSpace.define_finalizer(Object.new, Fin.new) }
+    setup
+    GC.start
+    $o = Object.new
+    ObjectSpace.define_finalizer($o, Proc.new { puts "exit" }) if Object.const_defined?(:ObjectSpace)
+  RUBY
+  out, _, status = finalizer_run(code)
+  assert_equal "fin\nfin\nfin\n", out
+  assert_equal 0, status
+end

@@ -83,8 +83,7 @@ fin_clear_dead(mrb_state *mrb, struct mrb_gc_weak *weak)
 static struct fin*
 fin_get(mrb_state *mrb, mrb_value *list)
 {
-  struct RClass *os = mrb_module_get_id(mrb, MRB_SYM(ObjectSpace));
-  mrb_value d = mrb_obj_iv_get(mrb, (struct RObject*)os, MRB_SYM(__finalizers__));
+  mrb_value d = mrb_gv_get(mrb, MRB_SYM(__finalizers__));
 
   *list = mrb_iv_get(mrb, d, MRB_SYM(__list__));
   return (struct fin*)mrb_data_get_ptr(mrb, d, &fin_type);
@@ -313,7 +312,9 @@ mrb_mruby_objectspace_finalizer_gem_init(mrb_state *mrb)
   mrb_value list = mrb_ary_new(mrb);
   mrb_ary_ptr(list)->c = NULL; /* hide from ObjectSpace.each_object */
   mrb_iv_set(mrb, d, MRB_SYM(__list__), list);
-  mrb_obj_iv_set(mrb, (struct RObject*)os, MRB_SYM(__finalizers__), d);
+  /* a global without `$` roots it where no script reaches: ObjectSpace
+     itself may be removed while a finalizer runs */
+  mrb_gv_set(mrb, MRB_SYM(__finalizers__), d);
 
   mrb_define_module_function_id(mrb, os, MRB_SYM(define_finalizer), os_define_finalizer, MRB_ARGS_ARG(1,1)|MRB_ARGS_BLOCK());
   mrb_define_module_function_id(mrb, os, MRB_SYM(undefine_finalizer), os_undefine_finalizer, MRB_ARGS_REQ(1));
