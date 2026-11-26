@@ -97,7 +97,11 @@ update_context_locals_from_irep(mrb_state *mrb, mrb_ccontext *c, mrc_ccontext *m
     mrc_int len = 0;
     const char *name = mrc_sym_name_len(mc, irep->lv[i], &len);
     if (name && len > 0) {
-      c->syms[count++] = mrb_intern(mrb, name, (size_t)len);
+      /* a local variable name is no dynamic symbol, and nothing the
+         symbol GC walks holds it once the proc that had it is gone */
+      mrb_sym sym = mrb_intern(mrb, name, (size_t)len);
+      mrb_sym_pin(mrb, sym);
+      c->syms[count++] = sym;
     }
   }
 }

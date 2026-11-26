@@ -93,3 +93,11 @@ assert('local variable names read back while the symbol table fills') do
   skip 'no symbol GC in this build' if names.nil?
   assert_equal (0...200).map { |i| "LV_#{i}_x" }, names
 end
+
+assert('a compile context keeps its local variable names past a symbol GC') do
+  # the names the context carries to the next compile are held by nothing
+  # else once the proc that had them is gone
+  r = __ccontext_locals_after_symbol_gc("cxt_kept_local_name = 1", "defined?(cxt_kept_local_name)")
+  skip 'no symbol GC in this build' if r == :nogc
+  assert_equal "local-variable", r
+end

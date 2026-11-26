@@ -271,6 +271,46 @@ lv_at_symbol_limit(mrb_state *mrb, mrb_value self)
 #endif
 }
 
+/*
+ * Compiles `src` in a context of its own, lets the proc go, collects it,
+ * fills the symbol table past MRB_SYMBOL_MAX so the symbol GC runs, and
+ * then runs `probe` in the same context. Answers what `probe` returns, or
+ * :nogc where the build collects no symbols.
+ */
+static mrb_value
+ccontext_locals_after_symbol_gc(mrb_state *mrb, mrb_value self)
+{
+#if MRB_SYMBOL_MAX > 0
+  const char *src, *probe;
+  mrb_get_args(mrb, "zz", &src, &probe);
+
+  mrb_ccontext *c = mrb_ccontext_new(mrb);
+  int ai = mrb_gc_arena_save(mrb);
+  c->no_exec = TRUE;
+  mrb_load_string_cxt(mrb, src, c);
+  c->no_exec = FALSE;
+  mrb->exc = NULL;
+  mrb_gc_arena_restore(mrb, ai);
+  mrb_full_gc(mrb);
+
+  char name[] = "__cxt_fill_00000";
+  for (int k = 0; k <= MRB_SYMBOL_MAX; k++) {
+    for (int d = 0, v = k; d < 5; d++, v /= 10) name[15 - d] = '0' + v % 10;
+    mrb_intern_cstr(mrb, name);
+  }
+
+  mrb_value r = mrb_load_string_cxt(mrb, probe, c);
+  mrb_ccontext_free(mrb, c);
+  if (mrb->exc) {
+    mrb->exc = NULL;
+    return mrb_symbol_value(mrb_intern_lit(mrb, "raised"));
+  }
+  return r;
+#else
+  return mrb_symbol_value(mrb_intern_lit(mrb, "nogc"));
+#endif
+}
+
 void
 mrb_mruby_compiler_gem_test(mrb_state *mrb)
 {
@@ -282,4 +322,5 @@ mrb_mruby_compiler_gem_test(mrb_state *mrb)
   mrb_define_method(mrb, mrb->object_class, "__enter_operand", enter_operand, MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->object_class, "__insn_walk", insn_walk, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->object_class, "__lv_at_symbol_limit", lv_at_symbol_limit, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrb->object_class, "__ccontext_locals_after_symbol_gc", ccontext_locals_after_symbol_gc, MRB_ARGS_REQ(2));
 }

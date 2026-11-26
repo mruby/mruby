@@ -886,6 +886,8 @@ mrb_value mrb_attr_writer(mrb_state *mrb, mrb_value obj);
    dynamic symbol is numbered from there. The count is a macro of the presym
    table header, which symbol.c alone includes (see there). */
 mrb_sym mrb_presym_max(void);
+/* keeps a dynamic symbol from the symbol GC for good */
+void mrb_sym_pin(mrb_state *mrb, mrb_sym sym);
 
 /* variable */
 mrb_value mrb_vm_special_get(mrb_state*, mrb_sym);

@@ -85,6 +85,7 @@ mrb_presym_max(void)
 /* Per-symbol flags (stored in mrb->sym_flags[]) */
 #define SYM_FL_DYNAMIC  0x01  /* created at runtime (to_sym, send, etc.) */
 #define SYM_FL_MARK     0x02  /* marked during symbol GC */
+#define SYM_FL_PINNED   0x04  /* dynamic, but never swept (mrb_sym_pin) */
 
 #if MRB_SYMBOL_MAX > 0
 static void mrb_symbol_gc(mrb_state *mrb);
@@ -725,6 +726,26 @@ sym_name_freeable_p(mrb_state *mrb, mrb_sym sym)
 }
 
 /*
+ * Keeps a dynamic symbol out of the symbol GC for good, for a name held
+ * where the GC does not look, such as the local variable names a compile
+ * context carries over. Such names come from source text and are few. The
+ * name stays a heap copy, freed when the state closes.
+ */
+void
+mrb_sym_pin(mrb_state *mrb, mrb_sym sym)
+{
+#if MRB_SYMBOL_MAX > 0
+  if (!sym_name_freeable_p(mrb, sym)) return;
+  mrb_sym idx = sym - MRB_PRESYM_MAX;
+  if (mrb->sym_flags[idx] & SYM_FL_PINNED) return;
+  mrb->sym_flags[idx] |= SYM_FL_PINNED;
+  mrb->dynamic_sym_count--;
+#else
+  (void)mrb; (void)sym;
+#endif
+}
+
+/*
  * Symbol GC: mark and sweep unreferenced dynamic symbols.
  * Called lazily when dynamic symbol count reaches MRB_SYMBOL_MAX.
  */
@@ -997,7 +1018,7 @@ mrb_symbol_gc(mrb_state *mrb)
   mrb_sym freed = 0;
   for (i = 1; i <= mrb->symidx; i++) {
     if ((mrb->sym_flags[i] & SYM_FL_DYNAMIC) &&
-        !(mrb->sym_flags[i] & SYM_FL_MARK)) {
+        !(mrb->sym_flags[i] & (SYM_FL_MARK|SYM_FL_PINNED))) {
       /* Free individually-allocated string */
       mrb_free(mrb, (void*)mrb->symtbl[i]);
       mrb->symtbl[i] = NULL;  /* tombstone */
