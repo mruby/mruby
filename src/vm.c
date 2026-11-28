@@ -2563,19 +2563,19 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 
 #ifdef MRB_USE_VM_SWITCH_DISPATCH
 
-#define INIT_DISPATCH for (;;) { CALL_CODE_HOOKS(); switch (insn) {
+#define INIT_DISPATCH RETURN_IF_TASK_STOPPED(mrb); for (;;) { CALL_CODE_HOOKS(); switch (insn) {
 #define CASE(insn,ops) case insn: DECODE_OPERANDS(ops); L_ ## insn ## _BODY:
 #define NEXT goto L_END_DISPATCH
 #define JUMP NEXT
-#define END_DISPATCH L_END_DISPATCH: RETURN_IF_TASK_STOPPED(mrb);}}
+#define END_DISPATCH L_END_DISPATCH: ;}}
 
 #else
 
-#define INIT_DISPATCH JUMP; return mrb_nil_value();
+#define INIT_DISPATCH RETURN_IF_TASK_STOPPED(mrb); JUMP; return mrb_nil_value();
 #define CASE(insn,ops) L_ ## insn: DECODE_OPERANDS(ops); L_ ## insn ## _BODY:
-#define NEXT RETURN_IF_TASK_STOPPED(mrb); CALL_CODE_HOOKS(); goto *optable[insn]
+#define NEXT CALL_CODE_HOOKS(); goto *optable[insn]
 #define JUMP NEXT
-#define END_DISPATCH RETURN_IF_TASK_STOPPED(mrb)
+#define END_DISPATCH
 
 #endif
 
@@ -2584,7 +2584,8 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
    a loop and a recursion both pass one of those, so what a program can spend
    time in is covered, while straight-line code carries neither the branch nor
    the bytes.  Putting it in NEXT would grow mrb_vm_exec enough to cost the
-   whole VM in instruction cache, which is what mruby-task's own check does. */
+   whole VM in instruction cache.  mruby-task looks for a pending switch at
+   the same places, see RETURN_IF_TASK_STOPPED. */
 #define CHECK_VM_INTERRUPT(mrb) do { \
   if (mrb_unlikely((mrb)->vm_interrupt)) { \
     (mrb)->vm_interrupt = FALSE; \
@@ -2636,7 +2637,7 @@ mrb_task_across_c_boundary(mrb_state *mrb)
    true. The walk runs callbacks (which may call back into mrb_vm_exec via
    mrb_yield); returning early from an inner exec while the outer C
    iteration is still active drifts the call-info stack and eventually
-   crashes (issue #6862). Switches resume at the next OP boundary after
+   crashes (issue #6862). Switches resume at the next check after
    the walk releases gc.iterating. A pending switch is also deferred while
    executing across a C call boundary (see mrb_task_across_c_boundary). A
    pending MRB_TASK_STOPPED is not deferred, since the task is going away.
@@ -2654,7 +2655,7 @@ mrb_task_across_c_boundary(mrb_state *mrb)
    task.switching is always pending at raise time). The same window
    covers break/ensure unwinding, which carries RBreak in mrb->exc
    across NEXT. Deferral is bounded: the handler's first instruction
-   consumes mrb->exc, so the switch happens one instruction later.
+   consumes mrb->exc, so the switch happens at the next check after it.
 
    mrb->jmp is restored to prev_jmp before returning, exactly as the
    normal return paths below do. mrb_vm_exec set mrb->jmp to its own
@@ -2667,11 +2668,19 @@ mrb_task_across_c_boundary(mrb_state *mrb)
    the assertion in mrb_vm_run. This happens when Task.pass is driven from the
    root context (the UI-loop-on-root pattern) while a stray switch flag is
    left set by background-task activity (issue #6887). switching is set from
-   the timer interrupt (mrb_tick), so a genuine task always clears it on the
-   next OP boundary; only the root context can observe it spuriously.
+   the timer interrupt (mrb_tick), so a genuine task always clears it at its
+   next check; only the root context can observe it spuriously.
+
+   The check is not made at every instruction. That grew mrb_vm_exec by a
+   third, and a program has to pass one of these to spend any time: a taken
+   jump, the entry of a method or a block, and the return of a C function,
+   which is where sleep, join and the like ask to be switched away from, so
+   a task that blocks stops before its next instruction. mrb_vm_exec also
+   checks on entry. Each is a place with ci->pc on the instruction to resume
+   at; the top of a send is not one, ci->pc being past the send already.
 
    This macro must only be expanded where prev_jmp is in scope, i.e.
-   inside mrb_vm_exec (via NEXT / END_DISPATCH). */
+   inside mrb_vm_exec. */
 #define RETURN_IF_TASK_STOPPED(mrb) do { \
   if (((mrb)->task.switching && (mrb)->c != (mrb)->root_c && \
        !(mrb)->exc && \
@@ -3821,12 +3830,14 @@ RETRY_TRY_BLOCK:
     CASE(OP_JMP, S) {
       CHECK_VM_INTERRUPT(mrb);
       ci->pc += (int16_t)a;
+      RETURN_IF_TASK_STOPPED(mrb);
       JUMP;
     }
     CASE(OP_JMPIF, BS) {
       if (mrb_test(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
         ci->pc += (int16_t)b;
+        RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
       }
       NEXT;
@@ -3835,6 +3846,7 @@ RETRY_TRY_BLOCK:
       if (!mrb_test(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
         ci->pc += (int16_t)b;
+        RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
       }
       NEXT;
@@ -3843,6 +3855,7 @@ RETRY_TRY_BLOCK:
       if (mrb_nil_p(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
         ci->pc += (int16_t)b;
+        RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
       }
       NEXT;
@@ -4167,6 +4180,7 @@ RETRY_TRY_BLOCK:
           irep = p->body.irep;
           stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
           ci->pc = irep->iseq;
+          RETURN_IF_TASK_STOPPED(mrb);
           JUMP;
         }
         else {
@@ -4199,6 +4213,7 @@ RETRY_TRY_BLOCK:
       ci->stack[0] = recv;
       /* pop stackpos */
       ci = cipop(mrb);
+      RETURN_IF_TASK_STOPPED(mrb);
       JUMP;
     }
 
@@ -4233,6 +4248,7 @@ RETRY_TRY_BLOCK:
         mrb->jmp = prev_jmp;
         return pret;
       }
+      RETURN_IF_TASK_STOPPED(mrb);
       JUMP;
     }
 
@@ -4256,6 +4272,7 @@ RETRY_TRY_BLOCK:
         mrb->jmp = prev_jmp;
         return pret;
       }
+      RETURN_IF_TASK_STOPPED(mrb);
       JUMP;
     }
 

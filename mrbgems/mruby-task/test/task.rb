@@ -1083,3 +1083,55 @@ assert("symbol GC keeps the symbols a task holds") do
     main.name = saved
   end
 end
+
+# A blocking call asks to be switched away from, and the task must stop before
+# its next instruction however the call was reached.
+class TaskTestNap
+  def nap; usleep(1000); end
+end
+class TaskTestSuperNap < TaskTestNap
+  def nap; super; end
+end
+class TaskTestMissingNap
+  def method_missing(name, *args); usleep(1000); end
+end
+def tasktest_yield; yield; end
+
+{
+  "a plain call"      => -> { usleep(1000) },
+  "send"              => -> { send(:usleep, 1000) },
+  "__send__"          => -> { __send__(:usleep, 1000) },
+  "super"             => -> { TaskTestSuperNap.new.nap },
+  "a lambda"          => -> { -> { usleep(1000) }.call },
+  "a proc"            => -> { Proc.new { usleep(1000) }.call },
+  "yield"             => -> { tasktest_yield { usleep(1000) } },
+  "a block of times"  => -> { 1.times { usleep(1000) } },
+  "method_missing"    => -> { TaskTestMissingNap.new.anything },
+  "Task.pass"         => -> { Task.pass },
+  "Task.pass by send" => -> { Task.send(:pass) },
+}.each do |how, nap|
+  assert("a task that blocks through #{how} stops there") do
+    order = []
+    Task.new { order << :before; nap.call; order << :after }
+    Task.new { order << :other }
+    Task.run
+    assert_equal [:before, :other, :after], order
+  end
+end
+
+# A proc that is a C function parks the task with no method call around it.
+def tasktest_yield_task; yield Task.current; end
+
+{
+  "Proc#call" => ->(park) { park.call(Task.current) },
+  "yield"     => ->(park) { tasktest_yield_task(&park) },
+}.each do |how, nap|
+  assert("a task parked by a C function proc through #{how} stops there") do
+    order = []
+    park = TaskTest.suspending_proc
+    parked = Task.new { order << :before; nap.call(park); order << :after }
+    Task.new { order << :other; parked.resume }
+    Task.run
+    assert_equal [:before, :other, :after], order
+  end
+end

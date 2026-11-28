@@ -420,6 +420,25 @@ tasktest_trace_log(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* The body of the C function proc below: suspend the task it is handed, the
+   way a blocking call parks the running one. */
+static mrb_value
+tasktest_suspend_body(mrb_state *mrb, mrb_value self)
+{
+  mrb_value task;
+  mrb_get_args(mrb, "o", &task);
+  mrb_suspend_task(mrb, task);
+  return mrb_nil_value();
+}
+
+/* A proc that is a C function, which a Ruby program has no way to make.
+   Proc#call and yield run it without a method call of their own in between. */
+static mrb_value
+tasktest_suspending_proc(mrb_state *mrb, mrb_value self)
+{
+  return mrb_obj_value(mrb_proc_new_cfunc(mrb, tasktest_suspend_body));
+}
+
 void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
@@ -439,6 +458,7 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "rerun", tasktest_rerun, MRB_ARGS_REQ(1) | MRB_ARGS_BLOCK());
   mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
   mrb_define_module_function(mrb, tasktest, "proc_set_deep", tasktest_proc_set_deep, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, tasktest, "suspending_proc", tasktest_suspending_proc, MRB_ARGS_NONE());
 #ifdef MRB_USE_TASK_TRACE
   mrb_define_module_function(mrb, tasktest, "trace_start", tasktest_trace_start, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "trace_stop", tasktest_trace_stop, MRB_ARGS_NONE());

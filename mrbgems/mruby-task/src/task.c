@@ -1609,7 +1609,7 @@ mrb_execute_proc_synchronously(mrb_state *mrb, mrb_value proc_val, mrb_int argc,
   mrb->c = &t->c;
 
   /* A pending switch request belongs to the scheduler, not to this loop.
-     mrb_vm_exec() honors task.switching at every OP boundary by returning
+     mrb_vm_exec() honors task.switching on entry by returning
      early (RETURN_IF_TASK_STOPPED), so with the flag left set it would
      return before executing a single instruction and the loop below
      would spin forever. Park the request while the temporary task runs
