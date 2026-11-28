@@ -568,3 +568,16 @@ assert('Hash derived from one comparing by identity') do
   assert_equal 2, g.size
   assert_false Hash[{"a" => 1}].compare_by_identity?
 end
+
+assert('Hash.try_convert') do
+  v = {a: 1}
+  assert_same v, Hash.try_convert(v)
+  sub = Class.new(Hash).new
+  assert_same sub, Hash.try_convert(sub)
+  assert_nil Hash.try_convert(1)
+  assert_nil Hash.try_convert(nil)
+  # no implicit conversion: #to_hash is not called
+  obj = Object.new
+  def obj.to_hash; raise "not to be called"; end
+  assert_nil Hash.try_convert(obj)
+end

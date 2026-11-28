@@ -458,6 +458,25 @@ static const mrb_mt_entry hash_ext_rom_entries[] = {
   MRB_MT_ENTRY(hash_value_eq,  MRB_SYM(__value_eq), MRB_ARGS_REQ(2)),
 };
 
+/*
+ *  call-seq:
+ *    Hash.try_convert(object) -> object or nil
+ *
+ *  Returns +object+ if it is a Hash, nil otherwise. mruby converts
+ *  nothing implicitly, so unlike CRuby's this does not call #to_hash:
+ *  it reports what mruby takes as a Hash, which is a Hash alone.
+ *
+ *    Hash.try_convert({a: 1})  #=> {a: 1}
+ *    Hash.try_convert(1)    #=> nil
+ */
+static mrb_value
+hash_s_try_convert(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  return mrb_hash_p(obj) ? obj : mrb_nil_value();
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -466,6 +485,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   h = mrb->hash_class;
   MRB_MT_INIT_ROM(mrb, h, hash_ext_rom_entries);
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, h, MRB_SYM(try_convert), hash_s_try_convert, MRB_ARGS_REQ(1));
 }
 
 void
