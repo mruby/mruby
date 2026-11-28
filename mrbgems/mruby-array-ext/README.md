@@ -41,6 +41,7 @@ The `mruby-array-ext` gem adds the following methods to the `Array` class:
 - `rassoc(obj)`: Searches through an array of arrays, comparing `obj` with the second element of each contained array. Returns the first matching contained array or `nil`.
 - `bsearch { |x| block }`: Finds a value from the array which meets the given condition using binary search.
 - `bsearch_index { |x| block }`: Finds the index of a value from the array which meets the given condition using binary search.
+- `Array.try_convert(object)`: Returns `object` if it is an Array, `nil` otherwise. Does not call `to_ary`.
 
 ### Iterators and Combinatorics
 

@@ -1947,12 +1947,32 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(member),           MRB_ARGS_REQ(1)),
 };
 
+/*
+ *  call-seq:
+ *    Array.try_convert(object) -> object or nil
+ *
+ *  Returns +object+ if it is an Array, nil otherwise. mruby converts
+ *  nothing implicitly, so unlike CRuby's this does not call #to_ary:
+ *  it reports what mruby takes as an Array, which is an Array alone.
+ *
+ *    Array.try_convert([1])  #=> [1]
+ *    Array.try_convert(1)    #=> nil
+ */
+static mrb_value
+ary_s_try_convert(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  return mrb_array_p(obj) ? obj : mrb_nil_value();
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
   MRB_MT_INIT_ROM(mrb, a, array_ext_rom_entries);
+  mrb_define_class_method_id(mrb, a, MRB_SYM(try_convert), ary_s_try_convert, MRB_ARGS_REQ(1));
 }
 
 void

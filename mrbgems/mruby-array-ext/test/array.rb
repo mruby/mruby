@@ -1317,3 +1317,16 @@ assert('Array set operations keep their results out of reach of ObjectSpace') do
     end
   end
 end
+
+assert('Array.try_convert') do
+  v = [1]
+  assert_same v, Array.try_convert(v)
+  sub = Class.new(Array).new
+  assert_same sub, Array.try_convert(sub)
+  assert_nil Array.try_convert(1)
+  assert_nil Array.try_convert(nil)
+  # no implicit conversion: #to_ary is not called
+  obj = Object.new
+  def obj.to_ary; raise "not to be called"; end
+  assert_nil Array.try_convert(obj)
+end
