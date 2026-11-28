@@ -919,3 +919,12 @@ str_bin = str_utf8.b
 # str_bin might be "\xC3\xA9" if that's the UTF-8 byte representation
 # str_bin.encoding will be ASCII-8BIT
 ```
+
+### `String.try_convert`
+
+Returns the argument if it is a String, nil otherwise. It does not call `to_str`: mruby converts nothing implicitly (see [limitations](../../doc/limitations.md)).
+
+```ruby
+String.try_convert("a")   # => "a"
+String.try_convert(1)     # => nil
+```

@@ -1857,3 +1857,16 @@ assert('String#dedup') do
   f = "xyz".freeze
   assert_same f, f.dedup
 end
+
+assert('String.try_convert') do
+  v = "a"
+  assert_same v, String.try_convert(v)
+  sub = Class.new(String).new
+  assert_same sub, String.try_convert(sub)
+  assert_nil String.try_convert(1)
+  assert_nil String.try_convert(nil)
+  # no implicit conversion: #to_str is not called
+  obj = Object.new
+  def obj.to_str; raise "not to be called"; end
+  assert_nil String.try_convert(obj)
+end
