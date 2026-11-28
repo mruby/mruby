@@ -2609,6 +2609,35 @@ static const mrb_mt_entry string_ext_rom_entries[] = {
   MRB_MT_ENTRY(str_center_core,     MRB_SYM(center),          MRB_ARGS_ARG(1,1)),
 };
 
+/*
+ *  call-seq:
+ *    String.try_convert(object) -> string or nil
+ *
+ *  Returns +object+ if it is a String, the String its #to_str returns if
+ *  it responds to #to_str, or nil. Raises TypeError if #to_str returns
+ *  something that is neither a String nor nil. This is explicit
+ *  conversion: the caller asks for it, where mruby's operators do not.
+ *
+ *    String.try_convert("a")  #=> "a"
+ *    String.try_convert(1)    #=> nil
+ */
+static mrb_value
+str_s_try_convert(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_value conv;
+
+  if (mrb_string_p(obj)) return obj;
+  /* as CRuby's rb_check_funcall(): the receiver's own respond_to?,
+   * respond_to_missing? and method_missing have their say */
+  conv = mrb_check_funcall(mrb, obj, MRB_SYM(to_str), 0, NULL);
+  if (mrb_undef_p(conv) || mrb_nil_p(conv)) return mrb_nil_value();
+  if (!mrb_string_p(conv)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y to String (%Y#to_str gives %Y)", obj, obj, conv);
+  }
+  return conv;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -2616,6 +2645,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   MRB_MT_INIT_ROM(mrb, s, string_ext_rom_entries);
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_NONE()|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, s, MRB_SYM(try_convert), str_s_try_convert, MRB_ARGS_REQ(1));
 }
 
 void

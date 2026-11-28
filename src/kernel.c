@@ -699,6 +699,102 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(obj_respond_to_p(mrb, self, id, priv));
 }
 
+mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
+
+/* the method_missing call mrb_check_funcall() makes under protection */
+struct check_funcall_args {
+  mrb_value recv;
+  mrb_sym mid;
+  mrb_int argc;
+  const mrb_value *argv;
+};
+
+static mrb_value
+check_funcall_missing(mrb_state *mrb, void *p)
+{
+  struct check_funcall_args *a = (struct check_funcall_args*)p;
+  mrb_value args = mrb_ary_new_from_values(mrb, a->argc, a->argv);
+
+  mrb_ary_unshift(mrb, args, mrb_symbol_value(a->mid));
+  return mrb_funcall_argv(mrb, a->recv, MRB_SYM(method_missing), RARRAY_LEN(args), RARRAY_PTR(args));
+}
+
+/*
+ * Calls `mid` on `recv` the way CRuby's rb_check_funcall() does, for a
+ * method the receiver may not have, and returns mrb_undef_value() when
+ * the call is not made:
+ *
+ * - a `respond_to?` the receiver redefines is asked first (with the one
+ *   argument when it takes one, else with (mid, true)); a false ends it
+ * - a method in the table is then called, private or not
+ * - for a method that is not there, a `respond_to_missing?` the receiver
+ *   redefines is asked (a false ends it), and a `method_missing` it
+ *   redefines is called; a NoMethodError that raises is the dispatch
+ *   failing, and is swallowed unless one of the two hooks had promised
+ *   the method.  The default method_missing is not called.
+ *
+ * This is what an explicit conversion such as String.try_convert uses to
+ * decide whether the receiver has `to_str`.
+ */
+MRB_API mrb_value
+mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, mrb_int argc, const mrb_value *argv)
+{
+  struct RClass *c;
+  mrb_method_t m;
+  mrb_bool promised = FALSE;
+  mrb_sym rt_id = MRB_SYM_Q(respond_to);
+  mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
+
+  if (!mrb_func_basic_p(mrb, recv, rt_id, obj_respond_to)) {
+    c = mrb_class(mrb, recv);
+    m = mrb_method_search_vm(mrb, &c, rt_id);
+    if (!MRB_METHOD_UNDEF_P(m)) {
+      mrb_int arity = MRB_METHOD_CFUNC_P(m) ? -1 : mrb_proc_arity(MRB_METHOD_PROC(m));
+      mrb_value args[2];
+
+      if (arity > 2) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "respond_to? must accept 1 or 2 arguments (requires %i)", arity);
+      }
+      args[0] = mrb_symbol_value(mid);
+      args[1] = mrb_true_value();
+      if (!mrb_test(mrb_funcall_argv(mrb, recv, rt_id, arity == 1 ? 1 : 2, args))) {
+        return mrb_undef_value();
+      }
+      promised = TRUE;
+    }
+  }
+
+  c = mrb_class(mrb, recv);
+  m = mrb_method_search_vm(mrb, &c, mid);
+  if (!MRB_METHOD_UNDEF_P(m)) {
+    return mrb_funcall_argv(mrb, recv, mid, argc, argv);
+  }
+
+  if (!mrb_func_basic_p(mrb, recv, rtm_id, mrb_false) && mrb_respond_to(mrb, recv, rtm_id)) {
+    if (!mrb_test(mrb_funcall_argv2(mrb, recv, rtm_id, mrb_symbol_value(mid), mrb_true_value()))) {
+      return mrb_undef_value();
+    }
+    promised = TRUE;
+  }
+
+  c = mrb_class(mrb, recv);
+  m = mrb_method_search_vm(mrb, &c, MRB_SYM(method_missing));
+  if (MRB_METHOD_UNDEF_P(m) || mrb_func_basic_p(mrb, recv, MRB_SYM(method_missing), mrb_obj_missing)) {
+    return mrb_undef_value();
+  }
+  else {
+    struct check_funcall_args a = { recv, mid, argc, argv };
+    mrb_bool error = FALSE;
+    mrb_value ret = mrb_protect_error(mrb, check_funcall_missing, &a, &error);
+
+    if (!error) return ret;
+    if (promised || !mrb_obj_is_kind_of(mrb, ret, E_NOMETHOD_ERROR)) {
+      mrb_exc_raise(mrb, ret);
+    }
+    return mrb_undef_value();
+  }
+}
+
 static mrb_value
 mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {

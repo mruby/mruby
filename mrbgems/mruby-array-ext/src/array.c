@@ -1947,12 +1947,42 @@ static const mrb_mt_entry array_ext_rom_entries[] = {
   MRB_MT_ENTRY(ary_include,            MRB_SYM_Q(member),           MRB_ARGS_REQ(1)),
 };
 
+/*
+ *  call-seq:
+ *    Array.try_convert(object) -> array or nil
+ *
+ *  Returns +object+ if it is a Array, the Array its #to_ary returns if
+ *  it responds to #to_ary, or nil. Raises TypeError if #to_ary returns
+ *  something that is neither a Array nor nil. This is explicit
+ *  conversion: the caller asks for it, where mruby's operators do not.
+ *
+ *    Array.try_convert([1])  #=> [1]
+ *    Array.try_convert(1)    #=> nil
+ */
+static mrb_value
+ary_s_try_convert(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_value conv;
+
+  if (mrb_array_p(obj)) return obj;
+  /* as CRuby's rb_check_funcall(): the receiver's own respond_to?,
+   * respond_to_missing? and method_missing have their say */
+  conv = mrb_check_funcall(mrb, obj, MRB_SYM(to_ary), 0, NULL);
+  if (mrb_undef_p(conv) || mrb_nil_p(conv)) return mrb_nil_value();
+  if (!mrb_array_p(conv)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y to Array (%Y#to_ary gives %Y)", obj, obj, conv);
+  }
+  return conv;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
   MRB_MT_INIT_ROM(mrb, a, array_ext_rom_entries);
+  mrb_define_class_method_id(mrb, a, MRB_SYM(try_convert), ary_s_try_convert, MRB_ARGS_REQ(1));
 }
 
 void

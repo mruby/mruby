@@ -1857,3 +1857,52 @@ assert('String#dedup') do
   f = "xyz".freeze
   assert_same f, f.dedup
 end
+
+assert('String.try_convert') do
+  assert_equal "a", String.try_convert("a")
+  assert_nil String.try_convert(1)
+  assert_nil String.try_convert(BasicObject.new)
+  obj = Object.new
+  def obj.to_str; "x"; end
+  assert_equal "x", String.try_convert(obj)
+  obj = Object.new
+  def obj.to_str; nil; end
+  assert_nil String.try_convert(obj)
+  obj = Object.new
+  def obj.to_str; 1; end
+  assert_raise_with_message(TypeError, "can't convert Object to String (Object#to_str gives Integer)") { String.try_convert(obj) }
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); m == :to_str; end
+  def obj.method_missing(m, *a); m == :to_str ? "dyn" : super; end
+  assert_equal "dyn", String.try_convert(obj)
+  obj = Object.new
+  def obj.to_str; "x"; end
+  def obj.respond_to?(m, priv = false); false; end
+  assert_nil String.try_convert(obj)
+  # a BasicObject with the method but no respond_to? converts, as in CRuby
+  klass = Class.new(BasicObject) { def to_str; "b"; end }
+  assert_equal "b", String.try_convert(klass.new)
+  # the rest of what rb_check_funcall() decides
+  obj = Object.new
+  def obj.to_str; "one"; end
+  def obj.respond_to?(m); m == :to_str; end
+  assert_equal "one", String.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); m == :to_str ? "mm" : super; end
+  assert_equal "mm", String.try_convert(obj)
+  klass = Class.new(BasicObject) { def method_missing(m, *a); m == :to_str ? "bmm" : super; end }
+  assert_equal "bmm", String.try_convert(klass.new)
+  obj = Object.new
+  def obj.respond_to?(m, priv = false); true; end
+  assert_nil String.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  assert_nil String.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); super; end
+  assert_nil String.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  def obj.method_missing(m, *a); super; end
+  assert_raise(NoMethodError) { String.try_convert(obj) }
+end

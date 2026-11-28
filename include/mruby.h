@@ -1423,6 +1423,23 @@ mrb_funcall_argv2(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_value a1, mrb
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
+ * Call a method the receiver may not have, as CRuby's rb_check_funcall() does.
+ *
+ * A `respond_to?` the receiver redefines is asked first; then the method
+ * table; then, for a method that is not there, a redefined
+ * `respond_to_missing?` and `method_missing`. Returns mrb_undef_value()
+ * when the call is not made (check with mrb_undef_p()). The explicit
+ * conversions (String.try_convert and the like) decide with this.
+ *
+ * @param mrb The current mruby state.
+ * @param recv The receiver.
+ * @param mid The method name.
+ * @param argc The number of arguments.
+ * @param argv The arguments.
+ * @return The method's result, or mrb_undef_value().
+ */
+MRB_API mrb_value mrb_check_funcall(mrb_state *mrb, mrb_value recv, mrb_sym mid, mrb_int argc, const mrb_value *argv);
+/**
  * Create a symbol from C string. But usually it's better to
  * use MRB_SYM, MRB_OPSYM, MRB_CVSYM, MRB_IVSYM, MRB_GVSYM,
  * MRB_SYM_B, MRB_SYM_Q, MRB_SYM_E macros.

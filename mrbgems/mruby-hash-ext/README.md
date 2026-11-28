@@ -25,6 +25,7 @@ This gem implements the following methods for the `Hash` class:
 - `slice(*keys)`: Returns a hash containing only the given keys and their values.
 - `except(*keys)`: Returns a hash excluding the given keys and their values.
 - `Hash.[](*object)`: Creates a new hash populated with the given objects.
+- `Hash.try_convert(object)`: Returns `object` if it is a Hash, what its `to_hash` returns, or nil.
 - `#merge!(other_hash..)`, `#update(other_hash..)`: Adds the contents of `other_hash` to `hsh`.
 - `#compact!`: Removes all nil values from the hash.
 - `#compact`: Returns a new hash with the nil values/key pairs removed.

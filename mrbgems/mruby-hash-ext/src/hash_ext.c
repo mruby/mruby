@@ -458,6 +458,35 @@ static const mrb_mt_entry hash_ext_rom_entries[] = {
   MRB_MT_ENTRY(hash_value_eq,  MRB_SYM(__value_eq), MRB_ARGS_REQ(2)),
 };
 
+/*
+ *  call-seq:
+ *    Hash.try_convert(object) -> hash or nil
+ *
+ *  Returns +object+ if it is a Hash, the Hash its #to_hash returns if
+ *  it responds to #to_hash, or nil. Raises TypeError if #to_hash returns
+ *  something that is neither a Hash nor nil. This is explicit
+ *  conversion: the caller asks for it, where mruby's operators do not.
+ *
+ *    Hash.try_convert({a: 1})  #=> {a: 1}
+ *    Hash.try_convert(1)       #=> nil
+ */
+static mrb_value
+hash_s_try_convert(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_value conv;
+
+  if (mrb_hash_p(obj)) return obj;
+  /* as CRuby's rb_check_funcall(): the receiver's own respond_to?,
+   * respond_to_missing? and method_missing have their say */
+  conv = mrb_check_funcall(mrb, obj, MRB_SYM(to_hash), 0, NULL);
+  if (mrb_undef_p(conv) || mrb_nil_p(conv)) return mrb_nil_value();
+  if (!mrb_hash_p(conv)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y to Hash (%Y#to_hash gives %Y)", obj, obj, conv);
+  }
+  return conv;
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -466,6 +495,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   h = mrb->hash_class;
   MRB_MT_INIT_ROM(mrb, h, hash_ext_rom_entries);
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, h, MRB_SYM(try_convert), hash_s_try_convert, MRB_ARGS_REQ(1));
 }
 
 void

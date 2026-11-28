@@ -568,3 +568,55 @@ assert('Hash derived from one comparing by identity') do
   assert_equal 2, g.size
   assert_false Hash[{"a" => 1}].compare_by_identity?
 end
+
+assert('Hash.try_convert') do
+  h = {a: 1}
+  assert_equal h, Hash.try_convert(h)
+  assert_nil Hash.try_convert(1)
+  assert_nil Hash.try_convert(BasicObject.new)
+  obj = Object.new
+  def obj.to_hash
+    {x: 1}
+  end
+  assert_equal({x: 1}, Hash.try_convert(obj))
+  obj = Object.new
+  def obj.to_hash; nil; end
+  assert_nil Hash.try_convert(obj)
+  obj = Object.new
+  def obj.to_hash; 1; end
+  assert_raise_with_message(TypeError, "can't convert Object to Hash (Object#to_hash gives Integer)") { Hash.try_convert(obj) }
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); m == :to_hash; end
+  def obj.method_missing(m, *a); m == :to_hash ? ({y: 2}) : super; end
+  assert_equal ({y: 2}), Hash.try_convert(obj)
+  obj = Object.new
+  def obj.to_hash; ({x: 1}); end
+  def obj.respond_to?(m, priv = false); false; end
+  assert_nil Hash.try_convert(obj)
+  # a BasicObject with the method but no respond_to? converts, as in CRuby
+  klass = Class.new(BasicObject) { def to_hash; ({z: 3}); end }
+  assert_equal ({z: 3}), Hash.try_convert(klass.new)
+  # the rest of what rb_check_funcall() decides
+  obj = Object.new
+  def obj.to_hash; ({a: 1}); end
+  def obj.respond_to?(m); m == :to_hash; end
+  assert_equal ({a: 1}), Hash.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); m == :to_hash ? ({b: 2}) : super; end
+  assert_equal ({b: 2}), Hash.try_convert(obj)
+  klass = Class.new(BasicObject) { def method_missing(m, *a); m == :to_hash ? ({c: 3}) : super; end }
+  assert_equal ({c: 3}), Hash.try_convert(klass.new)
+  obj = Object.new
+  def obj.respond_to?(m, priv = false); true; end
+  assert_nil Hash.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  assert_nil Hash.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); super; end
+  assert_nil Hash.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  def obj.method_missing(m, *a); super; end
+  assert_raise(NoMethodError) { Hash.try_convert(obj) }
+end

@@ -1317,3 +1317,52 @@ assert('Array set operations keep their results out of reach of ObjectSpace') do
     end
   end
 end
+
+assert('Array.try_convert') do
+  assert_equal [1], Array.try_convert([1])
+  assert_nil Array.try_convert(1)
+  assert_nil Array.try_convert(BasicObject.new)
+  obj = Object.new
+  def obj.to_ary; [1, 2]; end
+  assert_equal [1, 2], Array.try_convert(obj)
+  obj = Object.new
+  def obj.to_ary; nil; end
+  assert_nil Array.try_convert(obj)
+  obj = Object.new
+  def obj.to_ary; 1; end
+  assert_raise_with_message(TypeError, "can't convert Object to Array (Object#to_ary gives Integer)") { Array.try_convert(obj) }
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); m == :to_ary; end
+  def obj.method_missing(m, *a); m == :to_ary ? [3] : super; end
+  assert_equal [3], Array.try_convert(obj)
+  obj = Object.new
+  def obj.to_ary; [1, 2]; end
+  def obj.respond_to?(m, priv = false); false; end
+  assert_nil Array.try_convert(obj)
+  # a BasicObject with the method but no respond_to? converts, as in CRuby
+  klass = Class.new(BasicObject) { def to_ary; [42]; end }
+  assert_equal [42], Array.try_convert(klass.new)
+  # the rest of what rb_check_funcall() decides
+  obj = Object.new
+  def obj.to_ary; [1]; end
+  def obj.respond_to?(m); m == :to_ary; end
+  assert_equal [1], Array.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); m == :to_ary ? [2] : super; end
+  assert_equal [2], Array.try_convert(obj)
+  klass = Class.new(BasicObject) { def method_missing(m, *a); m == :to_ary ? [3] : super; end }
+  assert_equal [3], Array.try_convert(klass.new)
+  obj = Object.new
+  def obj.respond_to?(m, priv = false); true; end
+  assert_nil Array.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  assert_nil Array.try_convert(obj)
+  obj = Object.new
+  def obj.method_missing(m, *a); super; end
+  assert_nil Array.try_convert(obj)
+  obj = Object.new
+  def obj.respond_to_missing?(m, priv = false); true; end
+  def obj.method_missing(m, *a); super; end
+  assert_raise(NoMethodError) { Array.try_convert(obj) }
+end
