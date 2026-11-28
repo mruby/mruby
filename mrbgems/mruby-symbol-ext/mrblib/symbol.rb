@@ -3,6 +3,11 @@ class Symbol
 
   alias intern to_sym
 
+  # The case methods read the name with Symbol#name, as CRuby's do with
+  # rb_sym2str(): #to_s may be redefined, and the String it returns may be
+  # frozen (Ruby 4.1's Symbol#to_s returns the interned frozen name), so it
+  # is neither read nor modified in place here.
+
   ##
   # call-seq:
   #   sym.capitalize  -> symbol
@@ -10,7 +15,7 @@ class Symbol
   # Same as `sym.to_s.capitalize.intern`.
 
   def capitalize
-    (self.to_s.capitalize! || self).to_sym
+    name.capitalize.to_sym
   end
 
   ##
@@ -20,7 +25,7 @@ class Symbol
   # Same as `sym.to_s.downcase.intern`.
 
   def downcase
-    (self.to_s.downcase! || self).to_sym
+    name.downcase.to_sym
   end
 
   ##
@@ -30,7 +35,7 @@ class Symbol
   # Same as `sym.to_s.upcase.intern`.
 
   def upcase
-    (self.to_s.upcase! || self).to_sym
+    name.upcase.to_sym
   end
 
   ##
@@ -41,9 +46,7 @@ class Symbol
 
   def casecmp(other)
     return nil unless Symbol === other
-    lhs =  self.to_s; lhs.upcase!
-    rhs = other.to_s.upcase
-    lhs <=> rhs
+    name.upcase <=> other.name.upcase
   end
 
   ##
