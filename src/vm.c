@@ -2599,11 +2599,22 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #error MRB_REDUCTION_BUDGET must be between 1 and 32767
 #endif
 
-/* The reductions ran out: the slice is over, and the next one starts. */
+/* The reductions ran out.  Either the slice is over, and the next one starts,
+   or an allocation zeroed them to have a GC step taken here, and the slice
+   goes on with what it had left.  The step is taken in both cases. */
 static void
 reduction_expire(mrb_state *mrb)
 {
-  mrb->reduction = MRB_REDUCTION_BUDGET;
+  int rest = mrb->reduction_rest;
+
+  if (rest > 0) {
+    mrb->reduction_rest = 0;
+    mrb->reduction = rest;
+  }
+  else {
+    mrb->reduction = MRB_REDUCTION_BUDGET;
+  }
+  mrb_gc_reduction_step(mrb);
 }
 
 /* Take one reduction.  Spelled where CHECK_VM_INTERRUPT is, for the reason

@@ -175,6 +175,12 @@
 #define MRB_REDUCTION_BUDGET 4000
 #endif
 
+/* with MRB_USE_REDUCTION, the GC debt an allocation lets pass before it runs
+   a GC step itself; below it the step waits for the next send or jump */
+#ifndef MRB_GC_REDUCTION_SLACK
+#define MRB_GC_REDUCTION_SLACK 64
+#endif
+
 /* Threshold for switching from linear search to hash table */
 #ifndef MRB_SYMBOL_LINEAR_THRESHOLD
 #define MRB_SYMBOL_LINEAR_THRESHOLD 256

@@ -146,6 +146,9 @@ size_t mrb_gc_mark_mt(mrb_state*, struct RClass*);
 int mrb_equal_in_c(mrb_state*, mrb_value, mrb_value);
 void mrb_gc_each_live_object(mrb_state*, int (*)(mrb_state*, struct RBasic*, void*), void*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
+#ifdef MRB_USE_REDUCTION
+void mrb_gc_reduction_step(mrb_state*);
+#endif
 #ifdef MRB_USE_GC_WEAK
 /* A table that holds objects weakly, defined by a gem that sets
    MRB_USE_GC_WEAK: what it holds is not marked through it, and `clear` is

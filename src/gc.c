@@ -798,6 +798,29 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   }
 }
 
+#ifdef MRB_USE_REDUCTION
+/* Leave the GC step an allocation owes to the VM, which takes it between two
+   instructions: zeroing the reductions makes the next send or jump stop, and
+   mrb_gc_reduction_step() runs there.  That is a few instructions away, so
+   the heap is not asked for room it was not going to give.  FALSE where the
+   step would not run there either, and once the debt has outrun the slack,
+   which is what code that allocates without passing a send or a jump does:
+   the allocation then pays as it always did. */
+static mrb_bool
+gc_defer_step(mrb_state *mrb, mrb_gc *gc)
+{
+  if (gc->gc_debt > MRB_GC_REDUCTION_SLACK) return FALSE;
+  if (gc->disabled || gc->iterating || gc->collecting || !gc->auto_step) return FALSE;
+  if (mrb->reduction > 0) {
+    mrb->reduction_rest = mrb->reduction;
+    mrb->reduction = 0;
+  }
+  return TRUE;
+}
+#else
+#define gc_defer_step(mrb, gc) FALSE
+#endif
+
 /* Core allocation without type validation.
    Used internally by mrb_proc_new, mrb_env_new, etc. */
 struct RBasic*
@@ -811,7 +834,7 @@ mrb_obj_alloc_core(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 #endif
   gc->gc_debt++;
   if (gc->gc_debt > 0) {
-    mrb_incremental_gc(mrb);
+    if (!gc_defer_step(mrb, gc)) mrb_incremental_gc(mrb);
     /* Safety valve: when auto_step is off, mrb_incremental_gc no-ops and the
        GC task is expected to drive collection. If it falls behind and debt
        runs past debt_limit, force synchronous progress here so the worst
@@ -1981,6 +2004,22 @@ mrb_incremental_gc(mrb_state *mrb)
   gc_prof_leave(gc, prof_t0);
 #endif
 }
+
+#ifdef MRB_USE_REDUCTION
+/* Take the GC step an allocation left to the VM, see gc_defer_step().  The
+   debt is the one the allocation path counts, so the two never pay for the
+   same object.  Does nothing where mrb_incremental_gc() would not, nor while
+   a mark or a sweep is on the C stack, which is where a dfree that calls
+   back into the VM would find itself. */
+void
+mrb_gc_reduction_step(mrb_state *mrb)
+{
+  mrb_gc *gc = &mrb->gc;
+
+  if (gc->gc_debt <= 0 || gc->collecting) return;
+  mrb_incremental_gc(mrb);
+}
+#endif
 
 /* Perform a full gc cycle */
 MRB_API void

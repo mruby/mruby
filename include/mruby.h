@@ -473,6 +473,10 @@ struct mrb_state {
      ends when none is left.  Signed, and as wide as an int, so that it counts
      down on a 16-bit target as cheaply as anywhere and may run below zero. */
   int reduction;
+  /* What was left of the slice when an allocation zeroed `reduction` to have
+     the VM stop at its next send or jump and pay the GC debt there; zero
+     when nothing asked.  The slice goes on with it afterwards. */
+  int reduction_rest;
 #endif
 
 #ifndef MRB_NO_METHOD_CACHE
