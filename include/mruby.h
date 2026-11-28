@@ -467,6 +467,14 @@ struct mrb_state {
      with mrb_vm_interrupt() and reads what happened as an ordinary raise. */
   volatile mrb_bool vm_interrupt;
 
+#ifdef MRB_USE_REDUCTION
+  /* Reductions left in the current slice.  The VM takes one at a send and at
+     a taken jump, the places a loop or a recursion has to pass, and the slice
+     ends when none is left.  Signed, and as wide as an int, so that it counts
+     down on a 16-bit target as cheaply as anywhere and may run below zero. */
+  int reduction;
+#endif
+
 #ifndef MRB_NO_METHOD_CACHE
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
 #endif

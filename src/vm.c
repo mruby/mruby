@@ -2594,6 +2594,27 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
   } \
 } while (0)
 
+#ifdef MRB_USE_REDUCTION
+#if MRB_REDUCTION_BUDGET < 1 || MRB_REDUCTION_BUDGET > 32767
+#error MRB_REDUCTION_BUDGET must be between 1 and 32767
+#endif
+
+/* The reductions ran out: the slice is over, and the next one starts. */
+static void
+reduction_expire(mrb_state *mrb)
+{
+  mrb->reduction = MRB_REDUCTION_BUDGET;
+}
+
+/* Take one reduction.  Spelled where CHECK_VM_INTERRUPT is, for the reason
+   given there. */
+#define REDUCE(mrb) do { \
+  if (mrb_unlikely(--(mrb)->reduction <= 0)) reduction_expire(mrb); \
+} while (0)
+#else
+#define REDUCE(mrb)
+#endif
+
 #define DECODE_OPERANDS(ops) do { const mrb_code *pc = ci->pc+1; FETCH_ ## ops (); ci->pc = pc; } while (0)
 #define CALL_CODE_HOOKS() do { insn = BYTECODE_DECODER(*ci->pc); CODE_FETCH_HOOK(mrb, irep, ci->pc, regs); } while (0)
 
@@ -3829,6 +3850,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_JMP, S) {
       CHECK_VM_INTERRUPT(mrb);
+      REDUCE(mrb);
       ci->pc += (int16_t)a;
       RETURN_IF_TASK_STOPPED(mrb);
       JUMP;
@@ -3836,6 +3858,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_JMPIF, BS) {
       if (mrb_test(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
+        REDUCE(mrb);
         ci->pc += (int16_t)b;
         RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
@@ -3845,6 +3868,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_JMPNOT, BS) {
       if (!mrb_test(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
+        REDUCE(mrb);
         ci->pc += (int16_t)b;
         RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
@@ -3854,6 +3878,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_JMPNIL, BS) {
       if (mrb_nil_p(regs[a])) {
         CHECK_VM_INTERRUPT(mrb);
+        REDUCE(mrb);
         ci->pc += (int16_t)b;
         RETURN_IF_TASK_STOPPED(mrb);
         JUMP;
@@ -4032,6 +4057,7 @@ RETRY_TRY_BLOCK:
       mrb_method_t m;
 
       CHECK_VM_INTERRUPT(mrb);
+      REDUCE(mrb);
 
       mrb_value recv, blk;
       mrb_int bidx, new_bidx;

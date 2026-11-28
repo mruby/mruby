@@ -167,6 +167,14 @@
 //#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
 
 /* Symbol table configuration */
+/* count reductions in the VM: one per method call and per taken jump */
+//#define MRB_USE_REDUCTION
+
+/* number of reductions in a slice; must fit in 16 bits */
+#ifndef MRB_REDUCTION_BUDGET
+#define MRB_REDUCTION_BUDGET 4000
+#endif
+
 /* Threshold for switching from linear search to hash table */
 #ifndef MRB_SYMBOL_LINEAR_THRESHOLD
 #define MRB_SYMBOL_LINEAR_THRESHOLD 256
