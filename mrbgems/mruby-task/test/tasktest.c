@@ -439,6 +439,16 @@ tasktest_suspending_proc(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb_proc_new_cfunc(mrb, tasktest_suspend_body));
 }
 
+#ifdef MRB_USE_REDUCTION
+/* The reductions in a slice. That this method is there at all tells the tests
+   that a slice ends on a count and no longer on the clock. */
+static mrb_value
+tasktest_reduction_budget(mrb_state *mrb, mrb_value self)
+{
+  return mrb_fixnum_value(MRB_REDUCTION_BUDGET);
+}
+#endif
+
 void
 mrb_mruby_task_gem_test(mrb_state* mrb)
 {
@@ -459,6 +469,9 @@ mrb_mruby_task_gem_test(mrb_state* mrb)
   mrb_define_module_function(mrb, tasktest, "extend_past_stend", tasktest_extend_past_stend, MRB_ARGS_REQ(3));
   mrb_define_module_function(mrb, tasktest, "proc_set_deep", tasktest_proc_set_deep, MRB_ARGS_REQ(2));
   mrb_define_module_function(mrb, tasktest, "suspending_proc", tasktest_suspending_proc, MRB_ARGS_NONE());
+#ifdef MRB_USE_REDUCTION
+  mrb_define_module_function(mrb, tasktest, "reduction_budget", tasktest_reduction_budget, MRB_ARGS_NONE());
+#endif
 #ifdef MRB_USE_TASK_TRACE
   mrb_define_module_function(mrb, tasktest, "trace_start", tasktest_trace_start, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, tasktest, "trace_stop", tasktest_trace_stop, MRB_ARGS_NONE());

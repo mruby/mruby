@@ -557,6 +557,11 @@ execute_task(mrb_state *mrb, mrb_task *t)
 
   /* Set task as running */
   t->timeslice = MRB_TIMESLICE_TICK_COUNT;
+#ifdef MRB_USE_REDUCTION
+  /* the slice is counted in reductions, and the VM ends it */
+  mrb->reduction = MRB_REDUCTION_BUDGET;
+  mrb->reduction_rest = 0;
+#endif
   t->status = MRB_TASK_STATUS_RUNNING;
   MRB_TASK_TRACE(mrb, t, MRB_TASK_TRACE_SWITCH_IN);
 
@@ -658,11 +663,14 @@ execute_task(mrb_state *mrb, mrb_task *t)
 MRB_API void
 mrb_tick(mrb_state *mrb)
 {
+#ifndef MRB_USE_REDUCTION
   mrb_task *t;
+#endif
 
   /* Increment global tick counter */
   tick_++;
 
+#ifndef MRB_USE_REDUCTION
   /* Decrease timeslice for running task */
   t = q_ready_;
   if (t && t->status == MRB_TASK_STATUS_RUNNING && t->timeslice > 0) {
@@ -671,6 +679,7 @@ mrb_tick(mrb_state *mrb)
       switching_ = TRUE;  /* Trigger context switch */
     }
   }
+#endif
 
   /* Wake up sleeping tasks whose wakeup time has passed.
    *

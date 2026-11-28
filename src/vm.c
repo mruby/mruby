@@ -2599,8 +2599,8 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 #error MRB_REDUCTION_BUDGET must be between 1 and 32767
 #endif
 
-/* The reductions ran out.  Either the slice is over, and the next one starts,
-   or an allocation zeroed them to have a GC step taken here, and the slice
+/* The reductions ran out.  Either the slice is over, the next one starts and
+   a task is asked to give way, or an allocation zeroed them to have a GC step taken here, and the slice
    goes on with what it had left.  The step is taken in both cases. */
 static void
 reduction_expire(mrb_state *mrb)
@@ -2613,6 +2613,10 @@ reduction_expire(mrb_state *mrb)
   }
   else {
     mrb->reduction = MRB_REDUCTION_BUDGET;
+#ifdef MRB_USE_TASK_SCHEDULER
+    /* the slice of a task is over; the root context is not a task */
+    if (mrb->c != mrb->root_c) mrb->task.switching = TRUE;
+#endif
   }
   mrb_gc_reduction_step(mrb);
 }

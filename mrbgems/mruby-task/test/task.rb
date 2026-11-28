@@ -397,6 +397,7 @@ end
 
 assert("a switch pending inside a fiber is honored once the fiber returns") do
   skip unless Object.const_defined?(:Fiber)
+  skip "a slice ends on a count of reductions under MRB_USE_REDUCTION" if TaskTest.respond_to?(:reduction_budget)
   order = []
   Task.new do
     Fiber.new { TaskTest.block(50) }.resume
@@ -878,6 +879,7 @@ end
 # task a fiber: it stays preemptible, and its cooperative calls still park it.
 assert("a task that asked for Fiber.current is still preempted") do
   skip unless Object.const_defined?(:Fiber)
+  skip "a slice ends on a count of reductions under MRB_USE_REDUCTION" if TaskTest.respond_to?(:reduction_budget)
   order = []
   Task.new do
     Fiber.current
@@ -1134,4 +1136,104 @@ def tasktest_yield_task; yield Task.current; end
     Task.run
     assert_equal [:before, :other, :after], order
   end
+end
+
+# MRB_USE_REDUCTION builds only: a slice is a count of sends and taken jumps.
+# The loops below take their bound from a local, so that nothing in them
+# returns from a C function and each test meets one kind of stop only.
+assert("a slice of reductions ends at the same place every time") do
+  skip "requires MRB_USE_REDUCTION" unless TaskTest.respond_to?(:reduction_budget)
+  n = TaskTest.reduction_budget * 4
+  run = -> {
+    last = nil
+    switches = [nil] * 64
+    count = 0
+    2.times do |me|
+      Task.new do
+        i = 0
+        while i < n
+          if last != me
+            switches[count] = i
+            count += 1
+            last = me
+          end
+          i += 1
+        end
+      end
+    end
+    Task.run
+    [count, switches]
+  }
+  first = run.call
+  assert_true first[0] > 4
+  assert_equal first, run.call
+end
+
+assert("a task spinning inside a fiber gives way when its slice ends") do
+  skip "requires MRB_USE_REDUCTION" unless TaskTest.respond_to?(:reduction_budget)
+  skip unless Object.const_defined?(:Fiber)
+  n = TaskTest.reduction_budget * 4
+  first_done = false
+  seen = nil
+  Task.new do
+    Fiber.new { i = 0; i += 1 while i < n }.resume
+    first_done = true
+  end
+  Task.new { seen = first_done }
+  Task.run
+  assert_false seen
+end
+
+assert("a task that asked for Fiber.current gives way when its slice ends") do
+  skip "requires MRB_USE_REDUCTION" unless TaskTest.respond_to?(:reduction_budget)
+  skip unless Object.const_defined?(:Fiber)
+  n = TaskTest.reduction_budget * 4
+  first_done = false
+  seen = nil
+  Task.new do
+    Fiber.current
+    i = 0
+    i += 1 while i < n
+    first_done = true
+  end
+  Task.new { seen = first_done }
+  Task.run
+  assert_false seen
+end
+
+# Calls and nothing else: no jump is taken and no C function returns, so the
+# task can only stop where it enters a method.
+class TaskTestDive
+  def initialize(below); @below = below; end
+  def go; @below.go; end
+end
+class TaskTestDiveEnd
+  def go; end
+end
+def tasktest_dive10(d)
+  d.go; d.go; d.go; d.go; d.go; d.go; d.go; d.go; d.go; d.go
+end
+def tasktest_dive100(d)
+  tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d)
+  tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d); tasktest_dive10(d)
+end
+
+assert("a task that only calls methods gives way when its slice ends") do
+  skip "requires MRB_USE_REDUCTION" unless TaskTest.respond_to?(:reduction_budget)
+  dive = TaskTestDiveEnd.new
+  i = 0
+  while i < 40
+    dive = TaskTestDive.new(dive)
+    i += 1
+  end
+  skip "the slice is longer than this test dives" if TaskTest.reduction_budget > 8000
+  first_done = false
+  seen = nil
+  Task.new do
+    tasktest_dive100(dive); tasktest_dive100(dive); tasktest_dive100(dive)
+    first_done = true
+  end
+  Task.new { seen = first_done }
+  Task.run
+  assert_false seen
 end
