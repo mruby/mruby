@@ -233,6 +233,12 @@ Explicit conversion methods (`to_i`, `to_s`, `to_a`) work as in
 CRuby and are called by features such as string interpolation and
 the splat operator (`*obj`).
 
+`String.try_convert`, `Array.try_convert` and `Hash.try_convert`
+report what the interpreter takes as that type. In mruby that is the
+type itself, so they return the argument when it is a String, an
+Array or a Hash, and `nil` for anything else, without calling
+`to_str`, `to_ary` or `to_hash`.
+
 This is a deliberate trade-off: implicit conversion forces every
 coercion site to go through method dispatch and can silently mask
 type-mismatch bugs.
