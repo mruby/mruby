@@ -89,9 +89,6 @@ convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
   dst->st_atime = (mrb_int)src->st_atime;
   dst->st_mtime = (mrb_int)src->st_mtime;
   dst->st_ctime = (mrb_int)src->st_ctime;
-  /* _stat64()'s st_ctime is the creation time */
-  dst->st_birthtime = (mrb_int)src->st_ctime;
-  dst->st_birthtime_p = TRUE;
   dst->st_blksize = 512;
   dst->st_blocks = (dst->st_size + 511) / 512;
 }
@@ -213,6 +210,19 @@ mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st)
 {
   /* Windows doesn't distinguish lstat from stat */
   return mrb_hal_io_stat(mrb, path, st);
+}
+
+int
+mrb_hal_io_birthtime(mrb_state *mrb, const char *path, int fd, mrb_int *t)
+{
+  mrb_io_stat st;
+
+  if ((path ? mrb_hal_io_stat(mrb, path, &st) : mrb_hal_io_fstat(mrb, fd, &st)) == -1) {
+    return -1;
+  }
+  /* _stat64()'s st_ctime is the creation time */
+  *t = st.st_ctime;
+  return 0;
 }
 
 int

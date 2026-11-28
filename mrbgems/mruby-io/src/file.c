@@ -46,9 +46,6 @@
 #ifdef st_ctime
 #undef st_ctime
 #endif
-#ifdef st_birthtime
-#undef st_birthtime
-#endif
 
 #define FILE_SEPARATOR "/"
 
@@ -698,14 +695,16 @@ static mrb_value
 mrb_file_birthtime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
-  mrb_io_stat st;
+  mrb_int t;
+  int ret;
 
   mrb->c->ci->mid = 0;
-  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
+  ret = mrb_hal_io_birthtime(mrb, NULL, fd, &t);
+  if (ret == -1)
     mrb_sys_fail(mrb, "birthtime");
-  if (!st.st_birthtime_p)
+  if (ret != 0)
     mrb_raise(mrb, E_NOTIMP_ERROR, "birthtime is unimplemented on this filesystem");
-  return mrb_int_value(mrb, st.st_birthtime);
+  return mrb_int_value(mrb, t);
 }
 #else
 /* this port keeps no creation time: unimplemented, and named as such so

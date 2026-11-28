@@ -58,16 +58,6 @@ MRB_BEGIN_DECL
 # undef st_mtime
 # undef st_ctime
 #endif
-/* macOS and the BSDs name the creation time the same way (st_birthtime for
-   st_birthtimespec.tv_sec or st_birthtim.tv_sec) */
-#ifdef st_birthtime
-# define MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
-# if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
-#  pragma push_macro("st_birthtime")
-#  define MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
-# endif
-# undef st_birthtime
-#endif
 
 /* File status structure - platform-independent representation */
 typedef struct mrb_io_stat {
@@ -84,11 +74,6 @@ typedef struct mrb_io_stat {
   mrb_int  st_ctime;     /* Last status change time */
   mrb_int  st_blksize;   /* Block size for filesystem I/O */
   mrb_int  st_blocks;    /* Number of 512B blocks allocated */
-  /* Creation time, read only where the port defines MRB_HAL_IO_HAS_BIRTHTIME
-     and then only when st_birthtime_p is set: a filesystem may keep none
-     (Linux reports that per file through statx(2)) */
-  mrb_int  st_birthtime;
-  mrb_bool st_birthtime_p;
 } mrb_io_stat;
 
 #ifdef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
@@ -99,13 +84,6 @@ typedef struct mrb_io_stat {
 #  undef MRB_IO_STAT_TIME_MACROS_RESTORABLE
 # endif
 # undef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
-#endif
-#ifdef MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
-# ifdef MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
-#  pragma pop_macro("st_birthtime")
-#  undef MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
-# endif
-# undef MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
 #endif
 
 /* Timeval structure for select() */
@@ -289,6 +267,23 @@ mrb_int mrb_hal_io_umask(mrb_state *mrb, mrb_int mask);
  * @return 0 on success, -1 on error (sets errno)
  */
 int mrb_hal_io_ftruncate(mrb_state *mrb, int fd, mrb_int length);
+
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+/**
+ * Get the creation time of a file
+ *
+ * Kept apart from mrb_hal_io_stat(): where reading it takes a system call
+ * of its own (statx(2) on Linux), only the caller who asks pays for it.
+ *
+ * @param mrb mruby state
+ * @param path File path (UTF-8), or NULL to ask by descriptor
+ * @param fd File descriptor, read when path is NULL
+ * @param t Output creation time in seconds
+ * @return 0 on success, 1 when the file has no creation time (a filesystem
+ *         or kernel that keeps none), -1 on error (sets errno)
+ */
+int mrb_hal_io_birthtime(mrb_state *mrb, const char *path, int fd, mrb_int *t);
+#endif /* MRB_HAL_IO_HAS_BIRTHTIME */
 
 #ifdef MRB_HAL_IO_HAS_FLOCK
 /**

@@ -21,7 +21,6 @@
 #include <unistd.h>
 #ifdef __linux__
 #include <sys/syscall.h>
-#if defined(__linux__)
 /* struct statx and STATX_BTIME, for the creation time; the call goes
    through syscall(2) so that no glibc version is assumed */
 # include <linux/stat.h>
@@ -32,7 +31,6 @@
 #   define AT_EMPTY_PATH 0x1000
 #  endif
 # endif
-#endif
 #endif
 #include <errno.h>
 #include <stdlib.h>
@@ -114,11 +112,6 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
   /* Extract time values FIRST while macros are still defined.
    * On POSIX systems, st_atime may be a macro for st_atim.tv_sec */
   time_t atime_val, mtime_val, ctime_val;
-#if defined(__APPLE__)
-  time_t birth_val = src->st_birthtimespec.tv_sec;
-#elif defined(__FreeBSD__) || defined(__NetBSD__)
-  time_t birth_val = src->st_birthtim.tv_sec;
-#endif
 #if defined(st_atime)
   /* st_atime is a macro - use it to extract from src */
   atime_val = src->st_atime;
@@ -141,7 +134,6 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
 #undef st_atime
 #undef st_mtime
 #undef st_ctime
-#undef st_birthtime
 
   dst->st_dev = (uint64_t)src->st_dev;
   dst->st_ino = (uint64_t)src->st_ino;
@@ -188,13 +180,6 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
   dst->st_atime = (mrb_int)atime_val;
   dst->st_mtime = (mrb_int)mtime_val;
   dst->st_ctime = (mrb_int)ctime_val;
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__)
-  dst->st_birthtime = (mrb_int)birth_val;
-  dst->st_birthtime_p = TRUE;
-#else
-  dst->st_birthtime = 0;
-  dst->st_birthtime_p = FALSE;
-#endif
 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
   dst->st_blksize = (mrb_int)src->st_blksize;
@@ -207,26 +192,6 @@ convert_stat(const struct stat *src, mrb_io_stat *dst)
   dst->st_blocks = (dst->st_size + 511) / 512;
 #endif
 }
-
-#ifdef MRB_IO_STATX_BIRTHTIME
-/* The creation time Linux keeps per file, where the filesystem has one:
-   stat(2) does not carry it, statx(2) does, with STATX_BTIME in stx_mask
-   saying whether this file has it.  A kernel without statx (before 4.11)
-   fails with ENOSYS and the time stays unknown. */
-static void
-statx_birthtime(int dirfd, const char *path, int flags, mrb_io_stat *dst)
-{
-  struct statx stx;
-
-  if (syscall(SYS_statx, dirfd, path, flags, STATX_BTIME, &stx) == 0 &&
-      (stx.stx_mask & STATX_BTIME)) {
-    dst->st_birthtime = (mrb_int)stx.stx_btime.tv_sec;
-    dst->st_birthtime_p = TRUE;
-  }
-}
-#else
-# define statx_birthtime(dirfd, path, flags, dst) ((void)0)
-#endif
 
 /*
  * File Operations
@@ -242,7 +207,6 @@ mrb_hal_io_stat(mrb_state *mrb, const char *path, mrb_io_stat *st)
     return -1;
   }
   convert_stat(&s, st);
-  statx_birthtime(AT_FDCWD, path, 0, st);
   return 0;
 }
 
@@ -256,7 +220,6 @@ mrb_hal_io_fstat(mrb_state *mrb, int fd, mrb_io_stat *st)
     return -1;
   }
   convert_stat(&s, st);
-  statx_birthtime(fd, "", AT_EMPTY_PATH, st);
   return 0;
 }
 
@@ -270,9 +233,46 @@ mrb_hal_io_lstat(mrb_state *mrb, const char *path, mrb_io_stat *st)
     return -1;
   }
   convert_stat(&s, st);
-  statx_birthtime(AT_FDCWD, path, AT_SYMLINK_NOFOLLOW, st);
   return 0;
 }
+
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+int
+mrb_hal_io_birthtime(mrb_state *mrb, const char *path, int fd, mrb_int *t)
+{
+  (void)mrb;
+#ifdef MRB_IO_STATX_BIRTHTIME
+  /* stat(2) does not carry the creation time on Linux; statx(2) does, with
+     STATX_BTIME in stx_mask saying whether this file has one */
+  struct statx stx;
+  int ret = path ? syscall(SYS_statx, AT_FDCWD, path, 0, STATX_BTIME, &stx)
+                 : syscall(SYS_statx, fd, "", AT_EMPTY_PATH, STATX_BTIME, &stx);
+
+  if (ret == 0) {
+    if (!(stx.stx_mask & STATX_BTIME)) return 1;
+    *t = (mrb_int)stx.stx_btime.tv_sec;
+    return 0;
+  }
+  /* a kernel without statx (before 4.11) or a sandbox that refuses it:
+     the time is unknown, but a missing file is still reported as such */
+  if (errno != ENOSYS && errno != EPERM) return -1;
+#endif
+  {
+    struct stat s;
+
+    if ((path ? stat(path, &s) : fstat(fd, &s)) == -1) return -1;
+#if defined(__APPLE__)
+    *t = (mrb_int)s.st_birthtimespec.tv_sec;
+    return 0;
+#elif defined(__FreeBSD__) || defined(__NetBSD__)
+    *t = (mrb_int)s.st_birthtim.tv_sec;
+    return 0;
+#else
+    return 1;
+#endif
+  }
+}
+#endif /* MRB_HAL_IO_HAS_BIRTHTIME */
 
 int
 mrb_hal_io_chmod(mrb_state *mrb, const char *path, mrb_int mode)

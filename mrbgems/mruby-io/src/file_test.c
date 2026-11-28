@@ -354,15 +354,36 @@ mrb_file_s_ctime(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_s_birthtime(mrb_state *mrb, mrb_value klass)
 {
-  mrb_io_stat st;
   mrb_value obj = mrb_get_arg1(mrb);
+  mrb_int t;
+  int ret;
 
-  if (mrb_stat(mrb, obj, &st) < 0) {
+  if (mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(IO)))) {
+    struct mrb_io *fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, obj, &mrb_io_type);
+
+    if (fptr == NULL || fptr->fd < 0) {
+      mrb_raise(mrb, E_IO_ERROR, "closed stream");
+    }
+    ret = mrb_hal_io_birthtime(mrb, NULL, fptr->fd, &t);
+  }
+  else {
+    char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, mrb_io_path(mrb, obj)), -1);
+
+    if (path == NULL) {
+      errno = EINVAL;
+      ret = -1;
+    }
+    else {
+      ret = mrb_hal_io_birthtime(mrb, path, -1, &t);
+      mrb_locale_free(path);
+    }
+  }
+  if (ret == -1) {
     mrb_sys_fail(mrb, mrb_string_p(obj) ? RSTRING_CSTR(mrb, obj) : NULL);
   }
-  if (!st.st_birthtime_p)
+  if (ret != 0)
     mrb_raise(mrb, E_NOTIMP_ERROR, "birthtime is unimplemented on this filesystem");
-  return mrb_int_value(mrb, st.st_birthtime);
+  return mrb_int_value(mrb, t);
 }
 #else
 # define mrb_file_s_birthtime mrb_notimplement_m
