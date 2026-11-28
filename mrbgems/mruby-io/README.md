@@ -106,6 +106,7 @@ Add the line below to your build configuration.
 | File.absolute_path          |          |          |
 | File.atime                  | o        |          |
 | File.basename               | o        |          |
+| File.birthtime              | o        |          |
 | File.blockdev?              |          | FileTest |
 | File.chardev?               |          | FileTest |
 | File.chmod                  | o        |          |
@@ -159,6 +160,7 @@ Add the line below to your build configuration.
 | File.writable_real?         |          | FileTest |
 | File.zero?                  | o        | FileTest |
 | File#atime                  | o        |          |
+| File#birthtime              | o        |          |
 | File#chmod                  |          |          |
 | File#chown                  |          |          |
 | File#ctime                  | o        |          |

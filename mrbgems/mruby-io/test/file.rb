@@ -665,6 +665,26 @@ assert('File.open with "x" mode') do
   end
 end
 
+assert('File.birthtime and File#birthtime') do
+  path = "#{$mrbtest_io_wfname}.birth"
+  File.open(path, "w") {}
+  begin
+    birth = File.birthtime(path)
+    assert_equal Time, birth.class
+    assert_true birth <= File.mtime(path)
+    File.open(path) do |f|
+      assert_equal birth, f.birthtime
+      # an IO is asked for its file's time
+      assert_equal birth, File.birthtime(f)
+    end
+    assert_raise(Errno::ENOENT) { File.birthtime("#{path}.none") }
+  rescue NotImplementedError => e
+    skip e.message
+  ensure
+    File.delete(path)
+  end
+end
+
 assert('File.atime, File.mtime and File.ctime') do
   path = "#{$mrbtest_io_wfname}.times"
   File.open(path, "w") {}
