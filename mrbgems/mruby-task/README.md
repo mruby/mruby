@@ -40,6 +40,22 @@ scheduler automatically switches to the next ready task when:
 - A task calls `sleep`, `Task.pass`, or `join`.
 - A task finishes execution.
 
+A task whose timeslice has expired gives way at its next taken jump, method or
+block entry, or return from a C function, not in the middle of straight-line
+code. A task that calls `sleep`, `Task.pass`, or `join` stops there.
+
+### Reduction-Based Preemption
+
+When mruby is built with `MRB_USE_REDUCTION`, a timeslice is a count instead of
+a time: a task runs for `MRB_REDUCTION_BUDGET` reductions (default: 4000), one
+for each method call and each taken jump, and then gives way. The same program
+then switches tasks at the same places on every run, which makes a scheduling
+bug repeatable. The tick is still needed: it drives `sleep` and the other timed
+waits, and a task it wakes still preempts the running one.
+
+A C function counts as one reduction however long it runs, so a task that
+spends its time inside one is not preempted meanwhile.
+
 ## Functionality
 
 ### Creating Tasks
@@ -357,6 +373,9 @@ Timing parameters can be configured via C defines:
 ```
 
 Default timeslice: `MRB_TICK_UNIT * MRB_TIMESLICE_TICK_COUNT = 12ms`
+
+`MRB_TIMESLICE_TICK_COUNT` is not used under `MRB_USE_REDUCTION`, where
+`MRB_REDUCTION_BUDGET` sets the length of a timeslice.
 
 ### Stack Configuration
 

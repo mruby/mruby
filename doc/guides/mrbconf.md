@@ -150,6 +150,33 @@ end
 - Default value is `1024`.
 - Specifies number of `RBasic` per each heap page.
 
+`MRB_USE_REDUCTION`
+
+- Counts reductions in the VM, one for each method call and each taken jump.
+- With `mruby-task`, a task runs for `MRB_REDUCTION_BUDGET` reductions and then
+  gives way, in place of the time slice counted by the tick. The same program
+  then switches tasks at the same places on every run. The tick still drives
+  `sleep` and the other timed waits, and a task woken by it still preempts.
+- A C function counts as one reduction however long it runs, so a task that
+  spends its time in one is not preempted meanwhile.
+- The GC step an allocation owes is taken at the next method call or jump
+  rather than inside the allocation.
+- Costs one decrement and one branch at each method call and taken jump.
+
+`MRB_REDUCTION_BUDGET`
+
+- Default value is `4000`.
+- Ignored when `MRB_USE_REDUCTION` isn't defined.
+- Specifies the number of reductions in a slice. Must be between `1` and
+  `32767`.
+
+`MRB_GC_REDUCTION_SLACK`
+
+- Default value is `64`.
+- Ignored when `MRB_USE_REDUCTION` isn't defined.
+- Specifies the GC debt, in objects, that code allocating without a method call
+  or a jump may run up before an allocation takes the GC step itself.
+
 `MRB_GC_MALLOC_THRESHOLD`
 
 - Default value is `16777216` (16MiB), the figure CRuby gives `malloc_limit`,
