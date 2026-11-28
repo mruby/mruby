@@ -120,6 +120,29 @@ assert('Symbol#slice - the name comes from the symbol, not from #to_s') do
   end
 end
 
+assert('Symbol#capitalize, #downcase, #upcase, #casecmp - the name comes from the symbol, not from #to_s') do
+  # CRuby's read the name with rb_sym2str(). A redefined #to_s must not
+  # change the result, and one that returns a frozen String (Ruby 4.1's
+  # Symbol#to_s returns the interned name) must not raise FrozenError.
+  class Symbol
+    alias __case_test_to_s to_s
+    def to_s
+      "Redefined".freeze
+    end
+  end
+  begin
+    assert_equal :Hello, :hEllO.capitalize
+    assert_equal :hello, :hEllO.downcase
+    assert_equal :HELLO, :hEllO.upcase
+    assert_equal 0, :HELLO.casecmp(:hEllO)
+    assert_equal(-1, :HELLO.casecmp(:hEllP))
+  ensure
+    class Symbol
+      alias to_s __case_test_to_s
+    end
+  end
+end
+
 assert('Symbol#start_with?') do
   assert_true :hello.start_with?("hell")
   assert_true :hello.start_with?("heaven", "hell")
