@@ -3592,8 +3592,8 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
         m = create_method_value(mrb, flags, ptr);
 #ifndef MRB_NO_METHOD_CACHE
         mc--;  /* back to way 0 */
-        if (mc->c != NULL && mc[1].c == NULL)
-          mc++;  /* way 1 is empty, use it */
+        if (mc->c != NULL)
+          mc[1] = mc[0];  /* demote way 0, evicting the older way 1 */
         mc->c = oc;
         mc->c0 = c;
         mc->mid = mid;
