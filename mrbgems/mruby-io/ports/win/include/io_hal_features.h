@@ -25,6 +25,10 @@
    one), no symbolic link, no socket.  `FileTest.pipe?`, `.symlink?` and
    `.socket?` are left undefined rather than defined to answer wrongly. */
 
+/* The st_ctime _stat64() fills is the creation time, which is what
+   `File.birthtime` and `File#birthtime` report here, as CRuby's do. */
+#define MRB_HAL_IO_HAS_BIRTHTIME
+
 /* CreateProcess(), and WaitForSingleObject() for the child: `IO.popen`. */
 #define MRB_HAL_IO_HAS_SPAWN_PROCESS
 

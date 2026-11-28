@@ -58,6 +58,16 @@ MRB_BEGIN_DECL
 # undef st_mtime
 # undef st_ctime
 #endif
+/* macOS and the BSDs name the creation time the same way (st_birthtime for
+   st_birthtimespec.tv_sec or st_birthtim.tv_sec) */
+#ifdef st_birthtime
+# define MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
+# if defined(__GNUC__) || defined(__clang__) || defined(_MSC_VER)
+#  pragma push_macro("st_birthtime")
+#  define MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
+# endif
+# undef st_birthtime
+#endif
 
 /* File status structure - platform-independent representation */
 typedef struct mrb_io_stat {
@@ -74,6 +84,11 @@ typedef struct mrb_io_stat {
   mrb_int  st_ctime;     /* Last status change time */
   mrb_int  st_blksize;   /* Block size for filesystem I/O */
   mrb_int  st_blocks;    /* Number of 512B blocks allocated */
+  /* Creation time, read only where the port defines MRB_HAL_IO_HAS_BIRTHTIME
+     and then only when st_birthtime_p is set: a filesystem may keep none
+     (Linux reports that per file through statx(2)) */
+  mrb_int  st_birthtime;
+  mrb_bool st_birthtime_p;
 } mrb_io_stat;
 
 #ifdef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
@@ -84,6 +99,13 @@ typedef struct mrb_io_stat {
 #  undef MRB_IO_STAT_TIME_MACROS_RESTORABLE
 # endif
 # undef MRB_IO_STAT_TIME_MACROS_SET_ASIDE
+#endif
+#ifdef MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
+# ifdef MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
+#  pragma pop_macro("st_birthtime")
+#  undef MRB_IO_STAT_BIRTHTIME_MACRO_RESTORABLE
+# endif
+# undef MRB_IO_STAT_BIRTHTIME_MACRO_SET_ASIDE
 #endif
 
 /* Timeval structure for select() */

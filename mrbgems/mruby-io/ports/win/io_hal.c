@@ -89,6 +89,9 @@ convert_stat(const struct _stat64 *src, mrb_io_stat *dst)
   dst->st_atime = (mrb_int)src->st_atime;
   dst->st_mtime = (mrb_int)src->st_mtime;
   dst->st_ctime = (mrb_int)src->st_ctime;
+  /* _stat64()'s st_ctime is the creation time */
+  dst->st_birthtime = (mrb_int)src->st_ctime;
+  dst->st_birthtime_p = TRUE;
   dst->st_blksize = 512;
   dst->st_blocks = (dst->st_size + 511) / 512;
 }

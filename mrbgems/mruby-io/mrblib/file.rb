@@ -101,6 +101,24 @@ class File < IO
 
   #
   # call-seq:
+  #   file.birthtime -> time
+  #
+  # Returns the creation time for file.  Raises NotImplementedError where
+  # the filesystem keeps none.  On a port that has no way to read it at
+  # all, the C side defines birthtime as unimplemented instead, so that
+  # `respond_to?(:birthtime)` answers false, and this is left out.
+  #
+  #   File.new("testfile").birthtime   #=> Wed Apr 09 08:53:13 CDT 2003
+  #
+  if method_defined?(:_birthtime)
+    def birthtime
+      t = self._birthtime
+      t && Time.at(t)
+    end
+  end
+
+  #
+  # call-seq:
   #   File.atime(file_name)  -> time
   #
   # Returns the last access time of the named file (or of an IO), as
@@ -136,6 +154,21 @@ class File < IO
   #
   def self.mtime(file_name)
     Time.at(__mtime(file_name))
+  end
+
+  #
+  # call-seq:
+  #   File.birthtime(file_name)  -> time
+  #
+  # Returns the creation time of the named file (or of an IO), as
+  # File#birthtime does; left out on a port that cannot read it, as above.
+  #
+  #   File.birthtime("testfile")   #=> Wed Apr 09 08:53:13 CDT 2003
+  #
+  if respond_to?(:__birthtime)
+    def self.birthtime(file_name)
+      Time.at(__birthtime(file_name))
+    end
   end
 
   #

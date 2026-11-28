@@ -31,6 +31,15 @@
 #define MRB_HAL_IO_HAS_STAT_SOCKET
 /* st_dev and st_ino from mrb_hal_io_stat() name a file: `File.identical?`. */
 #define MRB_HAL_IO_HAS_STAT_INODE
+/* The creation time in mrb_hal_io_stat(): `File.birthtime` and
+   `File#birthtime`.  st_birthtimespec on macOS, st_birthtim on FreeBSD
+   and NetBSD, statx(2) on Linux, where a filesystem that keeps none is
+   reported per file (st_birthtime_p stays clear and the method raises
+   NotImplementedError, as CRuby's does there).  OpenBSD and DragonFly
+   have no public member for it. */
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__linux__)
+# define MRB_HAL_IO_HAS_BIRTHTIME
+#endif
 /* geteuid(2), getegid(2) and getgroups(2): mrb_hal_io_owner(), for
    `File.owned?` and `File.grpowned?`. */
 #define MRB_HAL_IO_HAS_OWNER

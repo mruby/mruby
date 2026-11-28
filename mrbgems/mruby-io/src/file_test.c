@@ -347,6 +347,27 @@ mrb_file_s_ctime(mrb_state *mrb, mrb_value klass)
   return file_s_time(mrb, 'c');
 }
 
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+/* File.__birthtime(file_name): the creation time in whole seconds, which
+   File.birthtime turns into a Time; NotImplementedError where the
+   filesystem keeps none, as CRuby's */
+static mrb_value
+mrb_file_s_birthtime(mrb_state *mrb, mrb_value klass)
+{
+  mrb_io_stat st;
+  mrb_value obj = mrb_get_arg1(mrb);
+
+  if (mrb_stat(mrb, obj, &st) < 0) {
+    mrb_sys_fail(mrb, mrb_string_p(obj) ? RSTRING_CSTR(mrb, obj) : NULL);
+  }
+  if (!st.st_birthtime_p)
+    mrb_raise(mrb, E_NOTIMP_ERROR, "birthtime is unimplemented on this filesystem");
+  return mrb_int_value(mrb, st.st_birthtime);
+}
+#else
+# define mrb_file_s_birthtime mrb_notimplement_m
+#endif
+
 /* Whether the process may access the named file in the way asked; false
    for a file that is not there */
 static mrb_value
@@ -453,5 +474,11 @@ mrb_init_file_test(mrb_state *mrb)
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(__atime),     mrb_file_s_atime,           MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(__mtime),     mrb_file_s_mtime,           MRB_ARGS_REQ(1));
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+  mrb_define_class_method_id(mrb, file, MRB_SYM(__birthtime), mrb_file_s_birthtime,       MRB_ARGS_REQ(1));
+#else
+  /* the public name itself, so that `respond_to?(:birthtime)` answers false */
+  mrb_define_class_method_id(mrb, file, MRB_SYM(birthtime),   mrb_file_s_birthtime,       MRB_ARGS_REQ(1));
+#endif
   mrb_define_class_method_id(mrb, file, MRB_SYM(__ctime),     mrb_file_s_ctime,           MRB_ARGS_REQ(1));
 }

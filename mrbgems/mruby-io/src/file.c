@@ -46,6 +46,9 @@
 #ifdef st_ctime
 #undef st_ctime
 #endif
+#ifdef st_birthtime
+#undef st_birthtime
+#endif
 
 #define FILE_SEPARATOR "/"
 
@@ -687,6 +690,29 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, st.st_mtime);
 }
 
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+/* File#_birthtime: the creation time in whole seconds, which File#birthtime
+   turns into a Time.  A filesystem that keeps none raises
+   NotImplementedError, as CRuby's does. */
+static mrb_value
+mrb_file_birthtime(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_io_fileno(mrb, self);
+  mrb_io_stat st;
+
+  mrb->c->ci->mid = 0;
+  if (mrb_hal_io_fstat(mrb, fd, &st) == -1)
+    mrb_sys_fail(mrb, "birthtime");
+  if (!st.st_birthtime_p)
+    mrb_raise(mrb, E_NOTIMP_ERROR, "birthtime is unimplemented on this filesystem");
+  return mrb_int_value(mrb, st.st_birthtime);
+}
+#else
+/* this port keeps no creation time: unimplemented, and named as such so
+   `respond_to?` can answer false */
+# define mrb_file_birthtime mrb_notimplement_m
+#endif
+
 #ifndef MRB_HAL_IO_HAS_FLOCK
 /* this port has no file locking: unimplemented, and named as such so
    `respond_to?` can answer false */
@@ -1156,6 +1182,13 @@ static const mrb_mt_entry file_rom_entries[] = {
   MRB_MT_ENTRY(mrb_file_atime,    MRB_SYM(_atime), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_file_ctime,    MRB_SYM(_ctime), MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_file_mtime,    MRB_SYM(_mtime), MRB_ARGS_NONE()),
+#ifdef MRB_HAL_IO_HAS_BIRTHTIME
+  MRB_MT_ENTRY(mrb_file_birthtime, MRB_SYM(_birthtime), MRB_ARGS_NONE()),
+#else
+  /* the public name itself, so that `respond_to?(:birthtime)` answers
+     false; mrblib defines the Time-returning one only over _birthtime */
+  MRB_MT_ENTRY(mrb_file_birthtime, MRB_SYM(birthtime), MRB_ARGS_NONE()),
+#endif
   MRB_MT_ENTRY(mrb_file_size,     MRB_SYM(size),  MRB_ARGS_NONE()),
   MRB_MT_ENTRY(mrb_file_truncate, MRB_SYM(truncate), MRB_ARGS_REQ(1)),
 };
